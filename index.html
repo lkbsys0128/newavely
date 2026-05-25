@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>온누리 공동체 관리</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="주요 메뉴">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">ON</div>
+          <div>
+            <strong>온누리 공동체</strong>
+            <span>멤버십 운영</span>
+          </div>
+        </div>
+
+        <nav class="nav-list" aria-label="앱 섹션">
+          <button class="nav-item active" data-section="dashboard">대시보드</button>
+          <button class="nav-item" data-section="members">멤버</button>
+          <button class="nav-item" data-section="groups">소그룹</button>
+          <button class="nav-item" data-section="attendance">출석</button>
+          <button class="nav-item" data-section="permissions">권한</button>
+        </nav>
+
+        <div class="auth-card">
+          <span>소셜 로그인</span>
+          <button id="loginButton" class="google-button" type="button">
+            <span class="google-dot" aria-hidden="true"></span>
+            Google로 로그인
+          </button>
+          <p id="loginState">현재 데모 관리자 계정입니다.</p>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">2026 공동체 관리 MVP</p>
+            <h1 id="pageTitle">대시보드</h1>
+          </div>
+          <div class="topbar-actions">
+            <label class="search-field">
+              <span>검색</span>
+              <input id="memberSearch" type="search" placeholder="이름, 연락처, 소그룹" />
+            </label>
+            <button class="primary-button" id="addMemberShortcut" type="button">멤버 추가</button>
+          </div>
+        </header>
+
+        <section id="dashboard" class="section active" aria-labelledby="pageTitle">
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span>전체 멤버</span>
+              <strong id="totalMembers">0</strong>
+              <small>목표 규모 200명 기준</small>
+            </article>
+            <article class="metric-card">
+              <span>이번 주 출석</span>
+              <strong id="weeklyAttendance">0%</strong>
+              <small id="weeklyAttendanceDetail">체크 전</small>
+            </article>
+            <article class="metric-card">
+              <span>소그룹</span>
+              <strong id="groupCount">0</strong>
+              <small>리더 배정 완료</small>
+            </article>
+            <article class="metric-card">
+              <span>관리 역할</span>
+              <strong id="roleCount">0</strong>
+              <small>권한 단계</small>
+            </article>
+          </div>
+
+          <div class="dashboard-layout">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>오늘 챙길 멤버</h2>
+                <span>새가족, 돌봄 필요, 결석</span>
+              </div>
+              <div id="careList" class="care-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>소그룹 현황</h2>
+                <span>인원과 최근 출석률</span>
+              </div>
+              <div id="groupSummary" class="group-summary"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="members" class="section">
+          <div class="content-grid">
+            <section class="panel wide">
+              <div class="panel-heading">
+                <h2>멤버 목록</h2>
+                <span id="memberListCount">0명</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>이름</th>
+                      <th>소그룹</th>
+                      <th>역할</th>
+                      <th>상태</th>
+                      <th>연락처</th>
+                    </tr>
+                  </thead>
+                  <tbody id="memberRows"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <aside class="panel">
+              <div class="panel-heading">
+                <h2>멤버 상세</h2>
+                <span id="selectedMemberStatus">선택됨</span>
+              </div>
+              <div id="memberDetail" class="member-detail"></div>
+            </aside>
+          </div>
+
+          <section class="panel form-panel" id="addMemberPanel">
+            <div class="panel-heading">
+              <h2>멤버 추가</h2>
+              <span>필수 정보만 먼저 입력</span>
+            </div>
+            <form id="memberForm" class="member-form">
+              <label>
+                이름
+                <input name="name" required placeholder="예: 김하은" />
+              </label>
+              <label>
+                연락처
+                <input name="phone" required placeholder="010-0000-0000" />
+              </label>
+              <label>
+                소그룹
+                <select name="group" id="groupSelect"></select>
+              </label>
+              <label>
+                역할
+                <select name="role" id="roleSelect"></select>
+              </label>
+              <label>
+                상태
+                <select name="status">
+                  <option>활동</option>
+                  <option>새가족</option>
+                  <option>돌봄 필요</option>
+                </select>
+              </label>
+              <button class="primary-button" type="submit">추가</button>
+            </form>
+          </section>
+        </section>
+
+        <section id="groups" class="section">
+          <div id="groupCards" class="group-grid"></div>
+        </section>
+
+        <section id="attendance" class="section">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>주일 출석 체크</h2>
+                <span id="attendanceDate">2026-05-24</span>
+              </div>
+              <div class="segmented">
+                <button class="segment active" data-attendance-filter="all" type="button">전체</button>
+                <button class="segment" data-attendance-filter="present" type="button">출석</button>
+                <button class="segment" data-attendance-filter="absent" type="button">미출석</button>
+              </div>
+            </div>
+            <div id="attendanceList" class="attendance-list"></div>
+          </section>
+        </section>
+
+        <section id="permissions" class="section">
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>역할 기반 권한</h2>
+              <span>구글 로그인 후 역할에 따라 메뉴와 데이터 접근 제한</span>
+            </div>
+            <div id="permissionMatrix" class="permission-matrix"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
