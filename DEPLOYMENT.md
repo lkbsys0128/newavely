@@ -1,21 +1,21 @@
 # Vercel Git CI/CD Setup
 
-이 프로젝트는 현재 정적 HTML/CSS/JS 앱이므로 Vercel에 바로 배포할 수 있습니다.
+이 프로젝트는 Next.js 앱이며 Vercel Git Integration으로 자동 배포됩니다.
 
 ## 1. GitHub 저장소
 
-저장소: `https://github.com/lkbsys0128/newavehub`
+저장소: `https://github.com/lkbsys0128/newavely`
 
 ## 2. Vercel 프로젝트 설정
 
 Vercel Dashboard에서 GitHub 저장소를 Import합니다.
 
-- Application Preset: `Other`
+- Application Preset: `Next.js`
 - Root Directory: `./`
-- Build Command: 비움
-- Output Directory: 비움
-- Install Command: 비움
-- Environment Variables: 현재는 없음
+- Build Command: 기본값
+- Output Directory: 기본값
+- Install Command: 기본값
+- Environment Variables: 아래 Supabase 값 추가
 
 ## 3. 자동 배포 흐름
 
@@ -27,4 +27,11 @@ GitHub Actions용 `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` secret은
 
 ## 4. 다음 제품 개발 단계
 
-Google 로그인, DB, 권한 처리를 붙이면 Vercel 환경 변수에 OAuth와 DB 접속 정보를 추가합니다.
+현재 앱은 Next.js 기반으로 전환되어 Supabase Google 로그인, Supabase Postgres DB schema, 역할 기반 권한 구조를 사용합니다.
+
+필요한 Vercel 환경 변수:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Supabase Dashboard에서 Google provider를 켜고, SQL Editor에서 `db/schema.sql`을 실행하면 운영 데이터 저장을 시작할 수 있습니다.
