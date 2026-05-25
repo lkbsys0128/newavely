@@ -1,41 +1,30 @@
-# Vercel CI/CD Setup
+# Vercel Git CI/CD Setup
 
 이 프로젝트는 현재 정적 HTML/CSS/JS 앱이므로 Vercel에 바로 배포할 수 있습니다.
 
-## 1. GitHub 저장소 만들기
+## 1. GitHub 저장소
 
-```bash
-git init
-git add .
-git commit -m "Initial church community app"
-git branch -M main
-git remote add origin <github-repo-url>
-git push -u origin main
-```
+저장소: `https://github.com/lkbsys0128/newavehub`
 
-## 2. Vercel 프로젝트 연결
+## 2. Vercel 프로젝트 설정
 
-Vercel Dashboard에서 GitHub 저장소를 Import하거나, CLI를 사용합니다.
+Vercel Dashboard에서 GitHub 저장소를 Import합니다.
 
-```bash
-vercel login
-vercel link
-vercel pull
-```
+- Application Preset: `Other`
+- Root Directory: `./`
+- Build Command: 비움
+- Output Directory: 비움
+- Install Command: 비움
+- Environment Variables: 현재는 없음
 
-연결 후 `.vercel/project.json`에 `orgId`, `projectId`가 생깁니다.
-
-## 3. GitHub Actions Secrets 추가
-
-GitHub 저장소의 `Settings -> Secrets and variables -> Actions`에 아래 값을 추가합니다.
-
-- `VERCEL_TOKEN`: Vercel Account Settings에서 발급한 토큰
-- `VERCEL_ORG_ID`: `.vercel/project.json`의 `orgId`
-- `VERCEL_PROJECT_ID`: `.vercel/project.json`의 `projectId`
-
-## 4. 배포 흐름
+## 3. 자동 배포 흐름
 
 - `main` 브랜치에 push: 프로덕션 배포
 - Pull Request 생성/업데이트: 프리뷰 배포
+- Vercel이 GitHub commit을 감지해서 자동으로 빌드와 배포를 실행
 
-다음 개발 단계에서 Google 로그인, DB, 권한 처리를 붙이면 Vercel 환경 변수에 OAuth와 DB 접속 정보를 추가하면 됩니다.
+GitHub Actions용 `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` secret은 현재 필요하지 않습니다.
+
+## 4. 다음 제품 개발 단계
+
+Google 로그인, DB, 권한 처리를 붙이면 Vercel 환경 변수에 OAuth와 DB 접속 정보를 추가합니다.
