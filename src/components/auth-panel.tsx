@@ -1,8 +1,11 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/browser";
+import { getPublicSupabaseEnvStatus } from "@/lib/supabase/env";
 
 export function AuthPanel() {
+  const envStatus = getPublicSupabaseEnvStatus();
+
   async function signInWithGoogle() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -23,6 +26,15 @@ export function AuthPanel() {
         <span>Supabase Google Auth</span>
       </div>
       <div className="care-list">
+        <article className="care-item">
+          <div className="person-block">
+            <strong>Supabase 연결 상태</strong>
+            <span>
+              URL {envStatus.hasUrl ? "OK" : "MISSING"} · Key{" "}
+              {envStatus.hasAnonKey ? `OK (${envStatus.keyPrefix}...)` : "MISSING"} · {envStatus.urlHost}
+            </span>
+          </div>
+        </article>
         <article className="care-item">
           <div className="person-block">
             <strong>Google 계정으로 로그인</strong>
