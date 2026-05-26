@@ -52,6 +52,8 @@ export async function createMember(formData: FormData) {
 
   if (error) throw error;
   revalidatePath("/");
+  revalidatePath("/members");
+  revalidatePath("/groups");
 }
 
 export async function toggleAttendance(memberId: string, eventId: string, nextPresent: boolean) {
@@ -85,4 +87,6 @@ export async function toggleAttendance(memberId: string, eventId: string, nextPr
 
   if (error) throw error;
   revalidatePath("/");
+  revalidatePath("/attendance");
+  revalidatePath("/groups");
 }

@@ -1,30 +1,85 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { createMember, toggleAttendance } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
+import type { AppUser } from "@/lib/app-page-data";
 import type { Group, Member } from "@/lib/types";
 
-type DashboardProps = {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: Role;
-  };
-  attendanceDate: string;
-  attendanceEventId?: string;
-  initialMembers: Member[];
+type AppDataProps = {
+  user: AppUser;
+  members: Member[];
   groups: Group[];
 };
 
-export function Dashboard({ user, attendanceDate, attendanceEventId, initialMembers, groups }: DashboardProps) {
-  const [members, setMembers] = useState(initialMembers);
-  const [query, setQuery] = useState("");
-  const [selectedMemberId, setSelectedMemberId] = useState(initialMembers[0]?.id ?? "");
-  const [attendanceFilter, setAttendanceFilter] = useState<"all" | "present" | "absent">("all");
-  const [isPending, startTransition] = useTransition();
+export function DashboardOverview({ user, members, groups }: AppDataProps) {
+  const presentCount = members.filter((member) => member.present).length;
+  const attendanceRate = members.length ? Math.round((presentCount / members.length) * 100) : 0;
 
+  return (
+    <>
+      <PageHeader eyebrow="2026 공동체 관리 MVP" title="대시보드" user={user} />
+
+      <div className="metric-grid">
+        <article className="metric-card">
+          <span>전체 멤버</span>
+          <strong>{members.length}</strong>
+          <small>목표 규모 200명 기준</small>
+        </article>
+        <article className="metric-card">
+          <span>이번 주 출석</span>
+          <strong>{attendanceRate}%</strong>
+          <small>
+            {presentCount}/{members.length}명 출석
+          </small>
+        </article>
+        <article className="metric-card">
+          <span>소그룹</span>
+          <strong>{groups.length}</strong>
+          <small>리더 배정 완료</small>
+        </article>
+        <article className="metric-card">
+          <span>관리 역할</span>
+          <strong>{Object.keys(permissionsByRole).length}</strong>
+          <small>권한 단계</small>
+        </article>
+      </div>
+
+      <div className="dashboard-layout">
+        <section className="panel">
+          <div className="panel-heading">
+            <h2>오늘 챙길 멤버</h2>
+            <span>새가족, 돌봄 필요, 결석</span>
+          </div>
+          <div className="care-list">
+            {members
+              .filter((member) => member.status !== "active" || !member.present)
+              .map((member) => (
+                <article className="care-item" key={member.id}>
+                  <div className="person-block">
+                    <strong>{member.name}</strong>
+                    <span>
+                      {member.groupName} · {member.notes}
+                    </span>
+                  </div>
+                  <span className={`status-pill ${member.status === "active" ? "active" : ""}`}>
+                    {statusLabels[member.status]}
+                  </span>
+                </article>
+              ))}
+          </div>
+        </section>
+
+        <GroupSummaryPanel members={members} groups={groups} />
+      </div>
+    </>
+  );
+}
+
+export function MembersManager({ user, members, groups }: AppDataProps) {
+  const [query, setQuery] = useState("");
+  const [selectedMemberId, setSelectedMemberId] = useState(members[0]?.id ?? "");
+  const canManageMembers = hasPermission(user.role, "members:write");
   const selectedMember = members.find((member) => member.id === selectedMemberId) ?? members[0];
   const filteredMembers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -37,122 +92,21 @@ export function Dashboard({ user, attendanceDate, attendanceEventId, initialMemb
     );
   }, [members, query]);
 
-  const attendanceMembers = members.filter((member) => {
-    if (attendanceFilter === "present") return member.present;
-    if (attendanceFilter === "absent") return !member.present;
-    return true;
-  });
-
-  const presentCount = members.filter((member) => member.present).length;
-  const attendanceRate = Math.round((presentCount / members.length) * 100);
-  const canManageMembers = hasPermission(user.role, "members:write");
-  const canManageAttendance = hasPermission(user.role, "attendance:write");
-
   return (
     <>
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">2026 공동체 관리 MVP</p>
-          <h1>대시보드</h1>
-          <p className="meta">
-            {user.name} · {roleLabels[user.role]} 권한
-          </p>
-        </div>
-        <div className="topbar-actions">
-          <label className="search-field">
-            <span>검색</span>
-            <input
-              type="search"
-              placeholder="이름, 연락처, 소그룹"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          <a className="primary-button" href="#add-member">
-            멤버 추가
-          </a>
-        </div>
-      </header>
+      <PageHeader eyebrow="멤버 관리" title="멤버" user={user}>
+        <label className="search-field">
+          <span>검색</span>
+          <input
+            type="search"
+            placeholder="이름, 연락처, 소그룹"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+      </PageHeader>
 
-      <section id="dashboard">
-        <div className="metric-grid">
-          <article className="metric-card">
-            <span>전체 멤버</span>
-            <strong>{members.length}</strong>
-            <small>목표 규모 200명 기준</small>
-          </article>
-          <article className="metric-card">
-            <span>이번 주 출석</span>
-            <strong>{attendanceRate}%</strong>
-            <small>
-              {presentCount}/{members.length}명 출석
-            </small>
-          </article>
-          <article className="metric-card">
-            <span>소그룹</span>
-            <strong>{groups.length}</strong>
-            <small>리더 배정 완료</small>
-          </article>
-          <article className="metric-card">
-            <span>관리 역할</span>
-            <strong>{Object.keys(permissionsByRole).length}</strong>
-            <small>권한 단계</small>
-          </article>
-        </div>
-
-        <div className="dashboard-layout">
-          <section className="panel">
-            <div className="panel-heading">
-              <h2>오늘 챙길 멤버</h2>
-              <span>새가족, 돌봄 필요, 결석</span>
-            </div>
-            <div className="care-list">
-              {members
-                .filter((member) => member.status !== "active" || !member.present)
-                .map((member) => (
-                  <article className="care-item" key={member.id}>
-                    <div className="person-block">
-                      <strong>{member.name}</strong>
-                      <span>
-                        {member.groupName} · {member.notes}
-                      </span>
-                    </div>
-                    <span className={`status-pill ${member.status === "active" ? "active" : ""}`}>
-                      {statusLabels[member.status]}
-                    </span>
-                  </article>
-                ))}
-            </div>
-          </section>
-
-          <section className="panel">
-            <div className="panel-heading">
-              <h2>소그룹 현황</h2>
-              <span>인원과 최근 출석률</span>
-            </div>
-            <div className="group-summary">
-              {groups.map((group) => {
-                const groupMembers = members.filter((member) => member.groupName === group.name);
-                const present = groupMembers.filter((member) => member.present).length;
-                const rate = groupMembers.length ? Math.round((present / groupMembers.length) * 100) : 0;
-                return (
-                  <article className="summary-row" key={group.id}>
-                    <div className="person-block">
-                      <strong>{group.name}</strong>
-                      <span>
-                        리더 {group.leaderName} · {groupMembers.length}/{group.targetSize}명
-                      </span>
-                    </div>
-                    <span className={`attendance-pill ${rate >= 70 ? "present" : ""}`}>{rate}%</span>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <section id="members" className="content-grid">
+      <section className="content-grid">
         <section className="panel wide">
           <div className="panel-heading">
             <h2>멤버 목록</h2>
@@ -210,7 +164,7 @@ export function Dashboard({ user, attendanceDate, attendanceEventId, initialMemb
         </aside>
       </section>
 
-      <section id="add-member" className="panel form-panel">
+      <section className="panel form-panel">
         <div className="panel-heading">
           <h2>멤버 추가</h2>
           <span>{canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}</span>
@@ -227,6 +181,7 @@ export function Dashboard({ user, attendanceDate, attendanceEventId, initialMemb
           <label>
             소그룹
             <select name="groupId" disabled={!canManageMembers}>
+              <option value="">미배정</option>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.name}
@@ -257,11 +212,18 @@ export function Dashboard({ user, attendanceDate, attendanceEventId, initialMemb
           </button>
         </form>
       </section>
+    </>
+  );
+}
 
-      <section id="groups" className="group-grid">
+export function GroupsPageContent({ user, members, groups }: AppDataProps) {
+  return (
+    <>
+      <PageHeader eyebrow="소그룹 관리" title="소그룹" user={user} />
+      <section className="group-grid">
         {groups.map((group) => {
           const groupMembers = members.filter((member) => member.groupName === group.name);
-          const fill = Math.min(Math.round((groupMembers.length / group.targetSize) * 100), 100);
+          const fill = group.targetSize ? Math.min(Math.round((groupMembers.length / group.targetSize) * 100), 100) : 0;
           return (
             <article className="group-card" key={group.id}>
               <header>
@@ -281,8 +243,33 @@ export function Dashboard({ user, attendanceDate, attendanceEventId, initialMemb
           );
         })}
       </section>
+      <div className="section-spacer">
+        <GroupSummaryPanel members={members} groups={groups} />
+      </div>
+    </>
+  );
+}
 
-      <section id="attendance" className="panel">
+export function AttendanceManager({
+  user,
+  attendanceDate,
+  attendanceEventId,
+  members,
+}: AppDataProps & { attendanceDate: string; attendanceEventId?: string }) {
+  const [localMembers, setLocalMembers] = useState(members);
+  const [attendanceFilter, setAttendanceFilter] = useState<"all" | "present" | "absent">("all");
+  const [isPending, startTransition] = useTransition();
+  const canManageAttendance = hasPermission(user.role, "attendance:write");
+  const attendanceMembers = localMembers.filter((member) => {
+    if (attendanceFilter === "present") return member.present;
+    if (attendanceFilter === "absent") return !member.present;
+    return true;
+  });
+
+  return (
+    <>
+      <PageHeader eyebrow="출석 관리" title="출석" user={user} />
+      <section className="panel">
         <div className="panel-heading">
           <div>
             <h2>주일 출석 체크</h2>
@@ -318,7 +305,7 @@ export function Dashboard({ user, attendanceDate, attendanceEventId, initialMemb
                 disabled={!canManageAttendance || !attendanceEventId || isPending}
                 onClick={() => {
                   if (!attendanceEventId) return;
-                  setMembers((current) =>
+                  setLocalMembers((current) =>
                     current.map((item) => (item.id === member.id ? { ...item, present: !item.present } : item)),
                   );
                   startTransition(() => {
@@ -333,8 +320,15 @@ export function Dashboard({ user, attendanceDate, attendanceEventId, initialMemb
           ))}
         </div>
       </section>
+    </>
+  );
+}
 
-      <section id="permissions" className="panel">
+export function PermissionsPageContent({ user, members }: AppDataProps) {
+  return (
+    <>
+      <PageHeader eyebrow="권한 관리" title="권한" user={user} />
+      <section className="panel">
         <div className="panel-heading">
           <h2>역할 기반 권한</h2>
           <span>로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한</span>
@@ -358,6 +352,60 @@ export function Dashboard({ user, attendanceDate, attendanceEventId, initialMemb
         </div>
       </section>
     </>
+  );
+}
+
+function PageHeader({
+  eyebrow,
+  title,
+  user,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  user: AppUser;
+  children?: ReactNode;
+}) {
+  return (
+    <header className="topbar">
+      <div>
+        <p className="eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
+        <p className="meta">
+          {user.name} · {roleLabels[user.role]} 권한
+        </p>
+      </div>
+      {children ? <div className="topbar-actions">{children}</div> : null}
+    </header>
+  );
+}
+
+function GroupSummaryPanel({ members, groups }: { members: Member[]; groups: Group[] }) {
+  return (
+    <section className="panel">
+      <div className="panel-heading">
+        <h2>소그룹 현황</h2>
+        <span>인원과 최근 출석률</span>
+      </div>
+      <div className="group-summary">
+        {groups.map((group) => {
+          const groupMembers = members.filter((member) => member.groupName === group.name);
+          const present = groupMembers.filter((member) => member.present).length;
+          const rate = groupMembers.length ? Math.round((present / groupMembers.length) * 100) : 0;
+          return (
+            <article className="summary-row" key={group.id}>
+              <div className="person-block">
+                <strong>{group.name}</strong>
+                <span>
+                  리더 {group.leaderName} · {groupMembers.length}/{group.targetSize}명
+                </span>
+              </div>
+              <span className={`attendance-pill ${rate >= 70 ? "present" : ""}`}>{rate}%</span>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
