@@ -1,4 +1,3 @@
-import { sampleGroups, sampleMembers } from "@/lib/sample-data";
 import { getRoleForEmail, type Role } from "@/lib/rbac";
 import type { Group, Member } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
@@ -57,51 +56,7 @@ export async function getOrCreateCurrentMember(
   return { id: inserted.id as string, role: inserted.role as Role };
 }
 
-export async function ensureStarterData(supabase: SupabaseClient) {
-  const { count: groupCount, error: groupCountError } = await supabase
-    .from("groups")
-    .select("id", { count: "exact", head: true });
-
-  if (groupCountError) throw groupCountError;
-
-  if (!groupCount) {
-    const { error } = await supabase.from("groups").insert(
-      sampleGroups.map((group) => ({
-        name: group.name,
-        target_size: group.targetSize,
-      })),
-    );
-    if (error) throw error;
-  }
-
-  const { count: memberCount, error: memberCountError } = await supabase
-    .from("members")
-    .select("id", { count: "exact", head: true });
-
-  if (memberCountError) throw memberCountError;
-
-  if (!memberCount || memberCount < 2) {
-    const { data: groups, error: groupsError } = await supabase.from("groups").select("id, name");
-    if (groupsError) throw groupsError;
-
-    const groupByName = new Map(groups.map((group) => [group.name as string, group.id as string]));
-    const { error } = await supabase.from("members").insert(
-      sampleMembers.map((member) => ({
-        group_id: groupByName.get(member.groupName) ?? null,
-        name: member.name,
-        email: member.email,
-        phone: member.phone,
-        address: member.address,
-        baptism_status: member.baptismStatus,
-        role: member.role,
-        status: member.status,
-        care_notes: member.notes,
-      })),
-    );
-
-    if (error && error.code !== "23505") throw error;
-  }
-
+export async function ensureAttendanceEvent(supabase: SupabaseClient) {
   const { count: eventCount, error: eventCountError } = await supabase
     .from("attendance_events")
     .select("id", { count: "exact", head: true });
@@ -115,6 +70,19 @@ export async function ensureStarterData(supabase: SupabaseClient) {
     });
     if (error) throw error;
   }
+}
+
+export function formatSupabaseError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const maybeError = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    return [maybeError.message, maybeError.details, maybeError.hint, maybeError.code]
+      .filter(Boolean)
+      .map(String)
+      .join(" · ");
+  }
+
+  return String(error);
 }
 
 export async function getDashboardData(supabase: SupabaseClient) {

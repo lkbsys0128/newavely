@@ -4,7 +4,12 @@ import { SetupPanel } from "@/components/setup-panel";
 import { ErrorPanel } from "@/components/error-panel";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
-import { ensureStarterData, getDashboardData, getOrCreateCurrentMember } from "@/lib/supabase/data";
+import {
+  ensureAttendanceEvent,
+  formatSupabaseError,
+  getDashboardData,
+  getOrCreateCurrentMember,
+} from "@/lib/supabase/data";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +40,10 @@ export default async function HomePage() {
       email: user.email,
       name: user.user_metadata?.full_name,
     });
-    await ensureStarterData(supabase);
+    await ensureAttendanceEvent(supabase);
     dashboardData = await getDashboardData(supabase);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown Supabase error";
-    return <ErrorPanel title="Supabase 데이터 연결 실패" message={message} />;
+    return <ErrorPanel title="Supabase 데이터 연결 실패" message={formatSupabaseError(error)} />;
   }
 
   return (
