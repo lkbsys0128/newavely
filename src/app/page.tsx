@@ -5,6 +5,8 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { ensureStarterData, getDashboardData, getOrCreateCurrentMember } from "@/lib/supabase/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   if (!hasSupabaseEnv()) {
     return <SetupPanel />;
