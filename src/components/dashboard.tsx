@@ -5,6 +5,7 @@ import {
   createGroup,
   createMember,
   deactivateMember,
+  reactivateMember,
   toggleAttendance,
   updateGroup,
   updateMember,
@@ -89,24 +90,31 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
 export function MembersManager({ user, members, groups }: AppDataProps) {
   const [query, setQuery] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState(members[0]?.id ?? "");
+  const [showInactive, setShowInactive] = useState(false);
   const [createMemberState, createMemberAction, isCreatingMember] = useActionState(createMember, initialActionState);
   const [updateMemberState, updateMemberAction, isUpdatingMember] = useActionState(updateMember, initialActionState);
   const [deactivateMemberState, deactivateMemberAction, isDeactivatingMember] = useActionState(
     deactivateMember,
     initialActionState,
   );
+  const [reactivateMemberState, reactivateMemberAction, isReactivatingMember] = useActionState(
+    reactivateMember,
+    initialActionState,
+  );
   const canManageMembers = hasPermission(user.role, "members:write");
-  const selectedMember = members.find((member) => member.id === selectedMemberId) ?? members[0];
+  const visibleMembers = showInactive ? members : members.filter((member) => member.status !== "inactive");
+  const selectedMember =
+    visibleMembers.find((member) => member.id === selectedMemberId) ?? visibleMembers[0] ?? members[0];
   const filteredMembers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return members;
-    return members.filter((member) =>
+    if (!normalized) return visibleMembers;
+    return visibleMembers.filter((member) =>
       [member.name, member.phone, member.groupName, member.role, member.status]
         .join(" ")
         .toLowerCase()
         .includes(normalized),
     );
-  }, [members, query]);
+  }, [visibleMembers, query]);
 
   return (
     <>
@@ -119,6 +127,14 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
+        </label>
+        <label className="toggle-field">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(event) => setShowInactive(event.target.checked)}
+          />
+          비활성화 포함
         </label>
       </PageHeader>
 
@@ -210,6 +226,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   <option value="active">활동</option>
                   <option value="new">새가족</option>
                   <option value="care">돌봄 필요</option>
+                  <option value="inactive">비활성화</option>
                 </select>
               </label>
               <label>
@@ -236,8 +253,21 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <form action={deactivateMemberAction} className="single-action-form">
               <input name="id" type="hidden" value={selectedMember.id} />
               <ActionMessage state={deactivateMemberState} />
-              <button className="danger-button" type="submit" disabled={!canManageMembers || isDeactivatingMember}>
+              <button
+                className="danger-button"
+                type="submit"
+                disabled={!canManageMembers || selectedMember.status === "inactive" || isDeactivatingMember}
+              >
                 비활성화
+              </button>
+            </form>
+          ) : null}
+          {selectedMember?.status === "inactive" ? (
+            <form action={reactivateMemberAction} className="single-action-form">
+              <input name="id" type="hidden" value={selectedMember.id} />
+              <ActionMessage state={reactivateMemberState} />
+              <button className="primary-button" type="submit" disabled={!canManageMembers || isReactivatingMember}>
+                다시 활성화
               </button>
             </form>
           ) : null}
@@ -600,6 +630,7 @@ const statusLabels: Record<Member["status"], string> = {
   active: "활동",
   new: "새가족",
   care: "돌봄 필요",
+  inactive: "비활성화",
 };
 
 const attendanceFilterLabels = {

@@ -25,7 +25,7 @@ const memberSchema = z.object({
   baptismStatus: nullableText,
   notes: nullableText,
   role: z.enum(["admin", "leader", "staff", "member"]),
-  status: z.enum(["active", "new", "care"]),
+  status: z.enum(["active", "new", "care", "inactive"]),
 });
 
 const updateMemberSchema = memberSchema.extend({
@@ -198,6 +198,22 @@ export async function deactivateMember(_previousState: ActionState, formData: Fo
     if (error) throw error;
     revalidateAppData();
     return "멤버를 비활성화했습니다.";
+  });
+}
+
+export async function reactivateMember(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const id = z.string().uuid().parse(formData.get("id"));
+
+    const { error } = await supabase
+      .from("members")
+      .update({ status: "active", updated_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) throw error;
+    revalidateAppData();
+    return "멤버를 다시 활성화했습니다.";
   });
 }
 

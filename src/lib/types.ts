@@ -15,7 +15,7 @@ export type Member = {
   groupId: string | null;
   groupName: string;
   role: Role;
-  status: "active" | "new" | "care";
+  status: "active" | "new" | "care" | "inactive";
   email: string;
   address: string;
   baptismStatus: string;

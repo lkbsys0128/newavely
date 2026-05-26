@@ -108,7 +108,6 @@ export async function getDashboardData(supabase: SupabaseClient) {
     .select(
       "id, name, email, phone, address, baptism_status, role, status, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(status)",
     )
-    .neq("status", "inactive")
     .order("name");
 
   if (membersError) throw membersError;
@@ -133,7 +132,7 @@ export async function getDashboardData(supabase: SupabaseClient) {
       groupId: member.group_id,
       groupName: group?.name ?? "미배정",
       role: member.role,
-      status: member.status === "inactive" ? "care" : member.status,
+      status: member.status,
       email: member.email ?? "",
       address: member.address ?? "미입력",
       baptismStatus: member.baptism_status ?? "미입력",

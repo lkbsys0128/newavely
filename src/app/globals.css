@@ -184,6 +184,7 @@ h2 {
 .topbar-actions {
   display: flex;
   align-items: end;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -216,6 +217,22 @@ h2 {
   min-height: 92px;
   padding: 12px;
   resize: vertical;
+}
+
+.toggle-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.toggle-field input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
 }
 
 .primary-button {
