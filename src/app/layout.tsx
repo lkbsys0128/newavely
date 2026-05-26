@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import "./globals.css";
@@ -27,11 +28,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </div>
 
             <nav className="nav-list" aria-label="앱 섹션">
-              <a href="#dashboard">대시보드</a>
-              <a href="#members">멤버</a>
-              <a href="#groups">소그룹</a>
-              <a href="#attendance">출석</a>
-              <a href="#permissions">권한</a>
+              <Link href="/">대시보드</Link>
+              <Link href="/members">멤버</Link>
+              <Link href="/groups">소그룹</Link>
+              <Link href="/attendance">출석</Link>
+              <Link href="/permissions">권한</Link>
             </nav>
 
             <div className="auth-card">

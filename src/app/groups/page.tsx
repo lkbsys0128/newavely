@@ -1,15 +1,17 @@
 import { AppPageGate } from "@/components/app-page-gate";
-import { DashboardOverview } from "@/components/dashboard";
+import { GroupsPageContent } from "@/components/dashboard";
 import { getAppPageData } from "@/lib/app-page-data";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function GroupsPage() {
   const data = await getAppPageData();
 
   return (
     <AppPageGate data={data}>
-      {(readyData) => <DashboardOverview user={readyData.user} members={readyData.members} groups={readyData.groups} />}
+      {(readyData) => (
+        <GroupsPageContent user={readyData.user} members={readyData.members} groups={readyData.groups} />
+      )}
     </AppPageGate>
   );
 }
