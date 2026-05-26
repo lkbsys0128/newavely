@@ -16,4 +16,5 @@ test("dashboard queries do not use known ambiguous embeds", () => {
 
 test("group leader query uses the explicit leader relationship", () => {
   assert.match(dataSource, /leader:members!groups_leader_member_id_fkey\(name\)/);
+  assert.match(dataSource, /leader_member_id/);
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, type ReactNode } from "react";
-import { createMember, toggleAttendance } from "@/app/actions";
+import { createGroup, createMember, deactivateMember, toggleAttendance, updateGroup, updateMember } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
 import type { Group, Member } from "@/lib/types";
@@ -153,13 +153,75 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <span>{selectedMember ? statusLabels[selectedMember.status] : "선택 없음"}</span>
           </div>
           {selectedMember ? (
-            <div className="member-detail">
-              <Detail label="이름" value={selectedMember.name} />
-              <Detail label="연락처" value={selectedMember.phone} />
-              <Detail label="주소" value={selectedMember.address} />
-              <Detail label="세례/등록" value={selectedMember.baptismStatus} />
-              <Detail label="커스텀 메모" value={selectedMember.notes} />
-            </div>
+            <form action={updateMember} className="management-form" key={selectedMember.id}>
+              <input name="id" type="hidden" value={selectedMember.id} />
+              <label>
+                이름
+                <input name="name" required defaultValue={selectedMember.name} disabled={!canManageMembers} />
+              </label>
+              <label>
+                이메일
+                <input name="email" type="email" defaultValue={selectedMember.email} disabled={!canManageMembers} />
+              </label>
+              <label>
+                연락처
+                <input name="phone" required defaultValue={selectedMember.phone} disabled={!canManageMembers} />
+              </label>
+              <label>
+                소그룹
+                <select name="groupId" defaultValue={selectedMember.groupId ?? ""} disabled={!canManageMembers}>
+                  <option value="">미배정</option>
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                역할
+                <select name="role" defaultValue={selectedMember.role} disabled={!canManageMembers}>
+                  {Object.entries(roleLabels).map(([role, label]) => (
+                    <option key={role} value={role}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                상태
+                <select name="status" defaultValue={selectedMember.status} disabled={!canManageMembers}>
+                  <option value="active">활동</option>
+                  <option value="new">새가족</option>
+                  <option value="care">돌봄 필요</option>
+                </select>
+              </label>
+              <label>
+                주소
+                <input name="address" defaultValue={selectedMember.address} disabled={!canManageMembers} />
+              </label>
+              <label>
+                세례/등록
+                <input name="baptismStatus" defaultValue={selectedMember.baptismStatus} disabled={!canManageMembers} />
+              </label>
+              <label className="full-width">
+                커스텀 메모
+                <textarea name="notes" defaultValue={selectedMember.notes} disabled={!canManageMembers} />
+              </label>
+              <div className="form-actions full-width">
+                <button className="primary-button" type="submit" disabled={!canManageMembers}>
+                  저장
+                </button>
+                <button
+                  className="danger-button"
+                  formAction={deactivateMember}
+                  type="submit"
+                  disabled={!canManageMembers}
+                >
+                  비활성화
+                </button>
+              </div>
+            </form>
           ) : null}
         </aside>
       </section>
@@ -179,6 +241,10 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <input name="phone" required placeholder="010-0000-0000" disabled={!canManageMembers} />
           </label>
           <label>
+            이메일
+            <input name="email" type="email" placeholder="name@example.com" disabled={!canManageMembers} />
+          </label>
+          <label>
             소그룹
             <select name="groupId" disabled={!canManageMembers}>
               <option value="">미배정</option>
@@ -188,6 +254,18 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 </option>
               ))}
             </select>
+          </label>
+          <label>
+            주소
+            <input name="address" placeholder="주소" disabled={!canManageMembers} />
+          </label>
+          <label>
+            세례/등록
+            <input name="baptismStatus" placeholder="등록교인, 세례 등" disabled={!canManageMembers} />
+          </label>
+          <label>
+            메모
+            <input name="notes" placeholder="돌봄 메모" disabled={!canManageMembers} />
           </label>
           <label>
             역할
@@ -217,9 +295,42 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
 }
 
 export function GroupsPageContent({ user, members, groups }: AppDataProps) {
+  const canManageGroups = hasPermission(user.role, "groups:write");
+
   return (
     <>
       <PageHeader eyebrow="소그룹 관리" title="소그룹" user={user} />
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>소그룹 추가</h2>
+          <span>{canManageGroups ? "이름, 리더, 목표 인원 설정" : "관리자 권한 필요"}</span>
+        </div>
+        <form action={createGroup} className="member-form compact-form">
+          <label>
+            소그룹 이름
+            <input name="name" required placeholder="예: 믿음 1그룹" disabled={!canManageGroups} />
+          </label>
+          <label>
+            리더
+            <select name="leaderMemberId" disabled={!canManageGroups}>
+              <option value="">미배정</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            목표 인원
+            <input name="targetSize" type="number" min="1" max="500" defaultValue="12" disabled={!canManageGroups} />
+          </label>
+          <button className="primary-button" type="submit" disabled={!canManageGroups}>
+            추가
+          </button>
+        </form>
+      </section>
+
       <section className="group-grid">
         {groups.map((group) => {
           const groupMembers = members.filter((member) => member.groupName === group.name);
@@ -239,6 +350,38 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                 </div>
                 <p className="meta">목표 {group.targetSize}명</p>
               </div>
+              <form action={updateGroup} className="management-form group-edit-form">
+                <input name="id" type="hidden" value={group.id} />
+                <label>
+                  이름
+                  <input name="name" required defaultValue={group.name} disabled={!canManageGroups} />
+                </label>
+                <label>
+                  리더
+                  <select name="leaderMemberId" defaultValue={group.leaderMemberId ?? ""} disabled={!canManageGroups}>
+                    <option value="">미배정</option>
+                    {members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  목표 인원
+                  <input
+                    name="targetSize"
+                    type="number"
+                    min="1"
+                    max="500"
+                    defaultValue={group.targetSize}
+                    disabled={!canManageGroups}
+                  />
+                </label>
+                <button className="secondary-button" type="submit" disabled={!canManageGroups}>
+                  저장
+                </button>
+              </form>
             </article>
           );
         })}
@@ -406,15 +549,6 @@ function GroupSummaryPanel({ members, groups }: { members: Member[]; groups: Gro
         })}
       </div>
     </section>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="detail-row">
-      <span className="detail-label">{label}</span>
-      <strong>{value}</strong>
-    </div>
   );
 }
 

@@ -28,7 +28,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -117,7 +118,8 @@ a {
 
 .google-button,
 .primary-button,
-.secondary-button {
+.secondary-button,
+.danger-button {
   min-height: 42px;
   border: 0;
   border-radius: 8px;
@@ -186,7 +188,8 @@ h2 {
 }
 
 .search-field,
-.member-form label {
+.member-form label,
+.management-form label {
   display: grid;
   gap: 7px;
   color: var(--muted);
@@ -196,7 +199,10 @@ h2 {
 
 .search-field input,
 .member-form input,
-.member-form select {
+.member-form select,
+.management-form input,
+.management-form select,
+.management-form textarea {
   width: 100%;
   min-height: 42px;
   border: 1px solid var(--line);
@@ -204,6 +210,12 @@ h2 {
   padding: 0 12px;
   background: #ffffff;
   color: var(--ink);
+}
+
+.management-form textarea {
+  min-height: 92px;
+  padding: 12px;
+  resize: vertical;
 }
 
 .primary-button {
@@ -215,6 +227,11 @@ h2 {
   border: 1px solid var(--line);
   background: var(--surface-strong);
   color: var(--ink);
+}
+
+.danger-button {
+  background: var(--accent-2);
+  color: #ffffff;
 }
 
 .metric-grid,
@@ -373,6 +390,7 @@ th {
 
 .form-panel {
   margin-top: 16px;
+  margin-bottom: 16px;
 }
 
 .section-spacer {
@@ -384,6 +402,33 @@ th {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   align-items: end;
+}
+
+.compact-form {
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) 140px 110px;
+}
+
+.management-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.group-edit-form {
+  grid-template-columns: 1fr;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .group-grid {
@@ -490,8 +535,14 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .member-form {
+  .member-form,
+  .compact-form,
+  .management-form {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .group-edit-form {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -513,7 +564,9 @@ th {
   .group-grid,
   .dashboard-layout,
   .content-grid,
-  .member-form {
+  .member-form,
+  .compact-form,
+  .management-form {
     grid-template-columns: 1fr;
   }
 

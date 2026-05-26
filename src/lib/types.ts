@@ -3,6 +3,7 @@ import type { Role } from "@/lib/rbac";
 export type Group = {
   id: string;
   name: string;
+  leaderMemberId: string | null;
   leaderName: string;
   targetSize: number;
 };
