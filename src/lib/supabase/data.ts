@@ -105,7 +105,7 @@ export async function getDashboardData(supabase: SupabaseClient) {
   const { data: membersData, error: membersError } = await supabase
     .from("members")
     .select(
-      "id, name, email, phone, address, baptism_status, role, status, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records(status)",
+      "id, name, email, phone, address, baptism_status, role, status, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(status)",
     )
     .neq("status", "inactive")
     .order("name");
