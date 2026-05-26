@@ -42,6 +42,47 @@ const updateGroupSchema = groupSchema.extend({
   id: z.string().uuid(),
 });
 
+export type ActionState = {
+  ok: boolean;
+  message: string;
+};
+
+const initialErrorMessage = "작업 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+
+function toActionError(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return "입력값을 확인해주세요.";
+  }
+
+  if (error && typeof error === "object") {
+    const maybeError = error as { code?: unknown; message?: unknown };
+    if (maybeError.code === "23505") {
+      return "이미 사용 중인 이메일입니다. 다른 이메일을 입력해주세요.";
+    }
+
+    if (typeof maybeError.message === "string" && maybeError.message) {
+      if (maybeError.message.includes("duplicate key")) {
+        return "이미 사용 중인 값이 있습니다. 입력값을 확인해주세요.";
+      }
+      return maybeError.message;
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return initialErrorMessage;
+}
+
+async function runAction(callback: () => Promise<string>): Promise<ActionState> {
+  try {
+    return { ok: true, message: await callback() };
+  } catch (error) {
+    return { ok: false, message: toActionError(error) };
+  }
+}
+
 async function getAuthorizedCurrentMember(permission: "members:write" | "groups:write" | "attendance:write") {
   const supabase = await createClient();
   const {
@@ -71,125 +112,140 @@ function revalidateAppData() {
   revalidatePath("/permissions");
 }
 
-export async function createMember(formData: FormData) {
-  const { supabase } = await getAuthorizedCurrentMember("members:write");
+export async function createMember(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
 
-  const parsed = memberSchema.parse({
-    name: formData.get("name"),
-    phone: formData.get("phone"),
-    groupId: formData.get("groupId"),
-    email: formData.get("email"),
-    address: formData.get("address"),
-    baptismStatus: formData.get("baptismStatus"),
-    notes: formData.get("notes"),
-    role: formData.get("role"),
-    status: formData.get("status"),
-  });
+    const parsed = memberSchema.parse({
+      name: formData.get("name"),
+      phone: formData.get("phone"),
+      groupId: formData.get("groupId"),
+      email: formData.get("email"),
+      address: formData.get("address"),
+      baptismStatus: formData.get("baptismStatus"),
+      notes: formData.get("notes"),
+      role: formData.get("role"),
+      status: formData.get("status"),
+    });
 
-  const { error } = await supabase.from("members").insert({
-    name: parsed.name,
-    phone: parsed.phone,
-    group_id: parsed.groupId,
-    role: parsed.role,
-    status: parsed.status,
-    email: parsed.email ?? `${parsed.name.replace(/\s/g, "").toLowerCase()}-${Date.now()}@placeholder.local`,
-    address: parsed.address,
-    baptism_status: parsed.baptismStatus,
-    care_notes: parsed.notes ?? "추가 정보 입력 필요",
-  });
-
-  if (error) throw error;
-  revalidateAppData();
-}
-
-export async function updateMember(formData: FormData) {
-  const { supabase } = await getAuthorizedCurrentMember("members:write");
-
-  const parsed = updateMemberSchema.parse({
-    id: formData.get("id"),
-    name: formData.get("name"),
-    phone: formData.get("phone"),
-    groupId: formData.get("groupId"),
-    email: formData.get("email"),
-    address: formData.get("address"),
-    baptismStatus: formData.get("baptismStatus"),
-    notes: formData.get("notes"),
-    role: formData.get("role"),
-    status: formData.get("status"),
-  });
-
-  const { error } = await supabase
-    .from("members")
-    .update({
+    const { error } = await supabase.from("members").insert({
       name: parsed.name,
       phone: parsed.phone,
       group_id: parsed.groupId,
       role: parsed.role,
       status: parsed.status,
-      email: parsed.email,
+      email: parsed.email ?? `${parsed.name.replace(/\s/g, "").toLowerCase()}-${Date.now()}@placeholder.local`,
       address: parsed.address,
       baptism_status: parsed.baptismStatus,
-      care_notes: parsed.notes,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", parsed.id);
+      care_notes: parsed.notes ?? "추가 정보 입력 필요",
+    });
 
-  if (error) throw error;
-  revalidateAppData();
+    if (error) throw error;
+    revalidateAppData();
+    return "멤버를 추가했습니다.";
+  });
 }
 
-export async function deactivateMember(formData: FormData) {
-  const { supabase } = await getAuthorizedCurrentMember("members:write");
-  const id = z.string().uuid().parse(formData.get("id"));
+export async function updateMember(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
 
-  const { error } = await supabase
-    .from("members")
-    .update({ status: "inactive", updated_at: new Date().toISOString() })
-    .eq("id", id);
+    const parsed = updateMemberSchema.parse({
+      id: formData.get("id"),
+      name: formData.get("name"),
+      phone: formData.get("phone"),
+      groupId: formData.get("groupId"),
+      email: formData.get("email"),
+      address: formData.get("address"),
+      baptismStatus: formData.get("baptismStatus"),
+      notes: formData.get("notes"),
+      role: formData.get("role"),
+      status: formData.get("status"),
+    });
 
-  if (error) throw error;
-  revalidateAppData();
+    const { error } = await supabase
+      .from("members")
+      .update({
+        name: parsed.name,
+        phone: parsed.phone,
+        group_id: parsed.groupId,
+        role: parsed.role,
+        status: parsed.status,
+        email: parsed.email,
+        address: parsed.address,
+        baptism_status: parsed.baptismStatus,
+        care_notes: parsed.notes,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.id);
+
+    if (error) throw error;
+    revalidateAppData();
+    return "멤버 정보를 저장했습니다.";
+  });
 }
 
-export async function createGroup(formData: FormData) {
-  const { supabase } = await getAuthorizedCurrentMember("groups:write");
-  const parsed = groupSchema.parse({
-    name: formData.get("name"),
-    leaderMemberId: formData.get("leaderMemberId"),
-    targetSize: formData.get("targetSize"),
-  });
+export async function deactivateMember(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const id = z.string().uuid().parse(formData.get("id"));
 
-  const { error } = await supabase.from("groups").insert({
-    name: parsed.name,
-    leader_member_id: parsed.leaderMemberId,
-    target_size: parsed.targetSize,
-  });
+    const { error } = await supabase
+      .from("members")
+      .update({ status: "inactive", updated_at: new Date().toISOString() })
+      .eq("id", id);
 
-  if (error) throw error;
-  revalidateAppData();
+    if (error) throw error;
+    revalidateAppData();
+    return "멤버를 비활성화했습니다.";
+  });
 }
 
-export async function updateGroup(formData: FormData) {
-  const { supabase } = await getAuthorizedCurrentMember("groups:write");
-  const parsed = updateGroupSchema.parse({
-    id: formData.get("id"),
-    name: formData.get("name"),
-    leaderMemberId: formData.get("leaderMemberId"),
-    targetSize: formData.get("targetSize"),
-  });
+export async function createGroup(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("groups:write");
+    const parsed = groupSchema.parse({
+      name: formData.get("name"),
+      leaderMemberId: formData.get("leaderMemberId"),
+      targetSize: formData.get("targetSize"),
+    });
 
-  const { error } = await supabase
-    .from("groups")
-    .update({
+    const { error } = await supabase.from("groups").insert({
       name: parsed.name,
       leader_member_id: parsed.leaderMemberId,
       target_size: parsed.targetSize,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", parsed.id);
+    });
 
-  if (error) throw error;
-  revalidateAppData();
+    if (error) throw error;
+    revalidateAppData();
+    return "소그룹을 추가했습니다.";
+  });
+}
+
+export async function updateGroup(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("groups:write");
+    const parsed = updateGroupSchema.parse({
+      id: formData.get("id"),
+      name: formData.get("name"),
+      leaderMemberId: formData.get("leaderMemberId"),
+      targetSize: formData.get("targetSize"),
+    });
+
+    const { error } = await supabase
+      .from("groups")
+      .update({
+        name: parsed.name,
+        leader_member_id: parsed.leaderMemberId,
+        target_size: parsed.targetSize,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.id);
+
+    if (error) throw error;
+    revalidateAppData();
+    return "소그룹을 저장했습니다.";
+  });
 }
 
 export async function toggleAttendance(memberId: string, eventId: string, nextPresent: boolean) {

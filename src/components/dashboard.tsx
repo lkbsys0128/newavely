@@ -1,7 +1,15 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
-import { createGroup, createMember, deactivateMember, toggleAttendance, updateGroup, updateMember } from "@/app/actions";
+import { useActionState, useMemo, useState, useTransition, type ReactNode } from "react";
+import {
+  createGroup,
+  createMember,
+  deactivateMember,
+  toggleAttendance,
+  updateGroup,
+  updateMember,
+  type ActionState,
+} from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
 import type { Group, Member } from "@/lib/types";
@@ -11,6 +19,8 @@ type AppDataProps = {
   members: Member[];
   groups: Group[];
 };
+
+const initialActionState: ActionState = { ok: false, message: "" };
 
 export function DashboardOverview({ user, members, groups }: AppDataProps) {
   const presentCount = members.filter((member) => member.present).length;
@@ -79,6 +89,12 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
 export function MembersManager({ user, members, groups }: AppDataProps) {
   const [query, setQuery] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState(members[0]?.id ?? "");
+  const [createMemberState, createMemberAction, isCreatingMember] = useActionState(createMember, initialActionState);
+  const [updateMemberState, updateMemberAction, isUpdatingMember] = useActionState(updateMember, initialActionState);
+  const [deactivateMemberState, deactivateMemberAction, isDeactivatingMember] = useActionState(
+    deactivateMember,
+    initialActionState,
+  );
   const canManageMembers = hasPermission(user.role, "members:write");
   const selectedMember = members.find((member) => member.id === selectedMemberId) ?? members[0];
   const filteredMembers = useMemo(() => {
@@ -153,7 +169,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <span>{selectedMember ? statusLabels[selectedMember.status] : "선택 없음"}</span>
           </div>
           {selectedMember ? (
-            <form action={updateMember} className="management-form" key={selectedMember.id}>
+            <form action={updateMemberAction} className="management-form" key={selectedMember.id}>
               <input name="id" type="hidden" value={selectedMember.id} />
               <label>
                 이름
@@ -209,18 +225,20 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 <textarea name="notes" defaultValue={selectedMember.notes} disabled={!canManageMembers} />
               </label>
               <div className="form-actions full-width">
-                <button className="primary-button" type="submit" disabled={!canManageMembers}>
+                <ActionMessage state={updateMemberState} />
+                <button className="primary-button" type="submit" disabled={!canManageMembers || isUpdatingMember}>
                   저장
                 </button>
-                <button
-                  className="danger-button"
-                  formAction={deactivateMember}
-                  type="submit"
-                  disabled={!canManageMembers}
-                >
-                  비활성화
-                </button>
               </div>
+            </form>
+          ) : null}
+          {selectedMember ? (
+            <form action={deactivateMemberAction} className="single-action-form">
+              <input name="id" type="hidden" value={selectedMember.id} />
+              <ActionMessage state={deactivateMemberState} />
+              <button className="danger-button" type="submit" disabled={!canManageMembers || isDeactivatingMember}>
+                비활성화
+              </button>
             </form>
           ) : null}
         </aside>
@@ -231,7 +249,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           <h2>멤버 추가</h2>
           <span>{canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}</span>
         </div>
-        <form action={createMember} className="member-form">
+        <form action={createMemberAction} className="member-form">
           <label>
             이름
             <input name="name" required placeholder="예: 김하은" disabled={!canManageMembers} />
@@ -285,9 +303,12 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               <option value="care">돌봄 필요</option>
             </select>
           </label>
-          <button className="primary-button" type="submit" disabled={!canManageMembers}>
+          <div className="form-actions full-width">
+            <ActionMessage state={createMemberState} />
+            <button className="primary-button" type="submit" disabled={!canManageMembers || isCreatingMember}>
             추가
-          </button>
+            </button>
+          </div>
         </form>
       </section>
     </>
@@ -296,6 +317,8 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
 
 export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
+  const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
+  const [updateGroupState, updateGroupAction, isUpdatingGroup] = useActionState(updateGroup, initialActionState);
 
   return (
     <>
@@ -305,7 +328,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
           <h2>소그룹 추가</h2>
           <span>{canManageGroups ? "이름, 리더, 목표 인원 설정" : "관리자 권한 필요"}</span>
         </div>
-        <form action={createGroup} className="member-form compact-form">
+        <form action={createGroupAction} className="member-form compact-form">
           <label>
             소그룹 이름
             <input name="name" required placeholder="예: 믿음 1그룹" disabled={!canManageGroups} />
@@ -325,9 +348,12 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
             목표 인원
             <input name="targetSize" type="number" min="1" max="500" defaultValue="12" disabled={!canManageGroups} />
           </label>
-          <button className="primary-button" type="submit" disabled={!canManageGroups}>
-            추가
-          </button>
+          <div className="form-actions full-width">
+            <ActionMessage state={createGroupState} />
+            <button className="primary-button" type="submit" disabled={!canManageGroups || isCreatingGroup}>
+              추가
+            </button>
+          </div>
         </form>
       </section>
 
@@ -350,7 +376,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                 </div>
                 <p className="meta">목표 {group.targetSize}명</p>
               </div>
-              <form action={updateGroup} className="management-form group-edit-form">
+              <form action={updateGroupAction} className="management-form group-edit-form">
                 <input name="id" type="hidden" value={group.id} />
                 <label>
                   이름
@@ -378,7 +404,8 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                     disabled={!canManageGroups}
                   />
                 </label>
-                <button className="secondary-button" type="submit" disabled={!canManageGroups}>
+                <ActionMessage state={updateGroupState} />
+                <button className="secondary-button" type="submit" disabled={!canManageGroups || isUpdatingGroup}>
                   저장
                 </button>
               </form>
@@ -495,6 +522,16 @@ export function PermissionsPageContent({ user, members }: AppDataProps) {
         </div>
       </section>
     </>
+  );
+}
+
+function ActionMessage({ state }: { state: ActionState }) {
+  if (!state.message) return null;
+
+  return (
+    <p className={`action-message ${state.ok ? "success" : "error"}`} role="status">
+      {state.message}
+    </p>
   );
 }
 

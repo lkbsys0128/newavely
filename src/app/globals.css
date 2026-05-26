@@ -431,6 +431,30 @@ th {
   gap: 10px;
 }
 
+.single-action-form {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.action-message {
+  margin: 0 auto 0 0;
+  align-self: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.action-message.success {
+  color: var(--accent);
+}
+
+.action-message.error {
+  color: var(--accent-2);
+}
+
 .group-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
