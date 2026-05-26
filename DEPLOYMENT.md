@@ -34,4 +34,7 @@ GitHub Actions용 `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` secret은
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Supabase Dashboard에서 Google provider를 켜고, SQL Editor에서 `db/schema.sql`을 실행하면 운영 데이터 저장을 시작할 수 있습니다.
+Supabase Dashboard에서 Google provider를 켜고, SQL Editor에서 아래 순서대로 실행하면 운영 데이터 저장을 시작할 수 있습니다.
+
+1. `db/schema.sql`
+2. `db/002_app_data_policies.sql`

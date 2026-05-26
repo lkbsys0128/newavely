@@ -11,6 +11,7 @@ export type Member = {
   id: string;
   name: string;
   phone: string;
+  groupId: string | null;
   groupName: string;
   role: Role;
   status: "active" | "new" | "care";

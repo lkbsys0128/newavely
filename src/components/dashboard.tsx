@@ -1,6 +1,7 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { createMember, toggleAttendance } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { Group, Member } from "@/lib/types";
 
@@ -11,15 +12,18 @@ type DashboardProps = {
     email: string;
     role: Role;
   };
+  attendanceDate: string;
+  attendanceEventId?: string;
   initialMembers: Member[];
   groups: Group[];
 };
 
-export function Dashboard({ user, initialMembers, groups }: DashboardProps) {
+export function Dashboard({ user, attendanceDate, attendanceEventId, initialMembers, groups }: DashboardProps) {
   const [members, setMembers] = useState(initialMembers);
   const [query, setQuery] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState(initialMembers[0]?.id ?? "");
   const [attendanceFilter, setAttendanceFilter] = useState<"all" | "present" | "absent">("all");
+  const [isPending, startTransition] = useTransition();
 
   const selectedMember = members.find((member) => member.id === selectedMemberId) ?? members[0];
   const filteredMembers = useMemo(() => {
@@ -43,36 +47,6 @@ export function Dashboard({ user, initialMembers, groups }: DashboardProps) {
   const attendanceRate = Math.round((presentCount / members.length) * 100);
   const canManageMembers = hasPermission(user.role, "members:write");
   const canManageAttendance = hasPermission(user.role, "attendance:write");
-
-  function addMember(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canManageMembers) return;
-
-    const formData = new FormData(event.currentTarget);
-    const name = String(formData.get("name") ?? "").trim();
-    const phone = String(formData.get("phone") ?? "").trim();
-    const groupName = String(formData.get("groupName") ?? "");
-    const role = String(formData.get("role") ?? "member") as Role;
-    const status = String(formData.get("status") ?? "active") as Member["status"];
-
-    const nextMember: Member = {
-      id: crypto.randomUUID(),
-      name,
-      phone,
-      groupName,
-      role,
-      status,
-      email: `${name.replace(/\s/g, "").toLowerCase()}@example.com`,
-      address: "미입력",
-      baptismStatus: "미입력",
-      notes: "추가 정보 입력 필요",
-      present: false,
-    };
-
-    setMembers((current) => [...current, nextMember]);
-    setSelectedMemberId(nextMember.id);
-    event.currentTarget.reset();
-  }
 
   return (
     <>
@@ -241,7 +215,7 @@ export function Dashboard({ user, initialMembers, groups }: DashboardProps) {
           <h2>멤버 추가</h2>
           <span>{canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}</span>
         </div>
-        <form onSubmit={addMember} className="member-form">
+        <form action={createMember} className="member-form">
           <label>
             이름
             <input name="name" required placeholder="예: 김하은" disabled={!canManageMembers} />
@@ -252,9 +226,11 @@ export function Dashboard({ user, initialMembers, groups }: DashboardProps) {
           </label>
           <label>
             소그룹
-            <select name="groupName" disabled={!canManageMembers}>
+            <select name="groupId" disabled={!canManageMembers}>
               {groups.map((group) => (
-                <option key={group.id}>{group.name}</option>
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
               ))}
             </select>
           </label>
@@ -310,7 +286,7 @@ export function Dashboard({ user, initialMembers, groups }: DashboardProps) {
         <div className="panel-heading">
           <div>
             <h2>주일 출석 체크</h2>
-            <span>2026-05-24</span>
+            <span>{attendanceDate}</span>
           </div>
           <div className="segmented">
             {(["all", "present", "absent"] as const).map((filter) => (
@@ -339,12 +315,16 @@ export function Dashboard({ user, initialMembers, groups }: DashboardProps) {
               </span>
               <button
                 className={member.present ? "secondary-button" : "primary-button"}
-                disabled={!canManageAttendance}
-                onClick={() =>
+                disabled={!canManageAttendance || !attendanceEventId || isPending}
+                onClick={() => {
+                  if (!attendanceEventId) return;
                   setMembers((current) =>
                     current.map((item) => (item.id === member.id ? { ...item, present: !item.present } : item)),
-                  )
-                }
+                  );
+                  startTransition(() => {
+                    void toggleAttendance(member.id, attendanceEventId, !member.present);
+                  });
+                }}
                 type="button"
               >
                 {member.present ? "미출석 처리" : "출석 체크"}
