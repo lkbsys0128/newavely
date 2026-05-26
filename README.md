@@ -72,6 +72,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 
 1. `db/schema.sql`
 2. `db/002_app_data_policies.sql`
+3. `db/003_audit_logs.sql`
 
 주요 테이블:
 
@@ -80,6 +81,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 - `attendance_events`: 출석 이벤트 날짜와 제목
 - `attendance_records`: 이벤트별 멤버 출석 상태
 - `member_custom_field_definitions`: 멤버별 커스텀 필드 정의
+- `audit_logs`: 멤버/소그룹/출석 변경에 대한 append-only 감사 로그
 
 중요한 관계:
 
@@ -116,6 +118,24 @@ attendance_records!attendance_records_member_id_fkey(status)
 - Next.js server actions 내부의 app-level permission check
 
 멤버 추가, 출석 체크 같은 데이터 변경은 `src/app/actions.ts`에서 처리합니다.
+
+## 감사 로그
+
+앱의 주요 변경 작업은 `audit_logs`에 기록됩니다.
+
+기록 대상:
+
+- 멤버 생성/수정/비활성화/다시 활성화
+- 소그룹 생성/수정
+- 출석 상태 변경
+
+감사 로그는 append-only 방식으로 운영합니다.
+
+- 앱에서 감사 로그 수정/삭제 기능을 만들지 않습니다.
+- DB RLS policy도 admin read만 허용합니다.
+- 쓰기는 `record_audit_log` security definer function을 통해서만 수행합니다.
+
+관리자는 `/audit`에서 최근 감사 로그를 확인할 수 있습니다.
 
 ## 배포
 

@@ -13,7 +13,7 @@ import {
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
-import type { Group, Member } from "@/lib/types";
+import type { AuditLog, Group, Member } from "@/lib/types";
 
 type AppDataProps = {
   user: AppUser;
@@ -555,6 +555,59 @@ export function PermissionsPageContent({ user, members }: AppDataProps) {
   );
 }
 
+export function AuditLogPageContent({ user, auditLogs }: { user: AppUser; auditLogs: AuditLog[] }) {
+  const canReadAuditLogs = hasPermission(user.role, "roles:manage");
+
+  return (
+    <>
+      <PageHeader eyebrow="운영 감사" title="감사 로그" user={user} />
+      <section className="panel">
+        <div className="panel-heading">
+          <h2>최근 변경 내역</h2>
+          <span>{canReadAuditLogs ? `${auditLogs.length}건` : "관리자 권한 필요"}</span>
+        </div>
+        {canReadAuditLogs ? (
+          <div className="audit-list">
+            {auditLogs.map((log) => (
+              <article className="audit-row" key={log.id}>
+                <div className="person-block">
+                  <strong>{auditActionLabels[log.action] ?? log.action}</strong>
+                  <span>
+                    {log.actorName} · {log.targetTable}
+                    {log.targetId ? ` · ${log.targetId.slice(0, 8)}` : ""}
+                  </span>
+                </div>
+                <time className="meta" dateTime={log.createdAt}>
+                  {new Date(log.createdAt).toLocaleString("ko-KR")}
+                </time>
+                <details className="audit-details">
+                  <summary>변경값</summary>
+                  <pre>{JSON.stringify({ before: log.beforeData, after: log.afterData, metadata: log.metadata }, null, 2)}</pre>
+                </details>
+              </article>
+            ))}
+            {auditLogs.length === 0 ? (
+              <article className="care-item">
+                <div className="person-block">
+                  <strong>아직 기록이 없습니다</strong>
+                  <span>멤버/소그룹/출석 변경이 발생하면 이곳에 기록됩니다.</span>
+                </div>
+              </article>
+            ) : null}
+          </div>
+        ) : (
+          <article className="care-item">
+            <div className="person-block">
+              <strong>감사 로그 접근 제한</strong>
+              <span>관리자만 감사 로그를 확인할 수 있습니다.</span>
+            </div>
+          </article>
+        )}
+      </section>
+    </>
+  );
+}
+
 function ActionMessage({ state }: { state: ActionState }) {
   if (!state.message) return null;
 
@@ -648,4 +701,14 @@ const permissionLabels = {
   "groups:write": "소그룹 수정",
   "roles:manage": "권한 관리",
   "sensitive:read": "민감 정보 열람",
+};
+
+const auditActionLabels: Record<string, string> = {
+  "member.create": "멤버 생성",
+  "member.update": "멤버 수정",
+  "member.deactivate": "멤버 비활성화",
+  "member.reactivate": "멤버 다시 활성화",
+  "group.create": "소그룹 생성",
+  "group.update": "소그룹 수정",
+  "attendance.toggle": "출석 변경",
 };

@@ -33,6 +33,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/groups">소그룹</Link>
               <Link href="/attendance">출석</Link>
               <Link href="/permissions">권한</Link>
+              <Link href="/audit">감사 로그</Link>
             </nav>
 
             <div className="auth-card">

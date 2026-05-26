@@ -22,3 +22,15 @@ export type Member = {
   notes: string;
   present: boolean;
 };
+
+export type AuditLog = {
+  id: string;
+  action: string;
+  targetTable: string;
+  targetId: string | null;
+  actorName: string;
+  beforeData: Record<string, unknown> | null;
+  afterData: Record<string, unknown> | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
