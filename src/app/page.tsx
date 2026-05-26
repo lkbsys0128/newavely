@@ -1,10 +1,11 @@
 import { Dashboard } from "@/components/dashboard";
 import { AuthPanel } from "@/components/auth-panel";
-import { sampleGroups, sampleMembers } from "@/lib/sample-data";
-import { getRoleForEmail } from "@/lib/rbac";
 import { SetupPanel } from "@/components/setup-panel";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { ensureStarterData, getDashboardData, getOrCreateCurrentMember } from "@/lib/supabase/data";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   if (!hasSupabaseEnv()) {
@@ -24,9 +25,13 @@ export default async function HomePage() {
     );
   }
 
-  const email = user.email ?? "";
-  const metadataRole = typeof user.user_metadata?.role === "string" ? user.user_metadata.role : undefined;
-  const role = getRoleForEmail(email, metadataRole);
+  const currentMember = await getOrCreateCurrentMember(supabase, {
+    id: user.id,
+    email: user.email,
+    name: user.user_metadata?.full_name,
+  });
+  await ensureStarterData(supabase);
+  const dashboardData = await getDashboardData(supabase);
 
   return (
     <main className="main-content">
@@ -34,11 +39,13 @@ export default async function HomePage() {
         user={{
           id: user.id,
           name: user.user_metadata?.full_name ?? user.email ?? "관리자",
-          email,
-          role,
+          email: user.email ?? "",
+          role: currentMember.role,
         }}
-        initialMembers={sampleMembers}
-        groups={sampleGroups}
+        attendanceDate={dashboardData.attendanceDate}
+        attendanceEventId={dashboardData.attendanceEventId}
+        initialMembers={dashboardData.members}
+        groups={dashboardData.groups}
       />
     </main>
   );
