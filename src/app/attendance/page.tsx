@@ -4,8 +4,13 @@ import { getAppPageData } from "@/lib/app-page-data";
 
 export const dynamic = "force-dynamic";
 
-export default async function AttendancePage() {
-  const data = await getAppPageData();
+export default async function AttendancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ eventId?: string }>;
+}) {
+  const { eventId } = await searchParams;
+  const data = await getAppPageData({ attendanceEventId: eventId });
 
   return (
     <AppPageGate data={data}>
@@ -13,7 +18,9 @@ export default async function AttendancePage() {
         <AttendanceManager
           user={readyData.user}
           attendanceDate={readyData.attendanceDate}
+          attendanceTitle={readyData.attendanceTitle}
           attendanceEventId={readyData.attendanceEventId}
+          attendanceEvents={readyData.attendanceEvents}
           members={readyData.members}
           groups={readyData.groups}
         />

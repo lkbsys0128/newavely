@@ -46,6 +46,8 @@ create table attendance_records (
   member_id uuid not null references members(id) on delete cascade,
   status attendance_status not null default 'absent',
   note text,
+  excuse_start_date date,
+  excuse_end_date date,
   checked_by_member_id uuid references members(id) on delete set null,
   checked_at timestamptz,
   unique (event_id, member_id)

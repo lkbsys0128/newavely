@@ -42,6 +42,27 @@ const updateGroupSchema = groupSchema.extend({
   id: z.string().uuid(),
 });
 
+const attendanceEventSchema = z.object({
+  eventDate: z.string().min(1, "날짜를 선택해주세요."),
+  title: z.string().min(1, "이벤트 이름을 입력해주세요."),
+});
+
+const attendanceReasonSchema = z
+  .object({
+    memberId: z.string().uuid(),
+    eventId: z.string().uuid(),
+    note: nullableText,
+    excuseStartDate: nullableText,
+    excuseEndDate: nullableText,
+  })
+  .refine(
+    (value) => {
+      if (!value.excuseStartDate || !value.excuseEndDate) return true;
+      return value.excuseStartDate <= value.excuseEndDate;
+    },
+    { message: "종료일은 시작일 이후여야 합니다." },
+  );
+
 function normalizeCustomFieldKey(value: unknown) {
   return String(value ?? "")
     .trim()
@@ -432,6 +453,37 @@ export async function deleteCustomFieldDefinition(_previousState: ActionState, f
   });
 }
 
+export async function createAttendanceEvent(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
+    const parsed = attendanceEventSchema.parse({
+      eventDate: formData.get("eventDate"),
+      title: formData.get("title"),
+    });
+
+    const { data: inserted, error } = await supabase
+      .from("attendance_events")
+      .insert({
+        event_date: parsed.eventDate,
+        title: parsed.title,
+        created_by_member_id: currentMember.id,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "attendance_event.create",
+      targetTable: "attendance_events",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "출석 이벤트를 만들었습니다.";
+  });
+}
+
 export async function deactivateMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase } = await getAuthorizedCurrentMember("members:write");
@@ -585,6 +637,9 @@ export async function toggleAttendance(memberId: string, eventId: string, nextPr
         event_id: eventId,
         member_id: memberId,
         status: nextPresent ? "present" : "absent",
+        note: null,
+        excuse_start_date: null,
+        excuse_end_date: null,
         checked_by_member_id: currentMember.id,
         checked_at: new Date().toISOString(),
       },
@@ -604,4 +659,72 @@ export async function toggleAttendance(memberId: string, eventId: string, nextPr
     metadata: { eventId, memberId, nextPresent },
   });
   revalidateAppData();
+}
+
+export async function updateAttendanceReason(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
+    const parsed = attendanceReasonSchema.parse({
+      memberId: formData.get("memberId"),
+      eventId: formData.get("eventId"),
+      note: formData.get("note"),
+      excuseStartDate: formData.get("excuseStartDate"),
+      excuseEndDate: formData.get("excuseEndDate"),
+    });
+
+    let targetEventIds = [parsed.eventId];
+
+    if (parsed.excuseStartDate && parsed.excuseEndDate) {
+      const { data: eventsInRange, error: eventsError } = await supabase
+        .from("attendance_events")
+        .select("id")
+        .gte("event_date", parsed.excuseStartDate)
+        .lte("event_date", parsed.excuseEndDate);
+
+      if (eventsError) throw eventsError;
+      targetEventIds = (eventsInRange as Array<{ id: string }>).map((event) => event.id);
+    }
+
+    if (targetEventIds.length === 0) {
+      targetEventIds = [parsed.eventId];
+    }
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("attendance_records")
+      .select("*")
+      .eq("member_id", parsed.memberId)
+      .in("event_id", targetEventIds);
+
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
+      .from("attendance_records")
+      .upsert(
+        targetEventIds.map((eventId) => ({
+          event_id: eventId,
+          member_id: parsed.memberId,
+          status: "excused",
+          note: parsed.note,
+          excuse_start_date: parsed.excuseStartDate,
+          excuse_end_date: parsed.excuseEndDate,
+          checked_by_member_id: currentMember.id,
+          checked_at: new Date().toISOString(),
+        })),
+        { onConflict: "event_id,member_id" },
+      )
+      .select("*");
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "attendance.reason.update",
+      targetTable: "attendance_records",
+      targetId: ((afterData as Array<{ id: string }> | null)?.[0]?.id ?? parsed.memberId),
+      beforeData: { records: beforeData ?? [] },
+      afterData: { records: afterData ?? [] },
+      metadata: { eventIds: targetEventIds, memberId: parsed.memberId },
+    });
+    revalidateAppData();
+    return `${targetEventIds.length}개 이벤트에 출석 사유를 저장했습니다.`;
+  });
 }

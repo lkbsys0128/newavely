@@ -1,26 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState, useTransition, type ReactNode } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
+  createAttendanceEvent,
   createGroup,
   createMember,
   deactivateMember,
   reactivateMember,
   toggleAttendance,
+  updateAttendanceReason,
   updateGroup,
   updateMember,
   type ActionState,
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
-import type { AuditLog, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, Group, Member } from "@/lib/types";
 
 type AppDataProps = {
   user: AppUser;
   members: Member[];
   groups: Group[];
 };
+
+type AttendanceFilter = "all" | "present" | "absent" | "excused";
+type AttendanceStatus = "present" | "absent" | "excused";
 
 const initialActionState: ActionState = { ok: false, message: "" };
 
@@ -460,30 +465,242 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
 export function AttendanceManager({
   user,
   attendanceDate,
+  attendanceTitle,
   attendanceEventId,
+  attendanceEvents,
   members,
-}: AppDataProps & { attendanceDate: string; attendanceEventId?: string }) {
+  groups,
+}: AppDataProps & {
+  attendanceDate: string;
+  attendanceTitle: string;
+  attendanceEventId?: string;
+  attendanceEvents: AttendanceEvent[];
+}) {
   const [localMembers, setLocalMembers] = useState(members);
-  const [attendanceFilter, setAttendanceFilter] = useState<"all" | "present" | "absent">("all");
+  const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
+  const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
+
+  useEffect(() => {
+    setLocalMembers(members);
+  }, [attendanceEventId, members]);
+
+  const activeMembers = localMembers.filter((member) => member.status !== "inactive");
+  const activeMemberCount = activeMembers.length;
+  const currentPresentCount = activeMembers.filter((member) => member.present).length;
+  const currentExcusedCount = activeMembers.filter((member) => getMemberAttendanceStatus(member, attendanceEventId) === "excused").length;
+  const currentAbsentCount = Math.max(activeMemberCount - currentPresentCount - currentExcusedCount, 0);
+  const currentAttendanceRate = activeMemberCount ? Math.round((currentPresentCount / activeMemberCount) * 100) : 0;
+  const groupAttendanceStats = groups.map((group) => {
+    const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
+    const presentCount = groupMembers.filter((member) => member.present).length;
+    return {
+      id: group.id,
+      name: group.name,
+      presentCount,
+      totalCount: groupMembers.length,
+      rate: groupMembers.length ? Math.round((presentCount / groupMembers.length) * 100) : 0,
+    };
+  });
+  const unassignedMembers = activeMembers.filter((member) => !member.groupId);
+  const unassignedPresentCount = unassignedMembers.filter((member) => member.present).length;
+  const unassignedAttendanceRate = unassignedMembers.length
+    ? Math.round((unassignedPresentCount / unassignedMembers.length) * 100)
+    : 0;
+  const eventTrend = attendanceEvents.map((event) => {
+    const presentCount =
+      event.id === attendanceEventId
+        ? currentPresentCount
+        : activeMembers.filter((member) =>
+            member.attendanceHistory.some((record) => record.eventId === event.id && record.status === "present"),
+          ).length;
+    const rate = activeMemberCount ? Math.round((presentCount / activeMemberCount) * 100) : 0;
+    return { ...event, presentCount, rate };
+  });
+  const absenceWatchList = activeMembers
+    .map((member) => {
+      let streak = 0;
+      for (const event of attendanceEvents.slice(0, 6)) {
+        const record = member.attendanceHistory.find((item) => item.eventId === event.id);
+        if (record?.status === "present" || record?.status === "excused") break;
+        streak += 1;
+      }
+      return { member, streak };
+    })
+    .filter((item) => item.streak >= 3)
+    .sort((a, b) => b.streak - a.streak)
+    .slice(0, 8);
+
   const attendanceMembers = localMembers.filter((member) => {
+    const status = getMemberAttendanceStatus(member, attendanceEventId);
     if (attendanceFilter === "present") return member.present;
-    if (attendanceFilter === "absent") return !member.present;
+    if (attendanceFilter === "absent") return status === "absent";
+    if (attendanceFilter === "excused") return status === "excused";
     return true;
   });
 
   return (
     <>
       <PageHeader eyebrow="출석 관리" title="출석" user={user} />
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>출석 이벤트 선택</h2>
+          <span>{attendanceEvents.length}개 이벤트</span>
+        </div>
+        <div className="event-list">
+          {attendanceEvents.map((event) => (
+            <Link
+              className={`event-chip ${event.id === attendanceEventId ? "active" : ""}`}
+              href={`/attendance?eventId=${event.id}`}
+              key={event.id}
+            >
+              <strong>{event.title}</strong>
+              <span>{event.eventDate}</span>
+            </Link>
+          ))}
+          {attendanceEvents.length === 0 ? (
+            <article className="care-item">
+              <div className="person-block">
+                <strong>아직 출석 이벤트가 없습니다</strong>
+                <span>새 출석 이벤트를 만들면 멤버별 출석을 체크할 수 있습니다.</span>
+              </div>
+            </article>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>새 출석 이벤트</h2>
+          <span>{canManageAttendance ? "날짜와 이름을 입력" : "리더/관리자 권한 필요"}</span>
+        </div>
+        <form action={createEventAction} className="member-form compact-form">
+          <label>
+            날짜
+            <input name="eventDate" type="date" required disabled={!canManageAttendance} />
+          </label>
+          <label>
+            이름
+            <input name="title" required placeholder="주일 예배" disabled={!canManageAttendance} />
+          </label>
+          <div className="form-actions full-width">
+            <ActionMessage state={createEventState} />
+            <button className="primary-button" type="submit" disabled={!canManageAttendance || isCreatingEvent}>
+              만들기
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="stats-grid">
+        <article className="metric-card">
+          <span>선택 이벤트 출석률</span>
+          <strong>{currentAttendanceRate}%</strong>
+          <small>
+            {currentPresentCount}명 출석 · {currentAbsentCount}명 미확인 · {currentExcusedCount}명 사유 있음
+          </small>
+          <div className="progress">
+            <span style={{ width: `${currentAttendanceRate}%` }} />
+          </div>
+        </article>
+        <article className="panel stats-card">
+          <div className="panel-heading">
+            <h2>소그룹별 출석률</h2>
+            <span>{attendanceTitle}</span>
+          </div>
+          <div className="stats-list">
+            {groupAttendanceStats.map((group) => (
+              <div className="stat-row" key={group.id}>
+                <div className="person-block">
+                  <strong>{group.name}</strong>
+                  <span>
+                    {group.presentCount}/{group.totalCount}명
+                  </span>
+                </div>
+                <div className="stat-meter">
+                  <div className="progress">
+                    <span style={{ width: `${group.rate}%` }} />
+                  </div>
+                  <strong>{group.rate}%</strong>
+                </div>
+              </div>
+            ))}
+            {unassignedMembers.length > 0 ? (
+              <div className="stat-row">
+                <div className="person-block">
+                  <strong>미배정</strong>
+                  <span>
+                    {unassignedPresentCount}/{unassignedMembers.length}명
+                  </span>
+                </div>
+                <div className="stat-meter">
+                  <div className="progress">
+                    <span style={{ width: `${unassignedAttendanceRate}%` }} />
+                  </div>
+                  <strong>{unassignedAttendanceRate}%</strong>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </article>
+        <article className="panel stats-card">
+          <div className="panel-heading">
+            <h2>최근 이벤트 추이</h2>
+            <span>최근 {eventTrend.length}개</span>
+          </div>
+          <div className="stats-list">
+            {eventTrend.slice(0, 6).map((event) => (
+              <div className="stat-row" key={event.id}>
+                <div className="person-block">
+                  <strong>{event.title}</strong>
+                  <span>{event.eventDate}</span>
+                </div>
+                <div className="stat-meter">
+                  <div className="progress">
+                    <span style={{ width: `${event.rate}%` }} />
+                  </div>
+                  <strong>{event.rate}%</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+        <article className="panel stats-card">
+          <div className="panel-heading">
+            <h2>미확인 연속 결석</h2>
+            <span>사유 있음 제외</span>
+          </div>
+          <div className="stats-list">
+            {absenceWatchList.map(({ member, streak }) => (
+              <div className="stat-row" key={member.id}>
+                <div className="person-block">
+                  <strong>{member.name}</strong>
+                  <span>{member.groupName}</span>
+                </div>
+                <span className="status-pill">{streak}회 연속</span>
+              </div>
+            ))}
+            {absenceWatchList.length === 0 ? (
+              <article className="care-item">
+                <div className="person-block">
+                  <strong>3회 이상 미확인 결석자가 없습니다</strong>
+                  <span>사유가 저장된 결석은 이 목록에서 제외됩니다.</span>
+                </div>
+              </article>
+            ) : null}
+          </div>
+        </article>
+      </section>
+
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>주일 출석 체크</h2>
+            <h2>{attendanceTitle}</h2>
             <span>{attendanceDate}</span>
           </div>
           <div className="segmented">
-            {(["all", "present", "absent"] as const).map((filter) => (
+            {(["all", "present", "absent", "excused"] as const).map((filter) => (
               <button
                 className={`segment ${attendanceFilter === filter ? "active" : ""}`}
                 key={filter}
@@ -497,38 +714,122 @@ export function AttendanceManager({
         </div>
         <div className="attendance-list">
           {attendanceMembers.map((member) => (
-            <article className="attendance-row" key={member.id}>
-              <div className="person-block">
-                <strong>{member.name}</strong>
-                <span>
-                  {member.groupName} · {member.phone}
-                </span>
-              </div>
-              <span className={`attendance-pill ${member.present ? "present" : ""}`}>
-                {member.present ? "출석" : "미출석"}
-              </span>
-              <button
-                className={member.present ? "secondary-button" : "primary-button"}
-                disabled={!canManageAttendance || !attendanceEventId || isPending}
-                onClick={() => {
-                  if (!attendanceEventId) return;
-                  setLocalMembers((current) =>
-                    current.map((item) => (item.id === member.id ? { ...item, present: !item.present } : item)),
-                  );
-                  startTransition(() => {
-                    void toggleAttendance(member.id, attendanceEventId, !member.present);
-                  });
-                }}
-                type="button"
-              >
-                {member.present ? "미출석 처리" : "출석 체크"}
-              </button>
-            </article>
+            <AttendanceRow
+              canManageAttendance={canManageAttendance}
+              eventId={attendanceEventId}
+              isPending={isPending}
+              key={member.id}
+              member={member}
+              onToggle={() => {
+                if (!attendanceEventId) return;
+                setLocalMembers((current) =>
+                  current.map((item) => (item.id === member.id ? { ...item, present: !item.present } : item)),
+                );
+                startTransition(() => {
+                  void toggleAttendance(member.id, attendanceEventId, !member.present);
+                });
+              }}
+            />
           ))}
         </div>
       </section>
     </>
   );
+}
+
+function AttendanceRow({
+  member,
+  eventId,
+  canManageAttendance,
+  isPending,
+  onToggle,
+}: {
+  member: Member;
+  eventId?: string;
+  canManageAttendance: boolean;
+  isPending: boolean;
+  onToggle: () => void;
+}) {
+  const [reasonState, reasonAction, isSavingReason] = useActionState(updateAttendanceReason, initialActionState);
+  const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
+  const status = getMemberAttendanceStatus(member, eventId);
+
+  return (
+    <article className="attendance-row">
+      <div className="person-block">
+        <strong>{member.name}</strong>
+        <span>
+          {member.groupName} · {member.phone}
+        </span>
+        {currentRecord?.note ? <span>사유: {currentRecord.note}</span> : null}
+        {currentRecord?.excuseStartDate || currentRecord?.excuseEndDate ? (
+          <span>
+            기간: {currentRecord.excuseStartDate || "시작일 미입력"} - {currentRecord.excuseEndDate || "종료일 미입력"}
+          </span>
+        ) : null}
+      </div>
+      <span className={`attendance-pill ${status}`}>{attendanceStatusLabels[status]}</span>
+      <div className="attendance-actions">
+        <button
+          className={member.present ? "secondary-button" : "primary-button"}
+          disabled={!canManageAttendance || !eventId || isPending}
+          onClick={onToggle}
+          type="button"
+        >
+          {member.present ? "미출석 처리" : "출석 체크"}
+        </button>
+        <details className="reason-details">
+          <summary>사유/기간</summary>
+          <form action={reasonAction} className="reason-form">
+            <input name="memberId" type="hidden" value={member.id} />
+            <input name="eventId" type="hidden" value={eventId ?? ""} />
+            <label>
+              시작일
+              <input
+                name="excuseStartDate"
+                type="date"
+                defaultValue={currentRecord?.excuseStartDate}
+                disabled={!canManageAttendance || !eventId}
+              />
+            </label>
+            <label>
+              종료일
+              <input
+                name="excuseEndDate"
+                type="date"
+                defaultValue={currentRecord?.excuseEndDate}
+                disabled={!canManageAttendance || !eventId}
+              />
+            </label>
+            <label className="full-width">
+              사유
+              <textarea
+                name="note"
+                placeholder="여행, 건강, 가정 일정 등"
+                defaultValue={currentRecord?.note}
+                disabled={!canManageAttendance || !eventId}
+              />
+            </label>
+            <div className="form-actions full-width">
+              <ActionMessage state={reasonState} />
+              <button className="secondary-button" type="submit" disabled={!canManageAttendance || !eventId || isSavingReason}>
+                사유 있음 저장
+              </button>
+            </div>
+          </form>
+        </details>
+      </div>
+    </article>
+  );
+}
+
+function getMemberAttendanceStatus(member: Member, eventId?: string): AttendanceStatus {
+  if (member.present) return "present";
+
+  const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
+  if (currentRecord?.status === "excused") return "excused";
+
+  return "absent";
 }
 
 export function PermissionsPageContent({ user, members }: AppDataProps) {
@@ -696,7 +997,14 @@ const statusLabels: Record<Member["status"], string> = {
 const attendanceFilterLabels = {
   all: "전체",
   present: "출석",
+  absent: "미확인",
+  excused: "사유 있음",
+};
+
+const attendanceStatusLabels = {
+  present: "출석",
   absent: "미출석",
+  excused: "사유 있음",
 };
 
 const permissionLabels = {
@@ -718,6 +1026,8 @@ const auditActionLabels: Record<string, string> = {
   "member.custom_fields.update": "멤버 커스텀 필드 수정",
   "group.create": "소그룹 생성",
   "group.update": "소그룹 수정",
+  "attendance_event.create": "출석 이벤트 생성",
   "attendance.toggle": "출석 변경",
+  "attendance.reason.update": "출석 사유 수정",
   "custom_field.create": "커스텀 필드 생성",
 };

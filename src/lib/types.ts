@@ -22,6 +22,23 @@ export type Member = {
   notes: string;
   customFields: Record<string, unknown>;
   present: boolean;
+  attendanceHistory: AttendanceRecordSummary[];
+};
+
+export type AttendanceEvent = {
+  id: string;
+  eventDate: string;
+  title: string;
+};
+
+export type AttendanceRecordSummary = {
+  eventId: string;
+  eventDate: string;
+  title: string;
+  status: "present" | "absent" | "excused";
+  note: string;
+  excuseStartDate: string;
+  excuseEndDate: string;
 };
 
 export type CustomFieldDefinition = {

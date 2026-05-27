@@ -302,7 +302,8 @@ h2 {
 }
 
 .metric-grid,
-.group-grid {
+.group-grid,
+.stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
@@ -368,6 +369,7 @@ h2 {
 .care-list,
 .group-summary,
 .attendance-list,
+.attendance-history,
 .member-detail,
 .permission-matrix,
 .audit-list {
@@ -378,6 +380,7 @@ h2 {
 .care-item,
 .summary-row,
 .attendance-row,
+.history-row,
 .permission-row,
 .detail-row,
 .audit-row {
@@ -428,6 +431,11 @@ h2 {
 .attendance-pill.present {
   background: var(--soft);
   color: var(--accent);
+}
+
+.attendance-pill.excused {
+  background: #f7f0d8;
+  color: #77530c;
 }
 
 .role-pill {
@@ -539,6 +547,43 @@ th {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.stats-grid {
+  grid-template-columns: minmax(220px, 0.75fr) repeat(3, minmax(260px, 1fr));
+  margin-bottom: 16px;
+}
+
+.stats-card {
+  box-shadow: none;
+}
+
+.stats-list {
+  display: grid;
+  gap: 10px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.stat-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.stat-meter {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+  text-align: right;
+}
+
 .group-card {
   display: grid;
   gap: 16px;
@@ -595,6 +640,87 @@ th {
 
 .attendance-row button {
   min-width: 96px;
+}
+
+.attendance-actions {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  min-width: 280px;
+}
+
+.reason-details {
+  width: 100%;
+  max-width: 420px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.reason-details summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.reason-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.reason-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.reason-form input,
+.reason-form textarea {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+}
+
+.reason-form textarea {
+  min-height: 72px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.event-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.event-chip {
+  display: grid;
+  min-width: 180px;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-strong);
+}
+
+.event-chip span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.event-chip.active {
+  border-color: var(--accent);
+  background: var(--soft);
+  color: var(--accent);
 }
 
 .permission-row {
@@ -663,6 +789,7 @@ th {
 
   .metric-grid,
   .group-grid,
+  .stats-grid,
   .dashboard-layout,
   .content-grid,
   .detail-layout {
@@ -696,6 +823,7 @@ th {
   .nav-list,
   .metric-grid,
   .group-grid,
+  .stats-grid,
   .dashboard-layout,
   .content-grid,
   .detail-layout,
@@ -709,6 +837,8 @@ th {
   .care-item,
   .summary-row,
   .attendance-row,
+  .history-row,
+  .stat-row,
   .detail-row,
   .audit-row {
     align-items: stretch;
@@ -718,5 +848,22 @@ th {
 
   .permission-list {
     justify-content: flex-start;
+  }
+
+  .attendance-actions,
+  .reason-details {
+    justify-items: stretch;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .reason-form {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-meter {
+    grid-template-columns: 1fr auto;
+    min-width: 0;
+    text-align: left;
   }
 }
