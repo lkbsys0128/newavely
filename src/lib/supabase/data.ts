@@ -88,12 +88,27 @@ export async function getOrCreateCurrentMember(
   if (existing) return { id: existing.id as string, role: existing.role as Role };
 
   const role = getRoleForEmail(user.email ?? "");
+  const normalizedEmail = user.email?.trim().toLowerCase();
+
+  if (normalizedEmail) {
+    const { data: importedMember, error: importedMemberError } = await supabase
+      .from("members")
+      .update({ auth_user_id: user.id, role })
+      .eq("email", normalizedEmail)
+      .is("auth_user_id", null)
+      .select("id, role")
+      .maybeSingle();
+
+    if (importedMemberError) throw importedMemberError;
+    if (importedMember) return { id: importedMember.id as string, role: importedMember.role as Role };
+  }
+
   const { data: inserted, error: insertError } = await supabase
     .from("members")
     .insert({
       auth_user_id: user.id,
       name: user.name ?? user.email ?? "새 멤버",
-      email: user.email ?? null,
+      email: normalizedEmail ?? null,
       role,
       status: "active",
     })
