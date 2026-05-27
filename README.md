@@ -34,6 +34,8 @@ src/
 db/
   schema.sql              기본 schema, indexes, RLS functions, policies
   002_app_data_policies.sql 추가 앱 데이터 policies
+  003_audit_logs.sql      감사 로그 테이블, 기록 함수, RLS policy
+  004_audit_log_retention.sql 감사 로그 보관 정책 comment와 created_at index
 test/
   supabase-queries.test.mjs Supabase relationship embed 회귀 테스트
 ```
@@ -74,6 +76,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 1. `db/schema.sql`
 2. `db/002_app_data_policies.sql`
 3. `db/003_audit_logs.sql`
+4. `db/004_audit_log_retention.sql`
 
 주요 테이블:
 
@@ -151,6 +154,26 @@ attendance_records!attendance_records_member_id_fkey(status)
 - 쓰기는 `record_audit_log` security definer function을 통해서만 수행합니다.
 
 관리자는 `/audit`에서 최근 감사 로그를 확인할 수 있습니다.
+
+### 감사 로그 보관 정책
+
+기본 운영 정책은 **최근 12개월 감사 로그를 검색 가능한 상태로 보관**하는 것입니다.
+
+현재는 별도 압축/아카이브 기능을 구현하지 않습니다. Supabase/Postgres는 큰 JSONB 값을 내부적으로 압축할 수 있고, 지금 규모에서는 직접 gzip/decompress 계층을 만드는 것보다 조회 가능성과 단순함을 유지하는 편이 더 안전합니다.
+
+용량 최적화 원칙:
+
+- 감사 로그에는 변경 추적에 필요한 최소 데이터만 기록합니다.
+- 최근 조회와 향후 정리 작업을 위해 `audit_logs.created_at` index를 유지합니다.
+- 오래된 로그는 바로 삭제하기보다 archive/export 정책을 먼저 정한 뒤 처리합니다.
+
+추후 TODO:
+
+- `/audit`에 날짜 범위, 작업 종류, actor 필터 추가
+- Vercel Cron 또는 Supabase scheduled job으로 12개월 초과 로그 archive/delete 자동화
+- archive 대상은 `audit_log_archives` 테이블 또는 Supabase Storage JSON export 중 선택
+- 민감 정보가 감사 로그에 과도하게 남지 않도록 before/after payload masking 정책 검토
+- 실제 운영 데이터 증가량을 보고 보관 기간을 12개월, 24개월, 36개월 중 재검토
 
 ## 배포
 
