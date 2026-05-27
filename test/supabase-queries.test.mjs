@@ -5,6 +5,7 @@ import test from "node:test";
 const dataSource = readFileSync(new URL("../src/lib/supabase/data.ts", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
+  assert.match(dataSource, /id, auth_user_id, name/);
   assert.match(dataSource, /groups!members_group_id_fkey\(name\)/);
   assert.match(
     dataSource,

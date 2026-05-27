@@ -13,6 +13,7 @@ type DbGroup = {
 
 type DbMember = {
   id: string;
+  auth_user_id: string | null;
   name: string;
   email: string | null;
   phone: string | null;
@@ -174,7 +175,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
   const { data: membersData, error: membersError } = await supabase
     .from("members")
     .select(
-      "id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events(event_date, title)), care_followups!care_followups_member_id_fkey(id, status, note, assigned_to_member_id, created_at, completed_at, assigned_to:members!care_followups_assigned_to_member_id_fkey(name))",
+      "id, auth_user_id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events(event_date, title)), care_followups!care_followups_member_id_fkey(id, status, note, assigned_to_member_id, created_at, completed_at, assigned_to:members!care_followups_assigned_to_member_id_fkey(name))",
     )
     .order("name");
 
@@ -222,6 +223,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return {
       id: member.id,
+      authUserId: member.auth_user_id,
       name: member.name,
       phone: member.phone ?? "미입력",
       groupId: member.group_id,

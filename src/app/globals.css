@@ -509,7 +509,8 @@ h2 {
 
 .status-pill,
 .role-pill,
-.attendance-pill {
+.attendance-pill,
+.account-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -545,6 +546,16 @@ h2 {
 .attendance-pill {
   background: #f3f0ea;
   color: var(--muted);
+}
+
+.account-pill {
+  background: #eef0ee;
+  color: var(--muted);
+}
+
+.account-pill.connected {
+  background: #e8f5f1;
+  color: var(--accent);
 }
 
 .table-wrap {
@@ -629,6 +640,29 @@ th {
 .compact-action-form {
   margin-top: 10px;
   padding-top: 10px;
+}
+
+.compact-heading {
+  margin-bottom: 10px;
+}
+
+.compact-heading h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.duplicate-list,
+.duplicate-member-list,
+.merge-action-list {
+  display: grid;
+  gap: 12px;
+}
+
+.duplicate-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--surface-strong);
 }
 
 .action-message {

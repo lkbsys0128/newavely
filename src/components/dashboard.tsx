@@ -7,6 +7,7 @@ import {
   createGroup,
   createMember,
   deactivateMember,
+  mergeMemberAccount,
   reactivateMember,
   toggleAttendance,
   updateAttendanceReason,
@@ -107,8 +108,10 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     reactivateMember,
     initialActionState,
   );
+  const [mergeMemberState, mergeMemberAction, isMergingMember] = useActionState(mergeMemberAccount, initialActionState);
   const canManageMembers = hasPermission(user.role, "members:write");
   const visibleMembers = showInactive ? members : members.filter((member) => member.status !== "inactive");
+  const duplicateMemberCandidates = useMemo(() => findPotentialDuplicateMembers(members), [members]);
   const selectedMember =
     visibleMembers.find((member) => member.id === selectedMemberId) ?? visibleMembers[0] ?? members[0];
   const filteredMembers = useMemo(() => {
@@ -158,6 +161,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   <th>소그룹</th>
                   <th>역할</th>
                   <th>상태</th>
+                  <th>계정</th>
                   <th>연락처</th>
                   <th>상세</th>
                 </tr>
@@ -176,6 +180,11 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                     <td>
                       <span className={`status-pill ${member.status === "active" ? "active" : ""}`}>
                         {statusLabels[member.status]}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`account-pill ${member.authUserId ? "connected" : ""}`}>
+                        {member.authUserId ? "Google 연결" : "미연결"}
                       </span>
                     </td>
                     <td>{member.phone}</td>
@@ -284,6 +293,74 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </form>
           ) : null}
         </aside>
+      </section>
+
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>중복/계정 연결 확인</h2>
+          <span>{duplicateMemberCandidates.length}건 후보</span>
+        </div>
+        <div className="duplicate-list">
+          {duplicateMemberCandidates.map((candidate) => {
+            const linkedMember = candidate.members.find((member) => member.authUserId);
+            const unlinkedMembers = candidate.members.filter((member) => !member.authUserId && member.status !== "inactive");
+            return (
+              <article className="duplicate-card" key={candidate.key}>
+                <div className="panel-heading compact-heading">
+                  <div>
+                    <h3>{candidate.reasonLabel}</h3>
+                    <p className="meta">같은 사람일 가능성이 있는 멤버를 확인한 뒤 연결해주세요.</p>
+                  </div>
+                  <span>{candidate.members.length}명</span>
+                </div>
+                <div className="duplicate-member-list">
+                  {candidate.members.map((member) => (
+                    <div className="detail-row" key={member.id}>
+                      <div className="person-block">
+                        <strong>{member.name}</strong>
+                        <span>
+                          {member.groupName} · {member.email || "이메일 없음"} · {member.phone}
+                        </span>
+                      </div>
+                      <div className="row-actions">
+                        <span className={`status-pill ${member.status === "active" ? "active" : ""}`}>
+                          {statusLabels[member.status]}
+                        </span>
+                        <span className={`account-pill ${member.authUserId ? "connected" : ""}`}>
+                          {member.authUserId ? "Google 연결" : "미연결"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {linkedMember && unlinkedMembers.length > 0 ? (
+                  <div className="merge-action-list">
+                    {unlinkedMembers.map((targetMember) => (
+                      <form action={mergeMemberAction} className="single-action-form compact-action-form" key={targetMember.id}>
+                        <input name="targetMemberId" type="hidden" value={targetMember.id} />
+                        <input name="duplicateMemberId" type="hidden" value={linkedMember.id} />
+                        <ActionMessage state={mergeMemberState} />
+                        <button className="primary-button" type="submit" disabled={!canManageMembers || isMergingMember}>
+                          {targetMember.name}에 Google 계정 연결
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="meta">자동 연결 가능한 조합은 없습니다. 이름/연락처를 확인해 수동으로 정리해주세요.</p>
+                )}
+              </article>
+            );
+          })}
+          {duplicateMemberCandidates.length === 0 ? (
+            <article className="care-item">
+              <div className="person-block">
+                <strong>확인할 중복 후보가 없습니다</strong>
+                <span>같은 이름이나 연락처로 겹치는 멤버가 생기면 여기에 표시됩니다.</span>
+              </div>
+            </article>
+          ) : null}
+        </div>
       </section>
 
       <section className="panel form-panel">
@@ -887,6 +964,50 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
   return "absent";
 }
 
+type DuplicateMemberCandidate = {
+  key: string;
+  reasonLabel: string;
+  members: Member[];
+};
+
+function findPotentialDuplicateMembers(members: Member[]): DuplicateMemberCandidate[] {
+  const candidates = new Map<string, DuplicateMemberCandidate>();
+
+  function addCandidate(key: string, reasonLabel: string, candidateMembers: Member[]) {
+    const actionableMembers = candidateMembers.filter((member) => member.status !== "inactive" || member.authUserId);
+    const hasLinked = actionableMembers.some((member) => member.authUserId);
+    const hasUnlinkedActive = actionableMembers.some((member) => !member.authUserId && member.status !== "inactive");
+
+    if (actionableMembers.length < 2 || !hasLinked || !hasUnlinkedActive) return;
+    candidates.set(key, { key, reasonLabel, members: actionableMembers });
+  }
+
+  const byPhone = new Map<string, Member[]>();
+  const byName = new Map<string, Member[]>();
+
+  for (const member of members) {
+    const phoneKey = member.phone.replace(/\D/g, "");
+    if (phoneKey.length >= 7) {
+      byPhone.set(phoneKey, [...(byPhone.get(phoneKey) ?? []), member]);
+    }
+
+    const nameKey = member.name.replace(/\s+/g, "").toLowerCase();
+    if (nameKey.length >= 2) {
+      byName.set(nameKey, [...(byName.get(nameKey) ?? []), member]);
+    }
+  }
+
+  for (const [phone, candidateMembers] of byPhone.entries()) {
+    addCandidate(`phone:${phone}`, `연락처 중복 ${candidateMembers[0]?.phone ?? ""}`, candidateMembers);
+  }
+
+  for (const [name, candidateMembers] of byName.entries()) {
+    addCandidate(`name:${name}`, `이름 중복 ${candidateMembers[0]?.name ?? ""}`, candidateMembers);
+  }
+
+  return [...candidates.values()].sort((a, b) => a.reasonLabel.localeCompare(b.reasonLabel));
+}
+
 export function PermissionsPageContent({ user, members }: AppDataProps) {
   return (
     <>
@@ -1078,6 +1199,7 @@ const auditActionLabels: Record<string, string> = {
   "member.update": "멤버 수정",
   "member.deactivate": "멤버 비활성화",
   "member.reactivate": "멤버 다시 활성화",
+  "member.account_merge": "멤버 계정 연결",
   "member.custom_fields.update": "멤버 커스텀 필드 수정",
   "group.create": "소그룹 생성",
   "group.update": "소그룹 수정",

@@ -10,6 +10,7 @@ export const sampleGroups: Group[] = [
 
 export const sampleMembers: Member[] = [
   {
+    authUserId: null,
     id: "m-1",
     name: "김하은",
     phone: "010-2145-7301",
@@ -27,6 +28,7 @@ export const sampleMembers: Member[] = [
     careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-2",
     name: "박서준",
     phone: "010-7712-1185",
@@ -44,6 +46,7 @@ export const sampleMembers: Member[] = [
     careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-3",
     name: "이예린",
     phone: "010-9038-4521",
@@ -61,6 +64,7 @@ export const sampleMembers: Member[] = [
     careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-4",
     name: "최도윤",
     phone: "010-5820-3904",
@@ -78,6 +82,7 @@ export const sampleMembers: Member[] = [
     careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-5",
     name: "정민재",
     phone: "010-4482-9300",
@@ -95,6 +100,7 @@ export const sampleMembers: Member[] = [
     careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-6",
     name: "한지우",
     phone: "010-6304-8712",
@@ -112,6 +118,7 @@ export const sampleMembers: Member[] = [
     careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-7",
     name: "윤서아",
     phone: "010-3290-7744",
@@ -129,6 +136,7 @@ export const sampleMembers: Member[] = [
     careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-8",
     name: "오준호",
     phone: "010-8122-6509",

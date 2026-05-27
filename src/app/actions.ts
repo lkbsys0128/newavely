@@ -32,6 +32,11 @@ const updateMemberSchema = memberSchema.extend({
   id: z.string().uuid(),
 });
 
+const mergeMemberAccountSchema = z.object({
+  targetMemberId: z.string().uuid(),
+  duplicateMemberId: z.string().uuid(),
+});
+
 const groupSchema = z.object({
   name: z.string().min(1),
   leaderMemberId: nullableUuid,
@@ -215,6 +220,23 @@ async function writeAuditLog({
   if (error) throw error;
 }
 
+const rolePriority: Record<"admin" | "leader" | "staff" | "member", number> = {
+  admin: 4,
+  leader: 3,
+  staff: 2,
+  member: 1,
+};
+
+function higherRole(a: "admin" | "leader" | "staff" | "member", b: "admin" | "leader" | "staff" | "member") {
+  return rolePriority[a] >= rolePriority[b] ? a : b;
+}
+
+function appendMergeNote(currentNote: unknown, targetName: unknown) {
+  const base = typeof currentNote === "string" ? currentNote.trim() : "";
+  const mergeNote = `중복 계정 병합됨: ${String(targetName ?? "기존 멤버")}에 Google 계정 연결`;
+  return base ? `${base}\n${mergeNote}` : mergeNote;
+}
+
 export async function createMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase } = await getAuthorizedCurrentMember("members:write");
@@ -312,6 +334,101 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     });
     revalidateAppData();
     return "멤버 정보를 저장했습니다.";
+  });
+}
+
+export async function mergeMemberAccount(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const parsed = mergeMemberAccountSchema.parse({
+      targetMemberId: formData.get("targetMemberId"),
+      duplicateMemberId: formData.get("duplicateMemberId"),
+    });
+
+    if (parsed.targetMemberId === parsed.duplicateMemberId) {
+      throw new Error("서로 다른 멤버를 선택해주세요.");
+    }
+
+    const { data: rows, error: rowsError } = await supabase
+      .from("members")
+      .select("*")
+      .in("id", [parsed.targetMemberId, parsed.duplicateMemberId]);
+
+    if (rowsError) throw rowsError;
+
+    const members = (rows ?? []) as Array<Record<string, unknown>>;
+    const targetMember = members.find((member) => member.id === parsed.targetMemberId);
+    const duplicateMember = members.find((member) => member.id === parsed.duplicateMemberId);
+
+    if (!targetMember || !duplicateMember) throw new Error("멤버 정보를 찾을 수 없습니다.");
+    if (targetMember.auth_user_id) throw new Error("기존 멤버에 이미 Google 계정이 연결되어 있습니다.");
+    if (!duplicateMember.auth_user_id) throw new Error("연결할 Google 계정이 있는 중복 멤버를 선택해주세요.");
+
+    const now = new Date().toISOString();
+    const duplicateAuthUserId = String(duplicateMember.auth_user_id);
+    const targetRole = higherRole(
+      String(targetMember.role ?? "member") as "admin" | "leader" | "staff" | "member",
+      String(duplicateMember.role ?? "member") as "admin" | "leader" | "staff" | "member",
+    );
+
+    const { data: deactivatedDuplicate, error: duplicateError } = await supabase
+      .from("members")
+      .update({
+        auth_user_id: null,
+        status: "inactive",
+        care_notes: appendMergeNote(duplicateMember.care_notes, targetMember.name),
+        updated_at: now,
+      })
+      .eq("id", parsed.duplicateMemberId)
+      .select("*")
+      .single();
+
+    if (duplicateError) throw duplicateError;
+
+    const { data: updatedTarget, error: targetError } = await supabase
+      .from("members")
+      .update({
+        auth_user_id: duplicateAuthUserId,
+        role: targetRole,
+        updated_at: now,
+      })
+      .eq("id", parsed.targetMemberId)
+      .is("auth_user_id", null)
+      .select("*")
+      .single();
+
+    if (targetError) {
+      await supabase
+        .from("members")
+        .update({
+          auth_user_id: duplicateAuthUserId,
+          status: duplicateMember.status,
+          care_notes: duplicateMember.care_notes,
+          updated_at: now,
+        })
+        .eq("id", parsed.duplicateMemberId);
+      throw targetError;
+    }
+
+    await writeAuditLog({
+      supabase,
+      action: "member.account_merge",
+      targetTable: "members",
+      targetId: parsed.targetMemberId,
+      beforeData: {
+        targetMember,
+        duplicateMember,
+      },
+      afterData: {
+        targetMember: updatedTarget as Record<string, unknown>,
+        duplicateMember: deactivatedDuplicate as Record<string, unknown>,
+      },
+      metadata: {
+        duplicateMemberId: parsed.duplicateMemberId,
+      },
+    });
+    revalidateAppData();
+    return "Google 계정을 기존 멤버에 연결하고 중복 멤버를 비활성화했습니다.";
   });
 }
 
