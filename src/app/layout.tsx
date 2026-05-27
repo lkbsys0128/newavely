@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -18,12 +19,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <div className="app-shell">
           <aside className="sidebar" aria-label="주요 메뉴">
             <div className="brand">
-              <div className="brand-mark" aria-hidden="true">
-                NW
-              </div>
+              <Image alt="" className="brand-mark" height={44} src="/newave-icon.png" width={34} />
               <div>
                 <strong>Newavely</strong>
-                <span>멤버십 운영</span>
+                <span>Newave 공동체</span>
               </div>
             </div>
 

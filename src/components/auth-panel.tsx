@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/browser";
 
 export function AuthPanel() {
@@ -14,25 +15,34 @@ export function AuthPanel() {
   }
 
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Newavely</p>
-          <h1>공동체 관리 시작하기</h1>
-        </div>
-        <span>Supabase Google Auth</span>
-      </div>
-      <div className="care-list">
-        <article className="care-item">
-          <div className="person-block">
-            <strong>Google 계정으로 로그인</strong>
-            <span>로그인 후 역할에 따라 멤버, 소그룹, 출석 권한이 적용됩니다.</span>
+    <section className="login-page">
+      <div className="login-hero">
+        <div className="login-copy">
+          <div className="login-brand">
+            <Image alt="" height={96} priority src="/newave-icon.png" width={74} />
+            <div>
+              <p className="eyebrow">Seattle Hyungjae Church</p>
+              <strong>Newavely</strong>
+            </div>
           </div>
-          <button className="google-button" onClick={signInWithGoogle} type="button">
+          <h1>뉴웨이브 공동체를 더 선명하게 돌보는 공간</h1>
+          <p>
+            시애틀 형제교회 뉴웨이브 공동체의 멤버, 소그룹, 출석, 돌봄 팔로업을 한 흐름 안에서 관리합니다.
+          </p>
+        </div>
+
+        <div className="login-card">
+          <div>
+            <p className="eyebrow">Newavely 로그인</p>
+            <h2>Google 계정으로 시작하기</h2>
+            <span>역할에 따라 접근 가능한 메뉴와 관리 권한이 자동으로 적용됩니다.</span>
+          </div>
+          <button className="google-button login-button" onClick={signInWithGoogle} type="button">
             <span className="google-dot" aria-hidden="true" />
             Google로 로그인
           </button>
-        </article>
+          <p className="login-note">Newave 공동체 운영진과 리더를 위한 내부 관리 도구입니다.</p>
+        </div>
       </div>
     </section>
   );

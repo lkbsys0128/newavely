@@ -73,14 +73,13 @@ a {
 }
 
 .brand-mark {
-  display: grid;
-  place-items: center;
   width: 44px;
   height: 44px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
-  background: #2f7e70;
-  font-weight: 800;
+  background: #ffffff;
+  object-fit: contain;
+  padding: 5px;
 }
 
 .brand span,
@@ -142,6 +141,98 @@ a {
   height: 16px;
   border-radius: 50%;
   background: conic-gradient(#4285f4 0 25%, #34a853 0 50%, #fbbc05 0 75%, #ea4335 0);
+}
+
+.login-page {
+  min-height: calc(100vh - 56px);
+  display: grid;
+  align-items: center;
+}
+
+.login-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.55fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.login-copy,
+.login-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.login-copy {
+  display: grid;
+  align-content: space-between;
+  min-height: 520px;
+  padding: clamp(28px, 6vw, 64px);
+  background:
+    linear-gradient(135deg, rgba(31, 111, 97, 0.1), rgba(217, 164, 65, 0.14)),
+    var(--surface);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.login-brand img {
+  width: 74px;
+  height: 96px;
+  object-fit: contain;
+}
+
+.login-brand strong {
+  display: block;
+  font-size: 1.4rem;
+}
+
+.login-copy h1 {
+  max-width: 760px;
+  margin: 52px 0 18px;
+  font-size: clamp(2.4rem, 5vw, 5rem);
+  line-height: 1.02;
+}
+
+.login-copy p {
+  max-width: 620px;
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.login-card {
+  display: grid;
+  align-content: center;
+  gap: 22px;
+  padding: clamp(22px, 4vw, 36px);
+}
+
+.login-card h2 {
+  margin-bottom: 8px;
+  font-size: 1.55rem;
+}
+
+.login-card span,
+.login-note {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.login-button {
+  min-height: 52px;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 22px rgba(38, 50, 47, 0.08);
+}
+
+.login-note {
+  margin: 0;
+  font-size: 0.86rem;
 }
 
 .main-content {
@@ -798,6 +889,7 @@ th {
   .metric-grid,
   .group-grid,
   .stats-grid,
+  .login-hero,
   .dashboard-layout,
   .content-grid,
   .detail-layout {
@@ -832,6 +924,7 @@ th {
   .metric-grid,
   .group-grid,
   .stats-grid,
+  .login-hero,
   .dashboard-layout,
   .content-grid,
   .detail-layout,
