@@ -42,6 +42,11 @@ const updateGroupSchema = groupSchema.extend({
   id: z.string().uuid(),
 });
 
+const attendanceEventSchema = z.object({
+  eventDate: z.string().min(1, "날짜를 선택해주세요."),
+  title: z.string().min(1, "이벤트 이름을 입력해주세요."),
+});
+
 function normalizeCustomFieldKey(value: unknown) {
   return String(value ?? "")
     .trim()
@@ -429,6 +434,37 @@ export async function deleteCustomFieldDefinition(_previousState: ActionState, f
     });
     revalidateAppData();
     return "정보 항목을 삭제했습니다.";
+  });
+}
+
+export async function createAttendanceEvent(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
+    const parsed = attendanceEventSchema.parse({
+      eventDate: formData.get("eventDate"),
+      title: formData.get("title"),
+    });
+
+    const { data: inserted, error } = await supabase
+      .from("attendance_events")
+      .insert({
+        event_date: parsed.eventDate,
+        title: parsed.title,
+        created_by_member_id: currentMember.id,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "attendance_event.create",
+      targetTable: "attendance_events",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "출석 이벤트를 만들었습니다.";
   });
 }
 

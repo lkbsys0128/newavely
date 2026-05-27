@@ -170,6 +170,34 @@ export function MemberDetailPageContent({
         </section>
       </div>
 
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>최근 출석 기록</h2>
+          <span>{member.attendanceHistory.length}건</span>
+        </div>
+        <div className="attendance-history">
+          {member.attendanceHistory.slice(0, 8).map((record) => (
+            <article className="history-row" key={record.eventId}>
+              <div className="person-block">
+                <strong>{record.title}</strong>
+                <span>{record.eventDate}</span>
+              </div>
+              <span className={`attendance-pill ${record.status === "present" ? "present" : ""}`}>
+                {attendanceStatusLabels[record.status]}
+              </span>
+            </article>
+          ))}
+          {member.attendanceHistory.length === 0 ? (
+            <article className="care-item">
+              <div className="person-block">
+                <strong>아직 출석 기록이 없습니다</strong>
+                <span>출석 페이지에서 이벤트를 선택하고 체크하면 여기에 표시됩니다.</span>
+              </div>
+            </article>
+          ) : null}
+        </div>
+      </section>
+
       {canManageDefinitions ? (
         <>
           <section className="panel form-panel">
@@ -315,4 +343,10 @@ const statusLabels: Record<Member["status"], string> = {
   new: "새가족",
   care: "돌봄 필요",
   inactive: "비활성화",
+};
+
+const attendanceStatusLabels = {
+  present: "출석",
+  absent: "미출석",
+  excused: "사유 있음",
 };

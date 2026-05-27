@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
+  createAttendanceEvent,
   createGroup,
   createMember,
   deactivateMember,
@@ -14,7 +15,7 @@ import {
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
-import type { AuditLog, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, Group, Member } from "@/lib/types";
 
 type AppDataProps = {
   user: AppUser;
@@ -460,11 +461,19 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
 export function AttendanceManager({
   user,
   attendanceDate,
+  attendanceTitle,
   attendanceEventId,
+  attendanceEvents,
   members,
-}: AppDataProps & { attendanceDate: string; attendanceEventId?: string }) {
+}: AppDataProps & {
+  attendanceDate: string;
+  attendanceTitle: string;
+  attendanceEventId?: string;
+  attendanceEvents: AttendanceEvent[];
+}) {
   const [localMembers, setLocalMembers] = useState(members);
   const [attendanceFilter, setAttendanceFilter] = useState<"all" | "present" | "absent">("all");
+  const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
   const attendanceMembers = localMembers.filter((member) => {
@@ -476,10 +485,60 @@ export function AttendanceManager({
   return (
     <>
       <PageHeader eyebrow="출석 관리" title="출석" user={user} />
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>출석 이벤트 선택</h2>
+          <span>{attendanceEvents.length}개 이벤트</span>
+        </div>
+        <div className="event-list">
+          {attendanceEvents.map((event) => (
+            <Link
+              className={`event-chip ${event.id === attendanceEventId ? "active" : ""}`}
+              href={`/attendance?eventId=${event.id}`}
+              key={event.id}
+            >
+              <strong>{event.title}</strong>
+              <span>{event.eventDate}</span>
+            </Link>
+          ))}
+          {attendanceEvents.length === 0 ? (
+            <article className="care-item">
+              <div className="person-block">
+                <strong>아직 출석 이벤트가 없습니다</strong>
+                <span>새 출석 이벤트를 만들면 멤버별 출석을 체크할 수 있습니다.</span>
+              </div>
+            </article>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>새 출석 이벤트</h2>
+          <span>{canManageAttendance ? "날짜와 이름을 입력" : "리더/관리자 권한 필요"}</span>
+        </div>
+        <form action={createEventAction} className="member-form compact-form">
+          <label>
+            날짜
+            <input name="eventDate" type="date" required disabled={!canManageAttendance} />
+          </label>
+          <label>
+            이름
+            <input name="title" required placeholder="주일 예배" disabled={!canManageAttendance} />
+          </label>
+          <div className="form-actions full-width">
+            <ActionMessage state={createEventState} />
+            <button className="primary-button" type="submit" disabled={!canManageAttendance || isCreatingEvent}>
+              만들기
+            </button>
+          </div>
+        </form>
+      </section>
+
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>주일 출석 체크</h2>
+            <h2>{attendanceTitle}</h2>
             <span>{attendanceDate}</span>
           </div>
           <div className="segmented">
@@ -718,6 +777,7 @@ const auditActionLabels: Record<string, string> = {
   "member.custom_fields.update": "멤버 커스텀 필드 수정",
   "group.create": "소그룹 생성",
   "group.update": "소그룹 수정",
+  "attendance_event.create": "출석 이벤트 생성",
   "attendance.toggle": "출석 변경",
   "custom_field.create": "커스텀 필드 생성",
 };

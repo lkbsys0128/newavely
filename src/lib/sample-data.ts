@@ -23,6 +23,7 @@ export const sampleMembers: Member[] = [
     notes: "다음 달 소그룹 리더 훈련 참석 예정",
     customFields: {},
     present: true,
+    attendanceHistory: [],
   },
   {
     id: "m-2",
@@ -38,6 +39,7 @@ export const sampleMembers: Member[] = [
     notes: "주중 심방 가능",
     customFields: {},
     present: true,
+    attendanceHistory: [],
   },
   {
     id: "m-3",
@@ -53,6 +55,7 @@ export const sampleMembers: Member[] = [
     notes: "찬양팀 섬김",
     customFields: {},
     present: false,
+    attendanceHistory: [],
   },
   {
     id: "m-4",
@@ -68,6 +71,7 @@ export const sampleMembers: Member[] = [
     notes: "최근 3주 결석. 리더가 연락 예정",
     customFields: {},
     present: false,
+    attendanceHistory: [],
   },
   {
     id: "m-5",
@@ -83,6 +87,7 @@ export const sampleMembers: Member[] = [
     notes: "전체 운영 담당",
     customFields: {},
     present: true,
+    attendanceHistory: [],
   },
   {
     id: "m-6",
@@ -98,6 +103,7 @@ export const sampleMembers: Member[] = [
     notes: "새가족 4주 과정 2주차",
     customFields: {},
     present: true,
+    attendanceHistory: [],
   },
   {
     id: "m-7",
@@ -113,6 +119,7 @@ export const sampleMembers: Member[] = [
     notes: "소그룹 회계 섬김",
     customFields: {},
     present: true,
+    attendanceHistory: [],
   },
   {
     id: "m-8",
@@ -128,5 +135,6 @@ export const sampleMembers: Member[] = [
     notes: "개인 일정으로 예배 참석 불규칙",
     customFields: {},
     present: false,
+    attendanceHistory: [],
   },
 ];

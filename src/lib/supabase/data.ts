@@ -1,5 +1,5 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
-import type { AuditLog, CustomFieldDefinition, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, CustomFieldDefinition, Group, Member } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -25,7 +25,19 @@ type DbMember = {
   care_notes: string | null;
   group_id: string | null;
   groups?: { name: string | null } | Array<{ name: string | null }> | null;
-  attendance_records?: Array<{ status: "present" | "absent" | "excused" }> | null;
+  attendance_records?:
+    | Array<{
+        event_id: string;
+        status: "present" | "absent" | "excused";
+        attendance_events?: { event_date: string; title: string } | Array<{ event_date: string; title: string }> | null;
+      }>
+    | null;
+};
+
+type DbAttendanceEvent = {
+  id: string;
+  event_date: string;
+  title: string;
 };
 
 type DbCustomFieldDefinition = {
@@ -107,15 +119,22 @@ export function formatSupabaseError(error: unknown) {
   return String(error);
 }
 
-export async function getDashboardData(supabase: SupabaseClient) {
-  const { data: latestEvent, error: eventError } = await supabase
+export async function getDashboardData(supabase: SupabaseClient, selectedEventId?: string) {
+  const { data: eventsData, error: eventsError } = await supabase
     .from("attendance_events")
-    .select("id, event_date")
+    .select("id, event_date, title")
     .order("event_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(12);
 
-  if (eventError) throw eventError;
+  if (eventsError) throw eventsError;
+
+  const attendanceEvents = (eventsData as unknown as DbAttendanceEvent[]).map<AttendanceEvent>((event) => ({
+    id: event.id,
+    eventDate: event.event_date,
+    title: event.title,
+  }));
+
+  const selectedEvent = attendanceEvents.find((event) => event.id === selectedEventId) ?? attendanceEvents[0];
 
   const { data: groupsData, error: groupsError } = await supabase
     .from("groups")
@@ -127,7 +146,7 @@ export async function getDashboardData(supabase: SupabaseClient) {
   const { data: membersData, error: membersError } = await supabase
     .from("members")
     .select(
-      "id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(status)",
+      "id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, attendance_events(event_date, title))",
     )
     .order("name");
 
@@ -146,6 +165,17 @@ export async function getDashboardData(supabase: SupabaseClient) {
 
   const members = (membersData as unknown as DbMember[]).map<Member>((member) => {
     const group = Array.isArray(member.groups) ? member.groups[0] : member.groups;
+    const attendanceHistory = (member.attendance_records ?? [])
+      .map((record) => {
+        const event = Array.isArray(record.attendance_events) ? record.attendance_events[0] : record.attendance_events;
+        return {
+          eventId: record.event_id,
+          eventDate: event?.event_date ?? "",
+          title: event?.title ?? "출석 이벤트",
+          status: record.status,
+        };
+      })
+      .sort((a, b) => b.eventDate.localeCompare(a.eventDate));
     return {
       id: member.id,
       name: member.name,
@@ -159,13 +189,16 @@ export async function getDashboardData(supabase: SupabaseClient) {
       baptismStatus: member.baptism_status ?? "미입력",
       notes: member.care_notes ?? "메모 없음",
       customFields: member.custom_fields ?? {},
-      present: Boolean(member.attendance_records?.some((record) => record.status === "present")),
+      present: Boolean(member.attendance_records?.some((record) => record.event_id === selectedEvent?.id && record.status === "present")),
+      attendanceHistory,
     };
   });
 
   return {
-    attendanceEventId: latestEvent?.id as string | undefined,
-    attendanceDate: (latestEvent?.event_date as string | undefined) ?? "2026-05-24",
+    attendanceEventId: selectedEvent?.id,
+    attendanceDate: selectedEvent?.eventDate ?? "2026-05-24",
+    attendanceTitle: selectedEvent?.title ?? "주일 예배",
+    attendanceEvents,
     groups,
     members,
   };

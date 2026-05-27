@@ -1,5 +1,5 @@
 import { hasPermission, type Role } from "@/lib/rbac";
-import type { AuditLog, CustomFieldDefinition, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, CustomFieldDefinition, Group, Member } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -22,7 +22,9 @@ export type ReadyAppPageData = {
   status: "ready";
   user: AppUser;
   attendanceDate: string;
+  attendanceTitle: string;
   attendanceEventId?: string;
+  attendanceEvents: AttendanceEvent[];
   members: Member[];
   groups: Group[];
   auditLogs?: AuditLog[];
@@ -35,7 +37,7 @@ export type AppPageData =
   | { status: "error"; message: string }
   | ReadyAppPageData;
 
-export async function getAppPageData(): Promise<AppPageData> {
+export async function getAppPageData(options?: { attendanceEventId?: string }): Promise<AppPageData> {
   if (!hasSupabaseEnv()) {
     return { status: "setup" };
   }
@@ -56,7 +58,7 @@ export async function getAppPageData(): Promise<AppPageData> {
       name: user.user_metadata?.full_name,
     });
     await ensureAttendanceEvent(supabase);
-    const dashboardData = await getDashboardData(supabase);
+    const dashboardData = await getDashboardData(supabase, options?.attendanceEventId);
     const allCustomFieldDefinitions =
       currentMember.role === "admin" || currentMember.role === "leader" ? await getCustomFieldDefinitions(supabase) : [];
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
@@ -73,7 +75,9 @@ export async function getAppPageData(): Promise<AppPageData> {
         role: currentMember.role,
       },
       attendanceDate: dashboardData.attendanceDate,
+      attendanceTitle: dashboardData.attendanceTitle,
       attendanceEventId: dashboardData.attendanceEventId,
+      attendanceEvents: dashboardData.attendanceEvents,
       members: dashboardData.members,
       groups: dashboardData.groups,
       auditLogs,
