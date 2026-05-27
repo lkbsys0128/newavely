@@ -92,6 +92,17 @@ const updateCustomFieldDefinitionSchema = z.object({
   isSensitive: z.preprocess((value) => value === "on", z.boolean()),
 });
 
+const careFollowupSchema = z.object({
+  memberId: z.string().uuid(),
+  assignedToMemberId: nullableUuid,
+  status: z.enum(["needed", "contacted", "prayer", "resolved"]),
+  note: z.string().min(1, "팔로업 메모를 입력해주세요."),
+});
+
+const updateCareFollowupSchema = careFollowupSchema.extend({
+  id: z.string().uuid(),
+});
+
 export type ActionState = {
   ok: boolean;
   message: string;
@@ -726,5 +737,92 @@ export async function updateAttendanceReason(_previousState: ActionState, formDa
     });
     revalidateAppData();
     return `${targetEventIds.length}개 이벤트에 출석 사유를 저장했습니다.`;
+  });
+}
+
+export async function createCareFollowup(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
+    const parsed = careFollowupSchema.parse({
+      memberId: formData.get("memberId"),
+      assignedToMemberId: formData.get("assignedToMemberId"),
+      status: formData.get("status"),
+      note: formData.get("note"),
+    });
+
+    const { data: inserted, error } = await supabase
+      .from("care_followups")
+      .insert({
+        member_id: parsed.memberId,
+        assigned_to_member_id: parsed.assignedToMemberId,
+        status: parsed.status,
+        note: parsed.note,
+        created_by_member_id: currentMember.id,
+        completed_at: parsed.status === "resolved" ? new Date().toISOString() : null,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "care_followup.create",
+      targetTable: "care_followups",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+      metadata: { memberId: parsed.memberId },
+    });
+    revalidateAppData();
+    revalidatePath(`/members/${parsed.memberId}`);
+    return "돌봄 팔로업을 추가했습니다.";
+  });
+}
+
+export async function updateCareFollowup(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const parsed = updateCareFollowupSchema.parse({
+      id: formData.get("id"),
+      memberId: formData.get("memberId"),
+      assignedToMemberId: formData.get("assignedToMemberId"),
+      status: formData.get("status"),
+      note: formData.get("note"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("care_followups")
+      .select("*")
+      .eq("id", parsed.id)
+      .eq("member_id", parsed.memberId)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
+      .from("care_followups")
+      .update({
+        assigned_to_member_id: parsed.assignedToMemberId,
+        status: parsed.status,
+        note: parsed.note,
+        completed_at: parsed.status === "resolved" ? new Date().toISOString() : null,
+      })
+      .eq("id", parsed.id)
+      .eq("member_id", parsed.memberId)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "care_followup.update",
+      targetTable: "care_followups",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+      metadata: { memberId: parsed.memberId },
+    });
+    revalidateAppData();
+    revalidatePath(`/members/${parsed.memberId}`);
+    return "돌봄 팔로업을 저장했습니다.";
   });
 }

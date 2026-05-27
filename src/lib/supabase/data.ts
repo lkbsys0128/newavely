@@ -1,5 +1,5 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
-import type { AttendanceEvent, AuditLog, CustomFieldDefinition, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, CareFollowup, CustomFieldDefinition, Group, Member } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -33,6 +33,17 @@ type DbMember = {
         excuse_start_date: string | null;
         excuse_end_date: string | null;
         attendance_events?: { event_date: string; title: string } | Array<{ event_date: string; title: string }> | null;
+      }>
+    | null;
+  care_followups?:
+    | Array<{
+        id: string;
+        status: CareFollowup["status"];
+        note: string;
+        assigned_to_member_id: string | null;
+        created_at: string;
+        completed_at: string | null;
+        assigned_to?: { name: string | null } | Array<{ name: string | null }> | null;
       }>
     | null;
 };
@@ -149,7 +160,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
   const { data: membersData, error: membersError } = await supabase
     .from("members")
     .select(
-      "id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events(event_date, title))",
+      "id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events(event_date, title)), care_followups!care_followups_member_id_fkey(id, status, note, assigned_to_member_id, created_at, completed_at, assigned_to:members!care_followups_assigned_to_member_id_fkey(name))",
     )
     .order("name");
 
@@ -182,6 +193,20 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
         };
       })
       .sort((a, b) => b.eventDate.localeCompare(a.eventDate));
+    const careFollowups = (member.care_followups ?? [])
+      .map<CareFollowup>((followup) => {
+        const assignedTo = Array.isArray(followup.assigned_to) ? followup.assigned_to[0] : followup.assigned_to;
+        return {
+          id: followup.id,
+          status: followup.status,
+          note: followup.note,
+          assignedToMemberId: followup.assigned_to_member_id,
+          assignedToName: assignedTo?.name ?? "미배정",
+          createdAt: followup.created_at,
+          completedAt: followup.completed_at,
+        };
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return {
       id: member.id,
       name: member.name,
@@ -197,6 +222,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
       customFields: member.custom_fields ?? {},
       present: Boolean(member.attendance_records?.some((record) => record.event_id === selectedEvent?.id && record.status === "present")),
       attendanceHistory,
+      careFollowups,
     };
   });
 

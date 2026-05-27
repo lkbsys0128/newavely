@@ -678,7 +678,12 @@ export function AttendanceManager({
                   <strong>{member.name}</strong>
                   <span>{member.groupName}</span>
                 </div>
-                <span className="status-pill">{streak}회 연속</span>
+                <div className="row-actions">
+                  <span className="status-pill">{streak}회 연속</span>
+                  <Link className="secondary-button table-action" href={`/members/${member.id}`}>
+                    팔로업
+                  </Link>
+                </div>
               </div>
             ))}
             {absenceWatchList.length === 0 ? (
@@ -1029,5 +1034,7 @@ const auditActionLabels: Record<string, string> = {
   "attendance_event.create": "출석 이벤트 생성",
   "attendance.toggle": "출석 변경",
   "attendance.reason.update": "출석 사유 수정",
+  "care_followup.create": "돌봄 팔로업 생성",
+  "care_followup.update": "돌봄 팔로업 수정",
   "custom_field.create": "커스텀 필드 생성",
 };

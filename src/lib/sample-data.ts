@@ -24,6 +24,7 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
     id: "m-2",
@@ -40,6 +41,7 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
     id: "m-3",
@@ -56,6 +58,7 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: false,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
     id: "m-4",
@@ -72,6 +75,7 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: false,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
     id: "m-5",
@@ -88,6 +92,7 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
     id: "m-6",
@@ -104,6 +109,7 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
     id: "m-7",
@@ -120,6 +126,7 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
     id: "m-8",
@@ -136,5 +143,6 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: false,
     attendanceHistory: [],
+    careFollowups: [],
   },
 ];

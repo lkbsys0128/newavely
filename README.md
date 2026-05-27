@@ -37,6 +37,7 @@ db/
   003_audit_logs.sql      감사 로그 테이블, 기록 함수, RLS policy
   004_audit_log_retention.sql 감사 로그 보관 정책 comment와 created_at index
   005_attendance_excuse_period.sql 출석 사유 기간 컬럼과 인덱스
+  006_care_followups.sql 돌봄 팔로업 테이블, 인덱스, RLS policy
 test/
   supabase-queries.test.mjs Supabase relationship embed 회귀 테스트
 ```
@@ -79,6 +80,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 3. `db/003_audit_logs.sql`
 4. `db/004_audit_log_retention.sql`
 5. `db/005_attendance_excuse_period.sql`
+6. `db/006_care_followups.sql`
 
 주요 테이블:
 
@@ -86,6 +88,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 - `members`: 멤버 프로필, Supabase Auth 연결, 역할, 상태, 소그룹, 커스텀 정보
 - `attendance_events`: 출석 이벤트 날짜와 제목
 - `attendance_records`: 이벤트별 멤버 출석 상태
+- `care_followups`: 멤버별 돌봄/연락 팔로업 기록
 - `member_custom_field_definitions`: 멤버별 커스텀 필드 정의
 - `audit_logs`: 멤버/소그룹/출석 변경에 대한 append-only 감사 로그
 
@@ -138,6 +141,19 @@ attendance_records!attendance_records_member_id_fkey(status)
 커스텀 필드 정의는 관리자만 추가할 수 있습니다. 필드 타입은 `text`, `number`, `date`, `boolean`을 사용합니다.
 
 민감 정보로 표시된 필드는 `sensitive:read` 권한이 있는 역할만 볼 수 있습니다.
+
+## 돌봄 팔로업
+
+멤버 상세 페이지에서 돌봄 팔로업을 추가하고 상태를 관리합니다.
+
+팔로업 상태:
+
+- `필요`: 아직 연락이나 조치가 필요한 상태
+- `연락 완료`: 연락이 완료된 상태
+- `기도 요청`: 기도 제목 또는 영적 돌봄이 필요한 상태
+- `해결`: 팔로업이 마무리된 상태
+
+출석 페이지의 `미확인 연속 결석` 목록에서 멤버 상세로 이동해 바로 팔로업을 남길 수 있습니다.
 
 ## 감사 로그
 

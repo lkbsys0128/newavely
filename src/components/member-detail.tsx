@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import {
+  createCareFollowup,
   createCustomFieldDefinition,
   deleteCustomFieldDefinition,
+  updateCareFollowup,
   updateMember,
   updateMemberCustomFields,
   updateCustomFieldDefinition,
@@ -20,15 +22,19 @@ export function MemberDetailPageContent({
   user,
   member,
   groups,
+  members,
   customFieldDefinitions,
 }: {
   user: AppUser;
   member: Member;
   groups: Group[];
+  members: Member[];
   customFieldDefinitions: CustomFieldDefinition[];
 }) {
   const canManageMembers = hasPermission(user.role, "members:write");
   const canManageDefinitions = hasPermission(user.role, "roles:manage");
+  const assignableMembers = members.filter((item) => item.status !== "inactive");
+  const currentMemberId = assignableMembers.find((item) => item.email === user.email)?.id ?? "";
   const [profileState, profileAction, isSavingProfile] = useActionState(updateMember, initialActionState);
   const [customFieldsState, customFieldsAction, isSavingCustomFields] = useActionState(
     updateMemberCustomFields,
@@ -44,6 +50,14 @@ export function MemberDetailPageContent({
   );
   const [deleteDefinitionState, deleteDefinitionAction, isDeletingDefinition] = useActionState(
     deleteCustomFieldDefinition,
+    initialActionState,
+  );
+  const [createFollowupState, createFollowupAction, isCreatingFollowup] = useActionState(
+    createCareFollowup,
+    initialActionState,
+  );
+  const [updateFollowupState, updateFollowupAction, isUpdatingFollowup] = useActionState(
+    updateCareFollowup,
     initialActionState,
   );
 
@@ -204,6 +218,114 @@ export function MemberDetailPageContent({
         </div>
       </section>
 
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>돌봄 팔로업</h2>
+          <span>{member.careFollowups.length}건</span>
+        </div>
+        <div className="definition-list">
+          {member.careFollowups.map((followup) => (
+            <article className="definition-row" key={followup.id}>
+              <form action={updateFollowupAction} className="management-form">
+                <input name="id" type="hidden" value={followup.id} />
+                <input name="memberId" type="hidden" value={member.id} />
+                <label>
+                  상태
+                  <select name="status" defaultValue={followup.status} disabled={!canManageMembers}>
+                    {Object.entries(careFollowupStatusLabels).map(([status, label]) => (
+                      <option key={status} value={status}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  담당자
+                  <select
+                    name="assignedToMemberId"
+                    defaultValue={followup.assignedToMemberId ?? ""}
+                    disabled={!canManageMembers}
+                  >
+                    <option value="">미배정</option>
+                    {assignableMembers.map((assignee) => (
+                      <option key={assignee.id} value={assignee.id}>
+                        {assignee.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="full-width">
+                  메모
+                  <textarea name="note" required defaultValue={followup.note} disabled={!canManageMembers} />
+                </label>
+                <div className="person-block">
+                  <strong>{careFollowupStatusLabels[followup.status]}</strong>
+                  <span>
+                    담당 {followup.assignedToName} · {new Date(followup.createdAt).toLocaleString("ko-KR")}
+                    {followup.completedAt ? ` · 완료 ${new Date(followup.completedAt).toLocaleString("ko-KR")}` : ""}
+                  </span>
+                </div>
+                <div className="form-actions">
+                  <ActionMessage state={updateFollowupState} />
+                  <button className="secondary-button" type="submit" disabled={!canManageMembers || isUpdatingFollowup}>
+                    저장
+                  </button>
+                </div>
+              </form>
+            </article>
+          ))}
+          {member.careFollowups.length === 0 ? (
+            <article className="care-item">
+              <div className="person-block">
+                <strong>아직 팔로업 기록이 없습니다</strong>
+                <span>출석, 사유, 돌봄 대화 후 필요한 액션을 기록해두세요.</span>
+              </div>
+            </article>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>새 팔로업 추가</h2>
+          <span>{canManageMembers ? "담당자와 상태를 기록" : "읽기 전용"}</span>
+        </div>
+        <form action={createFollowupAction} className="management-form">
+          <input name="memberId" type="hidden" value={member.id} />
+          <label>
+            상태
+            <select name="status" defaultValue="needed" disabled={!canManageMembers}>
+              {Object.entries(careFollowupStatusLabels).map(([status, label]) => (
+                <option key={status} value={status}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            담당자
+            <select name="assignedToMemberId" defaultValue={currentMemberId} disabled={!canManageMembers}>
+              <option value="">미배정</option>
+              {assignableMembers.map((assignee) => (
+                <option key={assignee.id} value={assignee.id}>
+                  {assignee.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="full-width">
+            메모
+            <textarea name="note" required placeholder="연락 필요, 대화 내용, 기도 제목 등" disabled={!canManageMembers} />
+          </label>
+          <div className="form-actions full-width">
+            <ActionMessage state={createFollowupState} />
+            <button className="primary-button" type="submit" disabled={!canManageMembers || isCreatingFollowup}>
+              팔로업 추가
+            </button>
+          </div>
+        </form>
+      </section>
+
       {canManageDefinitions ? (
         <>
           <section className="panel form-panel">
@@ -355,4 +477,11 @@ const attendanceStatusLabels = {
   present: "출석",
   absent: "미출석",
   excused: "사유 있음",
+};
+
+const careFollowupStatusLabels = {
+  needed: "필요",
+  contacted: "연락 완료",
+  prayer: "기도 요청",
+  resolved: "해결",
 };

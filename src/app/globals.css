@@ -296,6 +296,14 @@ h2 {
   min-height: 34px;
 }
 
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .danger-button {
   background: var(--accent-2);
   color: #ffffff;
@@ -847,6 +855,10 @@ th {
   }
 
   .permission-list {
+    justify-content: flex-start;
+  }
+
+  .row-actions {
     justify-content: flex-start;
   }
 
