@@ -249,6 +249,23 @@ h2 {
   font-size: 0.72rem;
 }
 
+.advanced-field {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.advanced-field summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.advanced-field label {
+  margin-top: 10px;
+}
+
 .primary-button {
   background: var(--accent);
   color: #ffffff;

@@ -42,16 +42,19 @@ const updateGroupSchema = groupSchema.extend({
   id: z.string().uuid(),
 });
 
+function normalizeCustomFieldKey(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
 const customFieldKey = z.preprocess(
-  (value) =>
-    String(value ?? "")
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "_"),
+  normalizeCustomFieldKey,
   z
     .string()
-    .min(1, "키를 입력해주세요.")
-    .regex(/^[\p{L}][\p{L}\p{N}_-]*$/u, "키는 문자로 시작하고 문자, 숫자, 밑줄, 하이픈만 사용할 수 있습니다."),
+    .min(1, "항목 이름을 입력해주세요.")
+    .regex(/^[\p{L}][\p{L}\p{N}_-]*$/u, "식별 키는 문자로 시작하고 문자, 숫자, 밑줄, 하이픈만 사용할 수 있습니다."),
 );
 
 const customFieldDefinitionSchema = z.object({
@@ -318,9 +321,11 @@ export async function updateMemberCustomFields(_previousState: ActionState, form
 export async function createCustomFieldDefinition(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const label = String(formData.get("label") ?? "").trim();
+    const keyInput = String(formData.get("key") ?? "").trim();
     const parsed = customFieldDefinitionSchema.parse({
-      key: formData.get("key"),
-      label: formData.get("label"),
+      key: keyInput || label,
+      label,
       fieldType: formData.get("fieldType"),
       isSensitive: formData.get("isSensitive"),
     });

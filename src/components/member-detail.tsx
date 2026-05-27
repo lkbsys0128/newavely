@@ -126,8 +126,8 @@ export function MemberDetailPageContent({
 
         <section className="panel">
           <div className="panel-heading">
-            <h2>커스텀 필드</h2>
-            <span>{customFieldDefinitions.length}개 정의</span>
+            <h2>추가 정보</h2>
+            <span>{customFieldDefinitions.length}개 항목</span>
           </div>
           <form action={customFieldsAction} className="management-form">
             <input name="id" type="hidden" value={member.id} />
@@ -141,8 +141,8 @@ export function MemberDetailPageContent({
             {customFieldDefinitions.length === 0 ? (
               <article className="care-item full-width">
                 <div className="person-block">
-                  <strong>아직 커스텀 필드가 없습니다</strong>
-                  <span>관리자가 아래에서 필드를 추가하면 이 멤버에게 값을 입력할 수 있습니다.</span>
+                  <strong>아직 추가 정보 항목이 없습니다</strong>
+                  <span>아래에서 항목을 만들면 이 멤버에게 값을 입력할 수 있습니다.</span>
                 </div>
               </article>
             ) : null}
@@ -153,7 +153,7 @@ export function MemberDetailPageContent({
                 type="submit"
                 disabled={!canManageMembers || isSavingCustomFields || customFieldDefinitions.length === 0}
               >
-                커스텀 필드 저장
+                추가 정보 저장
               </button>
             </div>
           </form>
@@ -163,35 +163,38 @@ export function MemberDetailPageContent({
       {canManageDefinitions ? (
         <section className="panel form-panel">
           <div className="panel-heading">
-            <h2>커스텀 필드 정의 추가</h2>
-            <span>모든 멤버 상세 페이지에 적용</span>
+            <h2>새 정보 항목 만들기</h2>
+            <span>모든 멤버 상세 페이지에 추가됩니다</span>
           </div>
           <form action={definitionAction} className="member-form compact-form">
             <label>
-              키
-              <input name="key" required placeholder="emergency_contact" />
-            </label>
-            <label>
-              라벨
+              항목 이름
               <input name="label" required placeholder="비상 연락처" />
             </label>
             <label>
-              타입
+              입력 방식
               <select name="fieldType" defaultValue="text">
-                <option value="text">텍스트</option>
+                <option value="text">짧은 글</option>
                 <option value="number">숫자</option>
                 <option value="date">날짜</option>
-                <option value="boolean">체크박스</option>
+                <option value="boolean">예/아니오</option>
               </select>
             </label>
             <label className="toggle-field">
               <input name="isSensitive" type="checkbox" />
-              민감 정보
+              관리자만 볼 정보
             </label>
+            <details className="advanced-field full-width">
+              <summary>고급 설정</summary>
+              <label>
+                식별 키
+                <input name="key" placeholder="비워두면 항목 이름으로 자동 생성" />
+              </label>
+            </details>
             <div className="form-actions full-width">
               <ActionMessage state={definitionState} />
               <button className="primary-button" type="submit" disabled={isCreatingDefinition}>
-                필드 추가
+                항목 만들기
               </button>
             </div>
           </form>
