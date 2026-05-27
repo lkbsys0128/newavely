@@ -641,16 +641,27 @@ export async function toggleAttendance(memberId: string, eventId: string, nextPr
 
   if (beforeError) throw beforeError;
 
+  const existingReason = beforeData as
+    | {
+        note?: string | null;
+        excuse_start_date?: string | null;
+        excuse_end_date?: string | null;
+      }
+    | null;
+  const hasExistingReason = Boolean(
+    existingReason?.note || existingReason?.excuse_start_date || existingReason?.excuse_end_date,
+  );
+
   const { data: afterData, error } = await supabase
     .from("attendance_records")
     .upsert(
       {
         event_id: eventId,
         member_id: memberId,
-        status: nextPresent ? "present" : "absent",
-        note: null,
-        excuse_start_date: null,
-        excuse_end_date: null,
+        status: nextPresent ? "present" : hasExistingReason ? "excused" : "absent",
+        note: existingReason?.note ?? null,
+        excuse_start_date: existingReason?.excuse_start_date ?? null,
+        excuse_end_date: existingReason?.excuse_end_date ?? null,
         checked_by_member_id: currentMember.id,
         checked_at: new Date().toISOString(),
       },
