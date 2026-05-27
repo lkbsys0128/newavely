@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState, useTransition, type ReactNode } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   createAttendanceEvent,
   createGroup,
@@ -476,6 +476,11 @@ export function AttendanceManager({
   const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
+
+  useEffect(() => {
+    setLocalMembers(members);
+  }, [attendanceEventId, members]);
+
   const attendanceMembers = localMembers.filter((member) => {
     if (attendanceFilter === "present") return member.present;
     if (attendanceFilter === "absent") return !member.present;
