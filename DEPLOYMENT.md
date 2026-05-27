@@ -38,3 +38,4 @@ Supabase Dashboard에서 Google provider를 켜고, SQL Editor에서 아래 순�
 
 1. `db/schema.sql`
 2. `db/002_app_data_policies.sql`
+3. `db/003_audit_logs.sql`

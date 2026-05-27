@@ -15,10 +15,22 @@ export type Member = {
   groupId: string | null;
   groupName: string;
   role: Role;
-  status: "active" | "new" | "care";
+  status: "active" | "new" | "care" | "inactive";
   email: string;
   address: string;
   baptismStatus: string;
   notes: string;
   present: boolean;
+};
+
+export type AuditLog = {
+  id: string;
+  action: string;
+  targetTable: string;
+  targetId: string | null;
+  actorName: string;
+  beforeData: Record<string, unknown> | null;
+  afterData: Record<string, unknown> | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
 };

@@ -5,6 +5,7 @@ import {
   createGroup,
   createMember,
   deactivateMember,
+  reactivateMember,
   toggleAttendance,
   updateGroup,
   updateMember,
@@ -12,7 +13,7 @@ import {
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
-import type { Group, Member } from "@/lib/types";
+import type { AuditLog, Group, Member } from "@/lib/types";
 
 type AppDataProps = {
   user: AppUser;
@@ -89,24 +90,31 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
 export function MembersManager({ user, members, groups }: AppDataProps) {
   const [query, setQuery] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState(members[0]?.id ?? "");
+  const [showInactive, setShowInactive] = useState(false);
   const [createMemberState, createMemberAction, isCreatingMember] = useActionState(createMember, initialActionState);
   const [updateMemberState, updateMemberAction, isUpdatingMember] = useActionState(updateMember, initialActionState);
   const [deactivateMemberState, deactivateMemberAction, isDeactivatingMember] = useActionState(
     deactivateMember,
     initialActionState,
   );
+  const [reactivateMemberState, reactivateMemberAction, isReactivatingMember] = useActionState(
+    reactivateMember,
+    initialActionState,
+  );
   const canManageMembers = hasPermission(user.role, "members:write");
-  const selectedMember = members.find((member) => member.id === selectedMemberId) ?? members[0];
+  const visibleMembers = showInactive ? members : members.filter((member) => member.status !== "inactive");
+  const selectedMember =
+    visibleMembers.find((member) => member.id === selectedMemberId) ?? visibleMembers[0] ?? members[0];
   const filteredMembers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return members;
-    return members.filter((member) =>
+    if (!normalized) return visibleMembers;
+    return visibleMembers.filter((member) =>
       [member.name, member.phone, member.groupName, member.role, member.status]
         .join(" ")
         .toLowerCase()
         .includes(normalized),
     );
-  }, [members, query]);
+  }, [visibleMembers, query]);
 
   return (
     <>
@@ -119,6 +127,14 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
+        </label>
+        <label className="toggle-field">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(event) => setShowInactive(event.target.checked)}
+          />
+          비활성화 포함
         </label>
       </PageHeader>
 
@@ -210,6 +226,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   <option value="active">활동</option>
                   <option value="new">새가족</option>
                   <option value="care">돌봄 필요</option>
+                  <option value="inactive">비활성화</option>
                 </select>
               </label>
               <label>
@@ -236,8 +253,21 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <form action={deactivateMemberAction} className="single-action-form">
               <input name="id" type="hidden" value={selectedMember.id} />
               <ActionMessage state={deactivateMemberState} />
-              <button className="danger-button" type="submit" disabled={!canManageMembers || isDeactivatingMember}>
+              <button
+                className="danger-button"
+                type="submit"
+                disabled={!canManageMembers || selectedMember.status === "inactive" || isDeactivatingMember}
+              >
                 비활성화
+              </button>
+            </form>
+          ) : null}
+          {selectedMember?.status === "inactive" ? (
+            <form action={reactivateMemberAction} className="single-action-form">
+              <input name="id" type="hidden" value={selectedMember.id} />
+              <ActionMessage state={reactivateMemberState} />
+              <button className="primary-button" type="submit" disabled={!canManageMembers || isReactivatingMember}>
+                다시 활성화
               </button>
             </form>
           ) : null}
@@ -525,6 +555,59 @@ export function PermissionsPageContent({ user, members }: AppDataProps) {
   );
 }
 
+export function AuditLogPageContent({ user, auditLogs }: { user: AppUser; auditLogs: AuditLog[] }) {
+  const canReadAuditLogs = hasPermission(user.role, "roles:manage");
+
+  return (
+    <>
+      <PageHeader eyebrow="운영 감사" title="감사 로그" user={user} />
+      <section className="panel">
+        <div className="panel-heading">
+          <h2>최근 변경 내역</h2>
+          <span>{canReadAuditLogs ? `${auditLogs.length}건` : "관리자 권한 필요"}</span>
+        </div>
+        {canReadAuditLogs ? (
+          <div className="audit-list">
+            {auditLogs.map((log) => (
+              <article className="audit-row" key={log.id}>
+                <div className="person-block">
+                  <strong>{auditActionLabels[log.action] ?? log.action}</strong>
+                  <span>
+                    {log.actorName} · {log.targetTable}
+                    {log.targetId ? ` · ${log.targetId.slice(0, 8)}` : ""}
+                  </span>
+                </div>
+                <time className="meta" dateTime={log.createdAt}>
+                  {new Date(log.createdAt).toLocaleString("ko-KR")}
+                </time>
+                <details className="audit-details">
+                  <summary>변경값</summary>
+                  <pre>{JSON.stringify({ before: log.beforeData, after: log.afterData, metadata: log.metadata }, null, 2)}</pre>
+                </details>
+              </article>
+            ))}
+            {auditLogs.length === 0 ? (
+              <article className="care-item">
+                <div className="person-block">
+                  <strong>아직 기록이 없습니다</strong>
+                  <span>멤버/소그룹/출석 변경이 발생하면 이곳에 기록됩니다.</span>
+                </div>
+              </article>
+            ) : null}
+          </div>
+        ) : (
+          <article className="care-item">
+            <div className="person-block">
+              <strong>감사 로그 접근 제한</strong>
+              <span>관리자만 감사 로그를 확인할 수 있습니다.</span>
+            </div>
+          </article>
+        )}
+      </section>
+    </>
+  );
+}
+
 function ActionMessage({ state }: { state: ActionState }) {
   if (!state.message) return null;
 
@@ -600,6 +683,7 @@ const statusLabels: Record<Member["status"], string> = {
   active: "활동",
   new: "새가족",
   care: "돌봄 필요",
+  inactive: "비활성화",
 };
 
 const attendanceFilterLabels = {
@@ -617,4 +701,14 @@ const permissionLabels = {
   "groups:write": "소그룹 수정",
   "roles:manage": "권한 관리",
   "sensitive:read": "민감 정보 열람",
+};
+
+const auditActionLabels: Record<string, string> = {
+  "member.create": "멤버 생성",
+  "member.update": "멤버 수정",
+  "member.deactivate": "멤버 비활성화",
+  "member.reactivate": "멤버 다시 활성화",
+  "group.create": "소그룹 생성",
+  "group.update": "소그룹 수정",
+  "attendance.toggle": "출석 변경",
 };

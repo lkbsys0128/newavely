@@ -1,5 +1,5 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
-import type { Group, Member } from "@/lib/types";
+import type { AuditLog, Group, Member } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -25,6 +25,18 @@ type DbMember = {
   group_id: string | null;
   groups?: { name: string | null } | Array<{ name: string | null }> | null;
   attendance_records?: Array<{ status: "present" | "absent" | "excused" }> | null;
+};
+
+type DbAuditLog = {
+  id: string;
+  action: string;
+  target_table: string;
+  target_id: string | null;
+  before_data: Record<string, unknown> | null;
+  after_data: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  actor?: { name: string | null } | Array<{ name: string | null }> | null;
 };
 
 export async function getOrCreateCurrentMember(
@@ -108,7 +120,6 @@ export async function getDashboardData(supabase: SupabaseClient) {
     .select(
       "id, name, email, phone, address, baptism_status, role, status, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(status)",
     )
-    .neq("status", "inactive")
     .order("name");
 
   if (membersError) throw membersError;
@@ -133,7 +144,7 @@ export async function getDashboardData(supabase: SupabaseClient) {
       groupId: member.group_id,
       groupName: group?.name ?? "미배정",
       role: member.role,
-      status: member.status === "inactive" ? "care" : member.status,
+      status: member.status,
       email: member.email ?? "",
       address: member.address ?? "미입력",
       baptismStatus: member.baptism_status ?? "미입력",
@@ -148,4 +159,31 @@ export async function getDashboardData(supabase: SupabaseClient) {
     groups,
     members,
   };
+}
+
+export async function getAuditLogs(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from("audit_logs")
+    .select(
+      "id, action, target_table, target_id, before_data, after_data, metadata, created_at, actor:members!audit_logs_actor_member_id_fkey(name)",
+    )
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) throw error;
+
+  return (data as unknown as DbAuditLog[]).map<AuditLog>((log) => {
+    const actor = Array.isArray(log.actor) ? log.actor[0] : log.actor;
+    return {
+      id: log.id,
+      action: log.action,
+      targetTable: log.target_table,
+      targetId: log.target_id,
+      actorName: actor?.name ?? "알 수 없음",
+      beforeData: log.before_data,
+      afterData: log.after_data,
+      metadata: log.metadata ?? {},
+      createdAt: log.created_at,
+    };
+  });
 }

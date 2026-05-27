@@ -25,7 +25,7 @@ const memberSchema = z.object({
   baptismStatus: nullableText,
   notes: nullableText,
   role: z.enum(["admin", "leader", "staff", "member"]),
-  status: z.enum(["active", "new", "care"]),
+  status: z.enum(["active", "new", "care", "inactive"]),
 });
 
 const updateMemberSchema = memberSchema.extend({
@@ -110,6 +110,36 @@ function revalidateAppData() {
   revalidatePath("/groups");
   revalidatePath("/attendance");
   revalidatePath("/permissions");
+  revalidatePath("/audit");
+}
+
+async function writeAuditLog({
+  supabase,
+  action,
+  targetTable,
+  targetId,
+  beforeData,
+  afterData,
+  metadata,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  action: string;
+  targetTable: string;
+  targetId: string;
+  beforeData?: Record<string, unknown> | null;
+  afterData?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown>;
+}) {
+  const { error } = await supabase.rpc("record_audit_log", {
+    p_action: action,
+    p_target_table: targetTable,
+    p_target_id: targetId,
+    p_before_data: beforeData ?? null,
+    p_after_data: afterData ?? null,
+    p_metadata: metadata ?? {},
+  });
+
+  if (error) throw error;
 }
 
 export async function createMember(_previousState: ActionState, formData: FormData) {
@@ -128,7 +158,7 @@ export async function createMember(_previousState: ActionState, formData: FormDa
       status: formData.get("status"),
     });
 
-    const { error } = await supabase.from("members").insert({
+    const insertPayload = {
       name: parsed.name,
       phone: parsed.phone,
       group_id: parsed.groupId,
@@ -138,9 +168,18 @@ export async function createMember(_previousState: ActionState, formData: FormDa
       address: parsed.address,
       baptism_status: parsed.baptismStatus,
       care_notes: parsed.notes ?? "추가 정보 입력 필요",
-    });
+    };
+
+    const { data: inserted, error } = await supabase.from("members").insert(insertPayload).select("*").single();
 
     if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member.create",
+      targetTable: "members",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
     revalidateAppData();
     return "멤버를 추가했습니다.";
   });
@@ -163,7 +202,15 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
       status: formData.get("status"),
     });
 
-    const { error } = await supabase
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("members")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
       .from("members")
       .update({
         name: parsed.name,
@@ -177,9 +224,19 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
         care_notes: parsed.notes,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", parsed.id);
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
 
     if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member.update",
+      targetTable: "members",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
     revalidateAppData();
     return "멤버 정보를 저장했습니다.";
   });
@@ -190,14 +247,56 @@ export async function deactivateMember(_previousState: ActionState, formData: Fo
     const { supabase } = await getAuthorizedCurrentMember("members:write");
     const id = z.string().uuid().parse(formData.get("id"));
 
-    const { error } = await supabase
+    const { data: beforeData, error: beforeError } = await supabase.from("members").select("*").eq("id", id).single();
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
       .from("members")
       .update({ status: "inactive", updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .select("*")
+      .single();
 
     if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member.deactivate",
+      targetTable: "members",
+      targetId: id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
     revalidateAppData();
     return "멤버를 비활성화했습니다.";
+  });
+}
+
+export async function reactivateMember(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const id = z.string().uuid().parse(formData.get("id"));
+
+    const { data: beforeData, error: beforeError } = await supabase.from("members").select("*").eq("id", id).single();
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
+      .from("members")
+      .update({ status: "active", updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member.reactivate",
+      targetTable: "members",
+      targetId: id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "멤버를 다시 활성화했습니다.";
   });
 }
 
@@ -210,13 +309,24 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
       targetSize: formData.get("targetSize"),
     });
 
-    const { error } = await supabase.from("groups").insert({
-      name: parsed.name,
-      leader_member_id: parsed.leaderMemberId,
-      target_size: parsed.targetSize,
-    });
+    const { data: inserted, error } = await supabase
+      .from("groups")
+      .insert({
+        name: parsed.name,
+        leader_member_id: parsed.leaderMemberId,
+        target_size: parsed.targetSize,
+      })
+      .select("*")
+      .single();
 
     if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "group.create",
+      targetTable: "groups",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
     revalidateAppData();
     return "소그룹을 추가했습니다.";
   });
@@ -232,7 +342,15 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
       targetSize: formData.get("targetSize"),
     });
 
-    const { error } = await supabase
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("groups")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
       .from("groups")
       .update({
         name: parsed.name,
@@ -240,9 +358,19 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
         target_size: parsed.targetSize,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", parsed.id);
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
 
     if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "group.update",
+      targetTable: "groups",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
     revalidateAppData();
     return "소그룹을 저장했습니다.";
   });
@@ -251,17 +379,39 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
 export async function toggleAttendance(memberId: string, eventId: string, nextPresent: boolean) {
   const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
 
-  const { error } = await supabase.from("attendance_records").upsert(
-    {
-      event_id: eventId,
-      member_id: memberId,
-      status: nextPresent ? "present" : "absent",
-      checked_by_member_id: currentMember.id,
-      checked_at: new Date().toISOString(),
-    },
-    { onConflict: "event_id,member_id" },
-  );
+  const { data: beforeData, error: beforeError } = await supabase
+    .from("attendance_records")
+    .select("*")
+    .eq("event_id", eventId)
+    .eq("member_id", memberId)
+    .maybeSingle();
+
+  if (beforeError) throw beforeError;
+
+  const { data: afterData, error } = await supabase
+    .from("attendance_records")
+    .upsert(
+      {
+        event_id: eventId,
+        member_id: memberId,
+        status: nextPresent ? "present" : "absent",
+        checked_by_member_id: currentMember.id,
+        checked_at: new Date().toISOString(),
+      },
+      { onConflict: "event_id,member_id" },
+    )
+    .select("*")
+    .single();
 
   if (error) throw error;
+  await writeAuditLog({
+    supabase,
+    action: "attendance.toggle",
+    targetTable: "attendance_records",
+    targetId: afterData.id as string,
+    beforeData: beforeData as Record<string, unknown> | null,
+    afterData: afterData as Record<string, unknown>,
+    metadata: { eventId, memberId, nextPresent },
+  });
   revalidateAppData();
 }

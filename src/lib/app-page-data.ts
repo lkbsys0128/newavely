@@ -1,10 +1,11 @@
 import type { Role } from "@/lib/rbac";
-import type { Group, Member } from "@/lib/types";
+import type { AuditLog, Group, Member } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
   ensureAttendanceEvent,
   formatSupabaseError,
+  getAuditLogs,
   getDashboardData,
   getOrCreateCurrentMember,
 } from "@/lib/supabase/data";
@@ -23,6 +24,7 @@ export type ReadyAppPageData = {
   attendanceEventId?: string;
   members: Member[];
   groups: Group[];
+  auditLogs?: AuditLog[];
 };
 
 export type AppPageData =
@@ -53,6 +55,7 @@ export async function getAppPageData(): Promise<AppPageData> {
     });
     await ensureAttendanceEvent(supabase);
     const dashboardData = await getDashboardData(supabase);
+    const auditLogs = currentMember.role === "admin" ? await getAuditLogs(supabase) : undefined;
 
     return {
       status: "ready",
@@ -66,6 +69,7 @@ export async function getAppPageData(): Promise<AppPageData> {
       attendanceEventId: dashboardData.attendanceEventId,
       members: dashboardData.members,
       groups: dashboardData.groups,
+      auditLogs,
     };
   } catch (error) {
     return { status: "error", message: formatSupabaseError(error) };
