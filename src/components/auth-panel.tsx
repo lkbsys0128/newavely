@@ -21,7 +21,7 @@ export function AuthPanel() {
           <Image alt="" height={118} priority src="/newave-icon.png" width={92} />
         </div>
         <div className="login-title">
-          <p className="eyebrow">Seattle Hyungjae Church · Newave</p>
+          <p className="eyebrow">Community Church of Seattle · Newave</p>
           <h1>Newavely</h1>
           <span>시애틀 형제교회 뉴웨이브 공동체 관리</span>
         </div>
