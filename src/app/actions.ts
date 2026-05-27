@@ -672,20 +672,36 @@ export async function updateAttendanceReason(_previousState: ActionState, formDa
       excuseEndDate: formData.get("excuseEndDate"),
     });
 
+    let targetEventIds = [parsed.eventId];
+
+    if (parsed.excuseStartDate && parsed.excuseEndDate) {
+      const { data: eventsInRange, error: eventsError } = await supabase
+        .from("attendance_events")
+        .select("id")
+        .gte("event_date", parsed.excuseStartDate)
+        .lte("event_date", parsed.excuseEndDate);
+
+      if (eventsError) throw eventsError;
+      targetEventIds = (eventsInRange as Array<{ id: string }>).map((event) => event.id);
+    }
+
+    if (targetEventIds.length === 0) {
+      targetEventIds = [parsed.eventId];
+    }
+
     const { data: beforeData, error: beforeError } = await supabase
       .from("attendance_records")
       .select("*")
-      .eq("event_id", parsed.eventId)
       .eq("member_id", parsed.memberId)
-      .maybeSingle();
+      .in("event_id", targetEventIds);
 
     if (beforeError) throw beforeError;
 
     const { data: afterData, error } = await supabase
       .from("attendance_records")
       .upsert(
-        {
-          event_id: parsed.eventId,
+        targetEventIds.map((eventId) => ({
+          event_id: eventId,
           member_id: parsed.memberId,
           status: "excused",
           note: parsed.note,
@@ -693,23 +709,22 @@ export async function updateAttendanceReason(_previousState: ActionState, formDa
           excuse_end_date: parsed.excuseEndDate,
           checked_by_member_id: currentMember.id,
           checked_at: new Date().toISOString(),
-        },
+        })),
         { onConflict: "event_id,member_id" },
       )
-      .select("*")
-      .single();
+      .select("*");
 
     if (error) throw error;
     await writeAuditLog({
       supabase,
       action: "attendance.reason.update",
       targetTable: "attendance_records",
-      targetId: afterData.id as string,
-      beforeData: beforeData as Record<string, unknown> | null,
-      afterData: afterData as Record<string, unknown>,
-      metadata: { eventId: parsed.eventId, memberId: parsed.memberId },
+      targetId: ((afterData as Array<{ id: string }> | null)?.[0]?.id ?? parsed.memberId),
+      beforeData: { records: beforeData ?? [] },
+      afterData: { records: afterData ?? [] },
+      metadata: { eventIds: targetEventIds, memberId: parsed.memberId },
     });
     revalidateAppData();
-    return "출석 사유를 저장했습니다.";
+    return `${targetEventIds.length}개 이벤트에 출석 사유를 저장했습니다.`;
   });
 }
