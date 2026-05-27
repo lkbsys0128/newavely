@@ -465,6 +465,7 @@ export function AttendanceManager({
   attendanceEventId,
   attendanceEvents,
   members,
+  groups,
 }: AppDataProps & {
   attendanceDate: string;
   attendanceTitle: string;
@@ -480,6 +481,51 @@ export function AttendanceManager({
   useEffect(() => {
     setLocalMembers(members);
   }, [attendanceEventId, members]);
+
+  const activeMembers = localMembers.filter((member) => member.status !== "inactive");
+  const activeMemberCount = activeMembers.length;
+  const currentPresentCount = activeMembers.filter((member) => member.present).length;
+  const currentAbsentCount = Math.max(activeMemberCount - currentPresentCount, 0);
+  const currentAttendanceRate = activeMemberCount ? Math.round((currentPresentCount / activeMemberCount) * 100) : 0;
+  const groupAttendanceStats = groups.map((group) => {
+    const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
+    const presentCount = groupMembers.filter((member) => member.present).length;
+    return {
+      id: group.id,
+      name: group.name,
+      presentCount,
+      totalCount: groupMembers.length,
+      rate: groupMembers.length ? Math.round((presentCount / groupMembers.length) * 100) : 0,
+    };
+  });
+  const unassignedMembers = activeMembers.filter((member) => !member.groupId);
+  const unassignedPresentCount = unassignedMembers.filter((member) => member.present).length;
+  const unassignedAttendanceRate = unassignedMembers.length
+    ? Math.round((unassignedPresentCount / unassignedMembers.length) * 100)
+    : 0;
+  const eventTrend = attendanceEvents.map((event) => {
+    const presentCount =
+      event.id === attendanceEventId
+        ? currentPresentCount
+        : activeMembers.filter((member) =>
+            member.attendanceHistory.some((record) => record.eventId === event.id && record.status === "present"),
+          ).length;
+    const rate = activeMemberCount ? Math.round((presentCount / activeMemberCount) * 100) : 0;
+    return { ...event, presentCount, rate };
+  });
+  const absenceWatchList = activeMembers
+    .map((member) => {
+      let streak = 0;
+      for (const event of attendanceEvents.slice(0, 6)) {
+        const record = member.attendanceHistory.find((item) => item.eventId === event.id);
+        if (record?.status === "present") break;
+        streak += 1;
+      }
+      return { member, streak };
+    })
+    .filter((item) => item.streak >= 3)
+    .sort((a, b) => b.streak - a.streak)
+    .slice(0, 8);
 
   const attendanceMembers = localMembers.filter((member) => {
     if (attendanceFilter === "present") return member.present;
@@ -538,6 +584,106 @@ export function AttendanceManager({
             </button>
           </div>
         </form>
+      </section>
+
+      <section className="stats-grid">
+        <article className="metric-card">
+          <span>선택 이벤트 출석률</span>
+          <strong>{currentAttendanceRate}%</strong>
+          <small>
+            {currentPresentCount}명 출석 · {currentAbsentCount}명 미출석
+          </small>
+          <div className="progress">
+            <span style={{ width: `${currentAttendanceRate}%` }} />
+          </div>
+        </article>
+        <article className="panel stats-card">
+          <div className="panel-heading">
+            <h2>소그룹별 출석률</h2>
+            <span>{attendanceTitle}</span>
+          </div>
+          <div className="stats-list">
+            {groupAttendanceStats.map((group) => (
+              <div className="stat-row" key={group.id}>
+                <div className="person-block">
+                  <strong>{group.name}</strong>
+                  <span>
+                    {group.presentCount}/{group.totalCount}명
+                  </span>
+                </div>
+                <div className="stat-meter">
+                  <div className="progress">
+                    <span style={{ width: `${group.rate}%` }} />
+                  </div>
+                  <strong>{group.rate}%</strong>
+                </div>
+              </div>
+            ))}
+            {unassignedMembers.length > 0 ? (
+              <div className="stat-row">
+                <div className="person-block">
+                  <strong>미배정</strong>
+                  <span>
+                    {unassignedPresentCount}/{unassignedMembers.length}명
+                  </span>
+                </div>
+                <div className="stat-meter">
+                  <div className="progress">
+                    <span style={{ width: `${unassignedAttendanceRate}%` }} />
+                  </div>
+                  <strong>{unassignedAttendanceRate}%</strong>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </article>
+        <article className="panel stats-card">
+          <div className="panel-heading">
+            <h2>최근 이벤트 추이</h2>
+            <span>최근 {eventTrend.length}개</span>
+          </div>
+          <div className="stats-list">
+            {eventTrend.slice(0, 6).map((event) => (
+              <div className="stat-row" key={event.id}>
+                <div className="person-block">
+                  <strong>{event.title}</strong>
+                  <span>{event.eventDate}</span>
+                </div>
+                <div className="stat-meter">
+                  <div className="progress">
+                    <span style={{ width: `${event.rate}%` }} />
+                  </div>
+                  <strong>{event.rate}%</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+        <article className="panel stats-card">
+          <div className="panel-heading">
+            <h2>연속 결석 확인</h2>
+            <span>최근 이벤트 기준</span>
+          </div>
+          <div className="stats-list">
+            {absenceWatchList.map(({ member, streak }) => (
+              <div className="stat-row" key={member.id}>
+                <div className="person-block">
+                  <strong>{member.name}</strong>
+                  <span>{member.groupName}</span>
+                </div>
+                <span className="status-pill">{streak}회 연속</span>
+              </div>
+            ))}
+            {absenceWatchList.length === 0 ? (
+              <article className="care-item">
+                <div className="person-block">
+                  <strong>3회 이상 연속 결석자가 없습니다</strong>
+                  <span>최근 이벤트 기록이 쌓이면 자동으로 표시됩니다.</span>
+                </div>
+              </article>
+            ) : null}
+          </div>
+        </article>
       </section>
 
       <section className="panel">

@@ -302,7 +302,8 @@ h2 {
 }
 
 .metric-grid,
-.group-grid {
+.group-grid,
+.stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
@@ -541,6 +542,43 @@ th {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.stats-grid {
+  grid-template-columns: minmax(220px, 0.75fr) repeat(3, minmax(260px, 1fr));
+  margin-bottom: 16px;
+}
+
+.stats-card {
+  box-shadow: none;
+}
+
+.stats-list {
+  display: grid;
+  gap: 10px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.stat-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.stat-meter {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+  text-align: right;
+}
+
 .group-card {
   display: grid;
   gap: 16px;
@@ -693,6 +731,7 @@ th {
 
   .metric-grid,
   .group-grid,
+  .stats-grid,
   .dashboard-layout,
   .content-grid,
   .detail-layout {
@@ -726,6 +765,7 @@ th {
   .nav-list,
   .metric-grid,
   .group-grid,
+  .stats-grid,
   .dashboard-layout,
   .content-grid,
   .detail-layout,
@@ -740,6 +780,7 @@ th {
   .summary-row,
   .attendance-row,
   .history-row,
+  .stat-row,
   .detail-row,
   .audit-row {
     align-items: stretch;
@@ -749,5 +790,11 @@ th {
 
   .permission-list {
     justify-content: flex-start;
+  }
+
+  .stat-meter {
+    grid-template-columns: 1fr auto;
+    min-width: 0;
+    text-align: left;
   }
 }
