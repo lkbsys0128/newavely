@@ -590,6 +590,10 @@ th {
   grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) 140px 110px;
 }
 
+.group-create-form {
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
+}
+
 .management-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -694,6 +698,54 @@ th {
   align-items: start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.group-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.group-card-stats div {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--surface-strong);
+}
+
+.group-card-stats strong {
+  font-size: 1.2rem;
+}
+
+.group-card-stats span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.group-member-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.member-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.member-chip.muted {
+  color: var(--muted);
 }
 
 .progress {
@@ -897,6 +949,7 @@ th {
 
   .member-form,
   .compact-form,
+  .group-create-form,
   .management-form {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -928,6 +981,7 @@ th {
   .detail-layout,
   .member-form,
   .compact-form,
+  .group-create-form,
   .management-form {
     grid-template-columns: 1fr;
   }

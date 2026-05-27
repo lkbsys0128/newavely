@@ -5,7 +5,6 @@ export type Group = {
   name: string;
   leaderMemberId: string | null;
   leaderName: string;
-  targetSize: number;
 };
 
 export type Member = {

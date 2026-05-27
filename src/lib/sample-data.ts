@@ -1,11 +1,11 @@
 import type { Group, Member } from "@/lib/types";
 
 export const sampleGroups: Group[] = [
-  { id: "g-faith-1", name: "믿음 1", leaderMemberId: "m-2", leaderName: "박서준", targetSize: 12 },
-  { id: "g-hope-2", name: "소망 2", leaderMemberId: "m-3", leaderName: "이예린", targetSize: 10 },
-  { id: "g-love-3", name: "사랑 3", leaderMemberId: "m-4", leaderName: "최도윤", targetSize: 12 },
-  { id: "g-young-a", name: "청년부 A", leaderMemberId: "m-5", leaderName: "정민재", targetSize: 14 },
-  { id: "g-new", name: "새가족", leaderMemberId: "m-6", leaderName: "한지우", targetSize: 8 },
+  { id: "g-faith-1", name: "믿음 1", leaderMemberId: "m-2", leaderName: "박서준" },
+  { id: "g-hope-2", name: "소망 2", leaderMemberId: "m-3", leaderName: "이예린" },
+  { id: "g-love-3", name: "사랑 3", leaderMemberId: "m-4", leaderName: "최도윤" },
+  { id: "g-young-a", name: "청년부 A", leaderMemberId: "m-5", leaderName: "정민재" },
+  { id: "g-new", name: "새가족", leaderMemberId: "m-6", leaderName: "한지우" },
 ];
 
 export const sampleMembers: Member[] = [

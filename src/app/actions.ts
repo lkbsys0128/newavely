@@ -35,7 +35,6 @@ const updateMemberSchema = memberSchema.extend({
 const groupSchema = z.object({
   name: z.string().min(1),
   leaderMemberId: nullableUuid,
-  targetSize: z.coerce.number().int().min(1).max(500),
 });
 
 const updateGroupSchema = groupSchema.extend({
@@ -559,7 +558,6 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
     const parsed = groupSchema.parse({
       name: formData.get("name"),
       leaderMemberId: formData.get("leaderMemberId"),
-      targetSize: formData.get("targetSize"),
     });
 
     const { data: inserted, error } = await supabase
@@ -567,7 +565,6 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
       .insert({
         name: parsed.name,
         leader_member_id: parsed.leaderMemberId,
-        target_size: parsed.targetSize,
       })
       .select("*")
       .single();
@@ -592,7 +589,6 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
       id: formData.get("id"),
       name: formData.get("name"),
       leaderMemberId: formData.get("leaderMemberId"),
-      targetSize: formData.get("targetSize"),
     });
 
     const { data: beforeData, error: beforeError } = await supabase
@@ -608,7 +604,6 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
       .update({
         name: parsed.name,
         leader_member_id: parsed.leaderMemberId,
-        target_size: parsed.targetSize,
         updated_at: new Date().toISOString(),
       })
       .eq("id", parsed.id)

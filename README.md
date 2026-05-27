@@ -84,7 +84,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 
 주요 테이블:
 
-- `groups`: 소그룹, 리더, 목표 인원
+- `groups`: 소그룹과 리더
 - `members`: 멤버 프로필, Supabase Auth 연결, 역할, 상태, 소그룹, 커스텀 정보
 - `attendance_events`: 출석 이벤트 날짜와 제목
 - `attendance_records`: 이벤트별 멤버 출석 상태

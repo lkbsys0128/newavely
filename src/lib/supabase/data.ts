@@ -8,7 +8,6 @@ type DbGroup = {
   id: string;
   name: string;
   leader_member_id: string | null;
-  target_size: number;
   leader?: { name: string | null } | Array<{ name: string | null }> | null;
 };
 
@@ -167,7 +166,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
 
   const { data: groupsData, error: groupsError } = await supabase
     .from("groups")
-    .select("id, name, leader_member_id, target_size, leader:members!groups_leader_member_id_fkey(name)")
+    .select("id, name, leader_member_id, leader:members!groups_leader_member_id_fkey(name)")
     .order("name");
 
   if (groupsError) throw groupsError;
@@ -188,7 +187,6 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
       name: group.name,
       leaderMemberId: group.leader_member_id,
       leaderName: leader?.name ?? "미배정",
-      targetSize: group.target_size,
     };
   });
 

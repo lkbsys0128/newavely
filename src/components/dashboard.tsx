@@ -361,19 +361,46 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
   const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
   const [updateGroupState, updateGroupAction, isUpdatingGroup] = useActionState(updateGroup, initialActionState);
+  const activeMembers = members.filter((member) => member.status !== "inactive");
+  const unassignedMembers = activeMembers.filter((member) => !member.groupId);
+  const totalPresent = activeMembers.filter((member) => member.present).length;
+  const totalAttendanceRate = activeMembers.length ? Math.round((totalPresent / activeMembers.length) * 100) : 0;
 
   return (
     <>
       <PageHeader eyebrow="소그룹 관리" title="소그룹" user={user} />
+      <div className="metric-grid">
+        <article className="metric-card">
+          <span>전체 활동 멤버</span>
+          <strong>{activeMembers.length}</strong>
+          <small>비활성 멤버 제외</small>
+        </article>
+        <article className="metric-card">
+          <span>소그룹</span>
+          <strong>{groups.length}</strong>
+          <small>현재 등록된 순</small>
+        </article>
+        <article className="metric-card">
+          <span>미배정</span>
+          <strong>{unassignedMembers.length}</strong>
+          <small>소그룹 배정 필요</small>
+        </article>
+        <article className="metric-card">
+          <span>최근 출석률</span>
+          <strong>{totalAttendanceRate}%</strong>
+          <small>{totalPresent}명 출석</small>
+        </article>
+      </div>
+
       <section className="panel form-panel">
         <div className="panel-heading">
           <h2>소그룹 추가</h2>
-          <span>{canManageGroups ? "이름, 리더, 목표 인원 설정" : "관리자 권한 필요"}</span>
+          <span>{canManageGroups ? "이름과 리더를 지정" : "관리자 권한 필요"}</span>
         </div>
-        <form action={createGroupAction} className="member-form compact-form">
+        <form action={createGroupAction} className="member-form group-create-form">
           <label>
             소그룹 이름
-            <input name="name" required placeholder="예: 믿음 1그룹" disabled={!canManageGroups} />
+            <input name="name" required placeholder="예: 은미 순" disabled={!canManageGroups} />
           </label>
           <label>
             리더
@@ -386,11 +413,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
               ))}
             </select>
           </label>
-          <label>
-            목표 인원
-            <input name="targetSize" type="number" min="1" max="500" defaultValue="12" disabled={!canManageGroups} />
-          </label>
-          <div className="form-actions full-width">
+          <div className="form-actions">
             <ActionMessage state={createGroupState} />
             <button className="primary-button" type="submit" disabled={!canManageGroups || isCreatingGroup}>
               추가
@@ -401,8 +424,14 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
 
       <section className="group-grid">
         {groups.map((group) => {
-          const groupMembers = members.filter((member) => member.groupName === group.name);
-          const fill = group.targetSize ? Math.min(Math.round((groupMembers.length / group.targetSize) * 100), 100) : 0;
+          const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
+          const present = groupMembers.filter((member) => member.present).length;
+          const rate = groupMembers.length ? Math.round((present / groupMembers.length) * 100) : 0;
+          const careCount = groupMembers.filter(
+            (member) =>
+              member.status === "care" ||
+              member.careFollowups.some((followup) => followup.status !== "resolved"),
+          ).length;
           return (
             <article className="group-card" key={group.id}>
               <header>
@@ -412,11 +441,31 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                 </div>
                 <span className="role-pill">{groupMembers.length}명</span>
               </header>
-              <div>
-                <div className="progress" aria-label={`${group.name} 목표 인원 대비 ${fill}%`}>
-                  <span style={{ width: `${fill}%` }} />
+              <div className="group-card-stats">
+                <div>
+                  <strong>{rate}%</strong>
+                  <span>출석률</span>
                 </div>
-                <p className="meta">목표 {group.targetSize}명</p>
+                <div>
+                  <strong>{present}</strong>
+                  <span>출석</span>
+                </div>
+                <div>
+                  <strong>{careCount}</strong>
+                  <span>돌봄</span>
+                </div>
+              </div>
+              <div className="progress" aria-label={`${group.name} 출석률 ${rate}%`}>
+                <span style={{ width: `${rate}%` }} />
+              </div>
+              <div className="group-member-list">
+                {groupMembers.slice(0, 6).map((member) => (
+                  <Link className="member-chip" href={`/members/${member.id}`} key={member.id}>
+                    {member.name}
+                  </Link>
+                ))}
+                {groupMembers.length > 6 ? <span className="member-chip muted">+{groupMembers.length - 6}</span> : null}
+                {groupMembers.length === 0 ? <span className="meta">배정된 멤버가 없습니다</span> : null}
               </div>
               <form action={updateGroupAction} className="management-form group-edit-form">
                 <input name="id" type="hidden" value={group.id} />
@@ -435,17 +484,6 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                     ))}
                   </select>
                 </label>
-                <label>
-                  목표 인원
-                  <input
-                    name="targetSize"
-                    type="number"
-                    min="1"
-                    max="500"
-                    defaultValue={group.targetSize}
-                    disabled={!canManageGroups}
-                  />
-                </label>
                 <ActionMessage state={updateGroupState} />
                 <button className="secondary-button" type="submit" disabled={!canManageGroups || isUpdatingGroup}>
                   저장
@@ -455,9 +493,21 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
           );
         })}
       </section>
-      <div className="section-spacer">
-        <GroupSummaryPanel members={members} groups={groups} />
-      </div>
+      {unassignedMembers.length > 0 ? (
+        <section className="panel section-spacer">
+          <div className="panel-heading">
+            <h2>미배정 멤버</h2>
+            <span>{unassignedMembers.length}명</span>
+          </div>
+          <div className="group-member-list">
+            {unassignedMembers.map((member) => (
+              <Link className="member-chip" href={`/members/${member.id}`} key={member.id}>
+                {member.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }
@@ -973,7 +1023,7 @@ function GroupSummaryPanel({ members, groups }: { members: Member[]; groups: Gro
               <div className="person-block">
                 <strong>{group.name}</strong>
                 <span>
-                  리더 {group.leaderName} · {groupMembers.length}/{group.targetSize}명
+                  리더 {group.leaderName} · {groupMembers.length}명
                 </span>
               </div>
               <span className={`attendance-pill ${rate >= 70 ? "present" : ""}`}>{rate}%</span>
