@@ -24,6 +24,9 @@ type AppDataProps = {
   groups: Group[];
 };
 
+type AttendanceFilter = "all" | "present" | "absent" | "excused";
+type AttendanceStatus = "present" | "absent" | "excused";
+
 const initialActionState: ActionState = { ok: false, message: "" };
 
 export function DashboardOverview({ user, members, groups }: AppDataProps) {
@@ -474,7 +477,7 @@ export function AttendanceManager({
   attendanceEvents: AttendanceEvent[];
 }) {
   const [localMembers, setLocalMembers] = useState(members);
-  const [attendanceFilter, setAttendanceFilter] = useState<"all" | "present" | "absent">("all");
+  const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
   const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
@@ -486,7 +489,8 @@ export function AttendanceManager({
   const activeMembers = localMembers.filter((member) => member.status !== "inactive");
   const activeMemberCount = activeMembers.length;
   const currentPresentCount = activeMembers.filter((member) => member.present).length;
-  const currentAbsentCount = Math.max(activeMemberCount - currentPresentCount, 0);
+  const currentExcusedCount = activeMembers.filter((member) => getMemberAttendanceStatus(member, attendanceEventId) === "excused").length;
+  const currentAbsentCount = Math.max(activeMemberCount - currentPresentCount - currentExcusedCount, 0);
   const currentAttendanceRate = activeMemberCount ? Math.round((currentPresentCount / activeMemberCount) * 100) : 0;
   const groupAttendanceStats = groups.map((group) => {
     const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
@@ -519,7 +523,7 @@ export function AttendanceManager({
       let streak = 0;
       for (const event of attendanceEvents.slice(0, 6)) {
         const record = member.attendanceHistory.find((item) => item.eventId === event.id);
-        if (record?.status === "present") break;
+        if (record?.status === "present" || record?.status === "excused") break;
         streak += 1;
       }
       return { member, streak };
@@ -529,8 +533,10 @@ export function AttendanceManager({
     .slice(0, 8);
 
   const attendanceMembers = localMembers.filter((member) => {
+    const status = getMemberAttendanceStatus(member, attendanceEventId);
     if (attendanceFilter === "present") return member.present;
-    if (attendanceFilter === "absent") return !member.present;
+    if (attendanceFilter === "absent") return status === "absent";
+    if (attendanceFilter === "excused") return status === "excused";
     return true;
   });
 
@@ -592,7 +598,7 @@ export function AttendanceManager({
           <span>선택 이벤트 출석률</span>
           <strong>{currentAttendanceRate}%</strong>
           <small>
-            {currentPresentCount}명 출석 · {currentAbsentCount}명 미출석
+            {currentPresentCount}명 출석 · {currentAbsentCount}명 미확인 · {currentExcusedCount}명 사유 있음
           </small>
           <div className="progress">
             <span style={{ width: `${currentAttendanceRate}%` }} />
@@ -662,8 +668,8 @@ export function AttendanceManager({
         </article>
         <article className="panel stats-card">
           <div className="panel-heading">
-            <h2>연속 결석 확인</h2>
-            <span>최근 이벤트 기준</span>
+            <h2>미확인 연속 결석</h2>
+            <span>사유 있음 제외</span>
           </div>
           <div className="stats-list">
             {absenceWatchList.map(({ member, streak }) => (
@@ -678,8 +684,8 @@ export function AttendanceManager({
             {absenceWatchList.length === 0 ? (
               <article className="care-item">
                 <div className="person-block">
-                  <strong>3회 이상 연속 결석자가 없습니다</strong>
-                  <span>최근 이벤트 기록이 쌓이면 자동으로 표시됩니다.</span>
+                  <strong>3회 이상 미확인 결석자가 없습니다</strong>
+                  <span>사유가 저장된 결석은 이 목록에서 제외됩니다.</span>
                 </div>
               </article>
             ) : null}
@@ -694,7 +700,7 @@ export function AttendanceManager({
             <span>{attendanceDate}</span>
           </div>
           <div className="segmented">
-            {(["all", "present", "absent"] as const).map((filter) => (
+            {(["all", "present", "absent", "excused"] as const).map((filter) => (
               <button
                 className={`segment ${attendanceFilter === filter ? "active" : ""}`}
                 key={filter}
@@ -746,7 +752,7 @@ function AttendanceRow({
 }) {
   const [reasonState, reasonAction, isSavingReason] = useActionState(updateAttendanceReason, initialActionState);
   const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
-  const status = member.present ? "present" : currentRecord?.status === "excused" ? "excused" : "absent";
+  const status = getMemberAttendanceStatus(member, eventId);
 
   return (
     <article className="attendance-row">
@@ -815,6 +821,15 @@ function AttendanceRow({
       </div>
     </article>
   );
+}
+
+function getMemberAttendanceStatus(member: Member, eventId?: string): AttendanceStatus {
+  if (member.present) return "present";
+
+  const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
+  if (currentRecord?.status === "excused") return "excused";
+
+  return "absent";
 }
 
 export function PermissionsPageContent({ user, members }: AppDataProps) {
@@ -982,7 +997,8 @@ const statusLabels: Record<Member["status"], string> = {
 const attendanceFilterLabels = {
   all: "전체",
   present: "출석",
-  absent: "미출석",
+  absent: "미확인",
+  excused: "사유 있음",
 };
 
 const attendanceStatusLabels = {
