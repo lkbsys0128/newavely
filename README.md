@@ -36,6 +36,7 @@ db/
   002_app_data_policies.sql 추가 앱 데이터 policies
   003_audit_logs.sql      감사 로그 테이블, 기록 함수, RLS policy
   004_audit_log_retention.sql 감사 로그 보관 정책 comment와 created_at index
+  005_attendance_excuse_period.sql 출석 사유 기간 컬럼과 인덱스
 test/
   supabase-queries.test.mjs Supabase relationship embed 회귀 테스트
 ```
@@ -77,6 +78,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 2. `db/002_app_data_policies.sql`
 3. `db/003_audit_logs.sql`
 4. `db/004_audit_log_retention.sql`
+5. `db/005_attendance_excuse_period.sql`
 
 주요 테이블:
 

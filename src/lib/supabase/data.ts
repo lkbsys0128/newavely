@@ -29,6 +29,9 @@ type DbMember = {
     | Array<{
         event_id: string;
         status: "present" | "absent" | "excused";
+        note: string | null;
+        excuse_start_date: string | null;
+        excuse_end_date: string | null;
         attendance_events?: { event_date: string; title: string } | Array<{ event_date: string; title: string }> | null;
       }>
     | null;
@@ -146,7 +149,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
   const { data: membersData, error: membersError } = await supabase
     .from("members")
     .select(
-      "id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, attendance_events(event_date, title))",
+      "id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events(event_date, title))",
     )
     .order("name");
 
@@ -173,6 +176,9 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
           eventDate: event?.event_date ?? "",
           title: event?.title ?? "출석 이벤트",
           status: record.status,
+          note: record.note ?? "",
+          excuseStartDate: record.excuse_start_date ?? "",
+          excuseEndDate: record.excuse_end_date ?? "",
         };
       })
       .sort((a, b) => b.eventDate.localeCompare(a.eventDate));

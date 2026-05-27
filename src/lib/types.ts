@@ -36,6 +36,9 @@ export type AttendanceRecordSummary = {
   eventDate: string;
   title: string;
   status: "present" | "absent" | "excused";
+  note: string;
+  excuseStartDate: string;
+  excuseEndDate: string;
 };
 
 export type CustomFieldDefinition = {

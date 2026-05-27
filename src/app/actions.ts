@@ -47,6 +47,22 @@ const attendanceEventSchema = z.object({
   title: z.string().min(1, "이벤트 이름을 입력해주세요."),
 });
 
+const attendanceReasonSchema = z
+  .object({
+    memberId: z.string().uuid(),
+    eventId: z.string().uuid(),
+    note: nullableText,
+    excuseStartDate: nullableText,
+    excuseEndDate: nullableText,
+  })
+  .refine(
+    (value) => {
+      if (!value.excuseStartDate || !value.excuseEndDate) return true;
+      return value.excuseStartDate <= value.excuseEndDate;
+    },
+    { message: "종료일은 시작일 이후여야 합니다." },
+  );
+
 function normalizeCustomFieldKey(value: unknown) {
   return String(value ?? "")
     .trim()
@@ -621,6 +637,9 @@ export async function toggleAttendance(memberId: string, eventId: string, nextPr
         event_id: eventId,
         member_id: memberId,
         status: nextPresent ? "present" : "absent",
+        note: null,
+        excuse_start_date: null,
+        excuse_end_date: null,
         checked_by_member_id: currentMember.id,
         checked_at: new Date().toISOString(),
       },
@@ -640,4 +659,57 @@ export async function toggleAttendance(memberId: string, eventId: string, nextPr
     metadata: { eventId, memberId, nextPresent },
   });
   revalidateAppData();
+}
+
+export async function updateAttendanceReason(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
+    const parsed = attendanceReasonSchema.parse({
+      memberId: formData.get("memberId"),
+      eventId: formData.get("eventId"),
+      note: formData.get("note"),
+      excuseStartDate: formData.get("excuseStartDate"),
+      excuseEndDate: formData.get("excuseEndDate"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("attendance_records")
+      .select("*")
+      .eq("event_id", parsed.eventId)
+      .eq("member_id", parsed.memberId)
+      .maybeSingle();
+
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
+      .from("attendance_records")
+      .upsert(
+        {
+          event_id: parsed.eventId,
+          member_id: parsed.memberId,
+          status: "excused",
+          note: parsed.note,
+          excuse_start_date: parsed.excuseStartDate,
+          excuse_end_date: parsed.excuseEndDate,
+          checked_by_member_id: currentMember.id,
+          checked_at: new Date().toISOString(),
+        },
+        { onConflict: "event_id,member_id" },
+      )
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "attendance.reason.update",
+      targetTable: "attendance_records",
+      targetId: afterData.id as string,
+      beforeData: beforeData as Record<string, unknown> | null,
+      afterData: afterData as Record<string, unknown>,
+      metadata: { eventId: parsed.eventId, memberId: parsed.memberId },
+    });
+    revalidateAppData();
+    return "출석 사유를 저장했습니다.";
+  });
 }

@@ -9,6 +9,7 @@ import {
   deactivateMember,
   reactivateMember,
   toggleAttendance,
+  updateAttendanceReason,
   updateGroup,
   updateMember,
   type ActionState,
@@ -707,37 +708,112 @@ export function AttendanceManager({
         </div>
         <div className="attendance-list">
           {attendanceMembers.map((member) => (
-            <article className="attendance-row" key={member.id}>
-              <div className="person-block">
-                <strong>{member.name}</strong>
-                <span>
-                  {member.groupName} · {member.phone}
-                </span>
-              </div>
-              <span className={`attendance-pill ${member.present ? "present" : ""}`}>
-                {member.present ? "출석" : "미출석"}
-              </span>
-              <button
-                className={member.present ? "secondary-button" : "primary-button"}
-                disabled={!canManageAttendance || !attendanceEventId || isPending}
-                onClick={() => {
-                  if (!attendanceEventId) return;
-                  setLocalMembers((current) =>
-                    current.map((item) => (item.id === member.id ? { ...item, present: !item.present } : item)),
-                  );
-                  startTransition(() => {
-                    void toggleAttendance(member.id, attendanceEventId, !member.present);
-                  });
-                }}
-                type="button"
-              >
-                {member.present ? "미출석 처리" : "출석 체크"}
-              </button>
-            </article>
+            <AttendanceRow
+              canManageAttendance={canManageAttendance}
+              eventId={attendanceEventId}
+              isPending={isPending}
+              key={member.id}
+              member={member}
+              onToggle={() => {
+                if (!attendanceEventId) return;
+                setLocalMembers((current) =>
+                  current.map((item) => (item.id === member.id ? { ...item, present: !item.present } : item)),
+                );
+                startTransition(() => {
+                  void toggleAttendance(member.id, attendanceEventId, !member.present);
+                });
+              }}
+            />
           ))}
         </div>
       </section>
     </>
+  );
+}
+
+function AttendanceRow({
+  member,
+  eventId,
+  canManageAttendance,
+  isPending,
+  onToggle,
+}: {
+  member: Member;
+  eventId?: string;
+  canManageAttendance: boolean;
+  isPending: boolean;
+  onToggle: () => void;
+}) {
+  const [reasonState, reasonAction, isSavingReason] = useActionState(updateAttendanceReason, initialActionState);
+  const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
+  const status = member.present ? "present" : currentRecord?.status === "excused" ? "excused" : "absent";
+
+  return (
+    <article className="attendance-row">
+      <div className="person-block">
+        <strong>{member.name}</strong>
+        <span>
+          {member.groupName} · {member.phone}
+        </span>
+        {currentRecord?.note ? <span>사유: {currentRecord.note}</span> : null}
+        {currentRecord?.excuseStartDate || currentRecord?.excuseEndDate ? (
+          <span>
+            기간: {currentRecord.excuseStartDate || "시작일 미입력"} - {currentRecord.excuseEndDate || "종료일 미입력"}
+          </span>
+        ) : null}
+      </div>
+      <span className={`attendance-pill ${status}`}>{attendanceStatusLabels[status]}</span>
+      <div className="attendance-actions">
+        <button
+          className={member.present ? "secondary-button" : "primary-button"}
+          disabled={!canManageAttendance || !eventId || isPending}
+          onClick={onToggle}
+          type="button"
+        >
+          {member.present ? "미출석 처리" : "출석 체크"}
+        </button>
+        <details className="reason-details">
+          <summary>사유/기간</summary>
+          <form action={reasonAction} className="reason-form">
+            <input name="memberId" type="hidden" value={member.id} />
+            <input name="eventId" type="hidden" value={eventId ?? ""} />
+            <label>
+              시작일
+              <input
+                name="excuseStartDate"
+                type="date"
+                defaultValue={currentRecord?.excuseStartDate}
+                disabled={!canManageAttendance || !eventId}
+              />
+            </label>
+            <label>
+              종료일
+              <input
+                name="excuseEndDate"
+                type="date"
+                defaultValue={currentRecord?.excuseEndDate}
+                disabled={!canManageAttendance || !eventId}
+              />
+            </label>
+            <label className="full-width">
+              사유
+              <textarea
+                name="note"
+                placeholder="여행, 건강, 가정 일정 등"
+                defaultValue={currentRecord?.note}
+                disabled={!canManageAttendance || !eventId}
+              />
+            </label>
+            <div className="form-actions full-width">
+              <ActionMessage state={reasonState} />
+              <button className="secondary-button" type="submit" disabled={!canManageAttendance || !eventId || isSavingReason}>
+                사유 있음 저장
+              </button>
+            </div>
+          </form>
+        </details>
+      </div>
+    </article>
   );
 }
 
@@ -909,6 +985,12 @@ const attendanceFilterLabels = {
   absent: "미출석",
 };
 
+const attendanceStatusLabels = {
+  present: "출석",
+  absent: "미출석",
+  excused: "사유 있음",
+};
+
 const permissionLabels = {
   "members:read": "멤버 보기",
   "members:write": "멤버 수정",
@@ -930,5 +1012,6 @@ const auditActionLabels: Record<string, string> = {
   "group.update": "소그룹 수정",
   "attendance_event.create": "출석 이벤트 생성",
   "attendance.toggle": "출석 변경",
+  "attendance.reason.update": "출석 사유 수정",
   "custom_field.create": "커스텀 필드 생성",
 };

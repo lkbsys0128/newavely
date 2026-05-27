@@ -180,9 +180,15 @@ export function MemberDetailPageContent({
             <article className="history-row" key={record.eventId}>
               <div className="person-block">
                 <strong>{record.title}</strong>
-                <span>{record.eventDate}</span>
+                <span>
+                  {record.eventDate}
+                  {record.excuseStartDate || record.excuseEndDate
+                    ? ` · ${record.excuseStartDate || "시작일 미입력"} - ${record.excuseEndDate || "종료일 미입력"}`
+                    : ""}
+                </span>
+                {record.note ? <span>사유: {record.note}</span> : null}
               </div>
-              <span className={`attendance-pill ${record.status === "present" ? "present" : ""}`}>
+              <span className={`attendance-pill ${record.status}`}>
                 {attendanceStatusLabels[record.status]}
               </span>
             </article>

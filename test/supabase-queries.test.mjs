@@ -6,7 +6,10 @@ const dataSource = readFileSync(new URL("../src/lib/supabase/data.ts", import.me
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
   assert.match(dataSource, /groups!members_group_id_fkey\(name\)/);
-  assert.match(dataSource, /attendance_records!attendance_records_member_id_fkey\(event_id, status, attendance_events\(event_date, title\)\)/);
+  assert.match(
+    dataSource,
+    /attendance_records!attendance_records_member_id_fkey\(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events\(event_date, title\)\)/,
+  );
 });
 
 test("dashboard queries do not use known ambiguous embeds", () => {
