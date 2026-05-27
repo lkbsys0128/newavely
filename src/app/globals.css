@@ -266,6 +266,18 @@ h2 {
   margin-top: 10px;
 }
 
+.definition-list {
+  display: grid;
+  gap: 12px;
+}
+
+.definition-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-strong);
+}
+
 .primary-button {
   background: var(--accent);
   color: #ffffff;
@@ -501,6 +513,11 @@ th {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
+}
+
+.compact-action-form {
+  margin-top: 10px;
+  padding-top: 10px;
 }
 
 .action-message {

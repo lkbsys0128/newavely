@@ -64,6 +64,13 @@ const customFieldDefinitionSchema = z.object({
   isSensitive: z.preprocess((value) => value === "on", z.boolean()),
 });
 
+const updateCustomFieldDefinitionSchema = z.object({
+  id: z.string().uuid(),
+  label: z.string().min(1, "항목 이름을 입력해주세요."),
+  fieldType: z.enum(["text", "number", "date", "boolean"]),
+  isSensitive: z.preprocess((value) => value === "on", z.boolean()),
+});
+
 export type ActionState = {
   ok: boolean;
   message: string;
@@ -351,6 +358,77 @@ export async function createCustomFieldDefinition(_previousState: ActionState, f
     });
     revalidateAppData();
     return "커스텀 필드를 추가했습니다.";
+  });
+}
+
+export async function updateCustomFieldDefinition(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = updateCustomFieldDefinitionSchema.parse({
+      id: formData.get("id"),
+      label: formData.get("label"),
+      fieldType: formData.get("fieldType"),
+      isSensitive: formData.get("isSensitive"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("member_custom_field_definitions")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
+      .from("member_custom_field_definitions")
+      .update({
+        label: parsed.label,
+        field_type: parsed.fieldType,
+        is_sensitive: parsed.isSensitive,
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "custom_field.update",
+      targetTable: "member_custom_field_definitions",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "정보 항목을 수정했습니다.";
+  });
+}
+
+export async function deleteCustomFieldDefinition(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const id = z.string().uuid().parse(formData.get("id"));
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("member_custom_field_definitions")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { error } = await supabase.from("member_custom_field_definitions").delete().eq("id", id);
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "custom_field.delete",
+      targetTable: "member_custom_field_definitions",
+      targetId: id,
+      beforeData: beforeData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "정보 항목을 삭제했습니다.";
   });
 }
 
