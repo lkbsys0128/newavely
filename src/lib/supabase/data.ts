@@ -1,5 +1,5 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
-import type { AuditLog, Group, Member } from "@/lib/types";
+import type { AuditLog, CustomFieldDefinition, Group, Member } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -21,10 +21,19 @@ type DbMember = {
   baptism_status: string | null;
   role: Role;
   status: "active" | "new" | "care" | "inactive";
+  custom_fields: Record<string, unknown> | null;
   care_notes: string | null;
   group_id: string | null;
   groups?: { name: string | null } | Array<{ name: string | null }> | null;
   attendance_records?: Array<{ status: "present" | "absent" | "excused" }> | null;
+};
+
+type DbCustomFieldDefinition = {
+  id: string;
+  key: string;
+  label: string;
+  field_type: "text" | "number" | "date" | "boolean";
+  is_sensitive: boolean;
 };
 
 type DbAuditLog = {
@@ -118,7 +127,7 @@ export async function getDashboardData(supabase: SupabaseClient) {
   const { data: membersData, error: membersError } = await supabase
     .from("members")
     .select(
-      "id, name, email, phone, address, baptism_status, role, status, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(status)",
+      "id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(status)",
     )
     .order("name");
 
@@ -149,6 +158,7 @@ export async function getDashboardData(supabase: SupabaseClient) {
       address: member.address ?? "미입력",
       baptismStatus: member.baptism_status ?? "미입력",
       notes: member.care_notes ?? "메모 없음",
+      customFields: member.custom_fields ?? {},
       present: Boolean(member.attendance_records?.some((record) => record.status === "present")),
     };
   });
@@ -159,6 +169,23 @@ export async function getDashboardData(supabase: SupabaseClient) {
     groups,
     members,
   };
+}
+
+export async function getCustomFieldDefinitions(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from("member_custom_field_definitions")
+    .select("id, key, label, field_type, is_sensitive")
+    .order("label");
+
+  if (error) throw error;
+
+  return (data as unknown as DbCustomFieldDefinition[]).map<CustomFieldDefinition>((field) => ({
+    id: field.id,
+    key: field.key,
+    label: field.label,
+    fieldType: field.field_type,
+    isSensitive: field.is_sensitive,
+  }));
 }
 
 export async function getAuditLogs(supabase: SupabaseClient) {

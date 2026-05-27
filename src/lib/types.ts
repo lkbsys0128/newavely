@@ -20,7 +20,16 @@ export type Member = {
   address: string;
   baptismStatus: string;
   notes: string;
+  customFields: Record<string, unknown>;
   present: boolean;
+};
+
+export type CustomFieldDefinition = {
+  id: string;
+  key: string;
+  label: string;
+  fieldType: "text" | "number" | "date" | "boolean";
+  isSensitive: boolean;
 };
 
 export type AuditLog = {

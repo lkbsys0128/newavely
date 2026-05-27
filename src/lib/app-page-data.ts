@@ -1,11 +1,12 @@
-import type { Role } from "@/lib/rbac";
-import type { AuditLog, Group, Member } from "@/lib/types";
+import { hasPermission, type Role } from "@/lib/rbac";
+import type { AuditLog, CustomFieldDefinition, Group, Member } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
   ensureAttendanceEvent,
   formatSupabaseError,
   getAuditLogs,
+  getCustomFieldDefinitions,
   getDashboardData,
   getOrCreateCurrentMember,
 } from "@/lib/supabase/data";
@@ -25,6 +26,7 @@ export type ReadyAppPageData = {
   members: Member[];
   groups: Group[];
   auditLogs?: AuditLog[];
+  customFieldDefinitions: CustomFieldDefinition[];
 };
 
 export type AppPageData =
@@ -55,6 +57,11 @@ export async function getAppPageData(): Promise<AppPageData> {
     });
     await ensureAttendanceEvent(supabase);
     const dashboardData = await getDashboardData(supabase);
+    const allCustomFieldDefinitions =
+      currentMember.role === "admin" || currentMember.role === "leader" ? await getCustomFieldDefinitions(supabase) : [];
+    const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
+      ? allCustomFieldDefinitions
+      : allCustomFieldDefinitions.filter((field) => !field.isSensitive);
     const auditLogs = currentMember.role === "admin" ? await getAuditLogs(supabase) : undefined;
 
     return {
@@ -70,6 +77,7 @@ export async function getAppPageData(): Promise<AppPageData> {
       members: dashboardData.members,
       groups: dashboardData.groups,
       auditLogs,
+      customFieldDefinitions,
     };
   } catch (error) {
     return { status: "error", message: formatSupabaseError(error) };

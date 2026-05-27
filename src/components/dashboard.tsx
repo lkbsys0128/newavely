@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   createGroup,
@@ -153,6 +154,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   <th>역할</th>
                   <th>상태</th>
                   <th>연락처</th>
+                  <th>상세</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,6 +174,11 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                       </span>
                     </td>
                     <td>{member.phone}</td>
+                    <td>
+                      <Link className="secondary-button table-action" href={`/members/${member.id}`}>
+                        열기
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -708,7 +715,9 @@ const auditActionLabels: Record<string, string> = {
   "member.update": "멤버 수정",
   "member.deactivate": "멤버 비활성화",
   "member.reactivate": "멤버 다시 활성화",
+  "member.custom_fields.update": "멤버 커스텀 필드 수정",
   "group.create": "소그룹 생성",
   "group.update": "소그룹 수정",
   "attendance.toggle": "출석 변경",
+  "custom_field.create": "커스텀 필드 생성",
 };

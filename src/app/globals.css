@@ -235,6 +235,20 @@ h2 {
   accent-color: var(--accent);
 }
 
+.checkbox-label {
+  align-content: start;
+  grid-template-columns: 1fr auto;
+}
+
+.field-note {
+  width: max-content;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--accent-2);
+  font-size: 0.72rem;
+}
+
 .primary-button {
   background: var(--accent);
   color: #ffffff;
@@ -244,6 +258,13 @@ h2 {
   border: 1px solid var(--line);
   background: var(--surface-strong);
   color: var(--ink);
+}
+
+.table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
 }
 
 .danger-button {
@@ -291,6 +312,12 @@ h2 {
   grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
   gap: 16px;
   margin-top: 16px;
+}
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  gap: 16px;
 }
 
 .panel {
@@ -603,7 +630,8 @@ th {
   .metric-grid,
   .group-grid,
   .dashboard-layout,
-  .content-grid {
+  .content-grid,
+  .detail-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -636,6 +664,7 @@ th {
   .group-grid,
   .dashboard-layout,
   .content-grid,
+  .detail-layout,
   .member-form,
   .compact-form,
   .management-form {
