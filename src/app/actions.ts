@@ -42,6 +42,35 @@ const updateGroupSchema = groupSchema.extend({
   id: z.string().uuid(),
 });
 
+function normalizeCustomFieldKey(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
+const customFieldKey = z.preprocess(
+  normalizeCustomFieldKey,
+  z
+    .string()
+    .min(1, "항목 이름을 입력해주세요.")
+    .regex(/^[\p{L}][\p{L}\p{N}_-]*$/u, "식별 키는 문자로 시작하고 문자, 숫자, 밑줄, 하이픈만 사용할 수 있습니다."),
+);
+
+const customFieldDefinitionSchema = z.object({
+  key: customFieldKey,
+  label: z.string().min(1, "라벨을 입력해주세요."),
+  fieldType: z.enum(["text", "number", "date", "boolean"]),
+  isSensitive: z.preprocess((value) => value === "on", z.boolean()),
+});
+
+const updateCustomFieldDefinitionSchema = z.object({
+  id: z.string().uuid(),
+  label: z.string().min(1, "항목 이름을 입력해주세요."),
+  fieldType: z.enum(["text", "number", "date", "boolean"]),
+  isSensitive: z.preprocess((value) => value === "on", z.boolean()),
+});
+
 export type ActionState = {
   ok: boolean;
   message: string;
@@ -51,12 +80,15 @@ const initialErrorMessage = "작업 중 오류가 발생했습니다. 잠시 후
 
 function toActionError(error: unknown) {
   if (error instanceof z.ZodError) {
-    return "입력값을 확인해주세요.";
+    return error.issues[0]?.message ?? "입력값을 확인해주세요.";
   }
 
   if (error && typeof error === "object") {
     const maybeError = error as { code?: unknown; message?: unknown };
     if (maybeError.code === "23505") {
+      if (typeof maybeError.message === "string" && maybeError.message.includes("member_custom_field_definitions")) {
+        return "이미 사용 중인 커스텀 필드 키입니다.";
+      }
       return "이미 사용 중인 이메일입니다. 다른 이메일을 입력해주세요.";
     }
 
@@ -83,7 +115,9 @@ async function runAction(callback: () => Promise<string>): Promise<ActionState> 
   }
 }
 
-async function getAuthorizedCurrentMember(permission: "members:write" | "groups:write" | "attendance:write") {
+async function getAuthorizedCurrentMember(
+  permission: "members:write" | "groups:write" | "attendance:write" | "roles:manage",
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -102,6 +136,14 @@ async function getAuthorizedCurrentMember(permission: "members:write" | "groups:
   }
 
   return { supabase, currentMember };
+}
+
+function parseCustomFieldValue(value: FormDataEntryValue | null) {
+  if (value === null) return null;
+  const normalized = String(value).trim();
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+  return normalized ? normalized : null;
 }
 
 function revalidateAppData() {
@@ -239,6 +281,154 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     });
     revalidateAppData();
     return "멤버 정보를 저장했습니다.";
+  });
+}
+
+export async function updateMemberCustomFields(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const id = z.string().uuid().parse(formData.get("id"));
+    const customFields: Record<string, unknown> = {};
+
+    for (const [key, value] of formData.entries()) {
+      if (!key.startsWith("custom_")) continue;
+      customFields[key.replace(/^custom_/, "")] = parseCustomFieldValue(value);
+    }
+
+    const { data: beforeData, error: beforeError } = await supabase.from("members").select("*").eq("id", id).single();
+    if (beforeError) throw beforeError;
+    const existingCustomFields =
+      beforeData && typeof beforeData === "object" && "custom_fields" in beforeData
+        ? ((beforeData.custom_fields as Record<string, unknown> | null) ?? {})
+        : {};
+    const mergedCustomFields = { ...existingCustomFields, ...customFields };
+
+    const { data: afterData, error } = await supabase
+      .from("members")
+      .update({ custom_fields: mergedCustomFields, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member.custom_fields.update",
+      targetTable: "members",
+      targetId: id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    revalidatePath(`/members/${id}`);
+    return "커스텀 필드를 저장했습니다.";
+  });
+}
+
+export async function createCustomFieldDefinition(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const label = String(formData.get("label") ?? "").trim();
+    const keyInput = String(formData.get("key") ?? "").trim();
+    const parsed = customFieldDefinitionSchema.parse({
+      key: keyInput || label,
+      label,
+      fieldType: formData.get("fieldType"),
+      isSensitive: formData.get("isSensitive"),
+    });
+
+    const { data: inserted, error } = await supabase
+      .from("member_custom_field_definitions")
+      .insert({
+        key: parsed.key,
+        label: parsed.label,
+        field_type: parsed.fieldType,
+        is_sensitive: parsed.isSensitive,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "custom_field.create",
+      targetTable: "member_custom_field_definitions",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "커스텀 필드를 추가했습니다.";
+  });
+}
+
+export async function updateCustomFieldDefinition(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = updateCustomFieldDefinitionSchema.parse({
+      id: formData.get("id"),
+      label: formData.get("label"),
+      fieldType: formData.get("fieldType"),
+      isSensitive: formData.get("isSensitive"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("member_custom_field_definitions")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
+      .from("member_custom_field_definitions")
+      .update({
+        label: parsed.label,
+        field_type: parsed.fieldType,
+        is_sensitive: parsed.isSensitive,
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "custom_field.update",
+      targetTable: "member_custom_field_definitions",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "정보 항목을 수정했습니다.";
+  });
+}
+
+export async function deleteCustomFieldDefinition(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const id = z.string().uuid().parse(formData.get("id"));
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("member_custom_field_definitions")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { error } = await supabase.from("member_custom_field_definitions").delete().eq("id", id);
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "custom_field.delete",
+      targetTable: "member_custom_field_definitions",
+      targetId: id,
+      beforeData: beforeData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "정보 항목을 삭제했습니다.";
   });
 }
 

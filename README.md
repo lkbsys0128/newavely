@@ -17,6 +17,7 @@ src/
   app/
     page.tsx              대시보드 overview
     members/page.tsx      멤버 목록, 상세, 멤버 추가
+    members/[id]/page.tsx 멤버 상세, 커스텀 필드 값 관리
     groups/page.tsx       소그룹 현황
     attendance/page.tsx   출석 체크
     permissions/page.tsx  역할/권한 매트릭스
@@ -118,6 +119,20 @@ attendance_records!attendance_records_member_id_fkey(status)
 - Next.js server actions 내부의 app-level permission check
 
 멤버 추가, 출석 체크 같은 데이터 변경은 `src/app/actions.ts`에서 처리합니다.
+
+## 멤버 상세와 커스텀 필드
+
+멤버 목록에서 `열기`를 누르면 `/members/[id]` 상세 페이지로 이동합니다.
+
+상세 페이지에서 관리하는 정보:
+
+- 기본 정보: 이름, 이메일, 연락처, 소그룹, 역할, 상태, 주소, 세례/등록, 돌봄 메모
+- 커스텀 필드 값: `members.custom_fields` JSONB에 저장
+- 커스텀 필드 정의: `member_custom_field_definitions`에 저장
+
+커스텀 필드 정의는 관리자만 추가할 수 있습니다. 필드 타입은 `text`, `number`, `date`, `boolean`을 사용합니다.
+
+민감 정보로 표시된 필드는 `sensitive:read` 권한이 있는 역할만 볼 수 있습니다.
 
 ## 감사 로그
 

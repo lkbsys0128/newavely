@@ -21,6 +21,7 @@ export const sampleMembers: Member[] = [
     address: "서울시 마포구",
     baptismStatus: "세례",
     notes: "다음 달 소그룹 리더 훈련 참석 예정",
+    customFields: {},
     present: true,
   },
   {
@@ -35,6 +36,7 @@ export const sampleMembers: Member[] = [
     address: "서울시 서대문구",
     baptismStatus: "입교",
     notes: "주중 심방 가능",
+    customFields: {},
     present: true,
   },
   {
@@ -49,6 +51,7 @@ export const sampleMembers: Member[] = [
     address: "경기도 고양시",
     baptismStatus: "세례",
     notes: "찬양팀 섬김",
+    customFields: {},
     present: false,
   },
   {
@@ -63,6 +66,7 @@ export const sampleMembers: Member[] = [
     address: "서울시 은평구",
     baptismStatus: "미확인",
     notes: "최근 3주 결석. 리더가 연락 예정",
+    customFields: {},
     present: false,
   },
   {
@@ -77,6 +81,7 @@ export const sampleMembers: Member[] = [
     address: "서울시 용산구",
     baptismStatus: "세례",
     notes: "전체 운영 담당",
+    customFields: {},
     present: true,
   },
   {
@@ -91,6 +96,7 @@ export const sampleMembers: Member[] = [
     address: "서울시 강서구",
     baptismStatus: "미정",
     notes: "새가족 4주 과정 2주차",
+    customFields: {},
     present: true,
   },
   {
@@ -105,6 +111,7 @@ export const sampleMembers: Member[] = [
     address: "서울시 중구",
     baptismStatus: "세례",
     notes: "소그룹 회계 섬김",
+    customFields: {},
     present: true,
   },
   {
@@ -119,6 +126,7 @@ export const sampleMembers: Member[] = [
     address: "경기도 부천시",
     baptismStatus: "미확인",
     notes: "개인 일정으로 예배 참석 불규칙",
+    customFields: {},
     present: false,
   },
 ];
