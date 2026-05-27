@@ -42,12 +42,21 @@ const updateGroupSchema = groupSchema.extend({
   id: z.string().uuid(),
 });
 
-const customFieldDefinitionSchema = z.object({
-  key: z
+const customFieldKey = z.preprocess(
+  (value) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_"),
+  z
     .string()
-    .min(1)
-    .regex(/^[a-z][a-z0-9_]*$/, "영문 소문자, 숫자, 밑줄만 사용할 수 있습니다."),
-  label: z.string().min(1),
+    .min(1, "키를 입력해주세요.")
+    .regex(/^[\p{L}][\p{L}\p{N}_-]*$/u, "키는 문자로 시작하고 문자, 숫자, 밑줄, 하이픈만 사용할 수 있습니다."),
+);
+
+const customFieldDefinitionSchema = z.object({
+  key: customFieldKey,
+  label: z.string().min(1, "라벨을 입력해주세요."),
   fieldType: z.enum(["text", "number", "date", "boolean"]),
   isSensitive: z.preprocess((value) => value === "on", z.boolean()),
 });
@@ -61,7 +70,7 @@ const initialErrorMessage = "작업 중 오류가 발생했습니다. 잠시 후
 
 function toActionError(error: unknown) {
   if (error instanceof z.ZodError) {
-    return "입력값을 확인해주세요.";
+    return error.issues[0]?.message ?? "입력값을 확인해주세요.";
   }
 
   if (error && typeof error === "object") {
