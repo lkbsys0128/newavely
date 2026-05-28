@@ -36,8 +36,9 @@ type AttendanceStatus = "present" | "absent" | "excused";
 const initialActionState: ActionState = { ok: false, message: "" };
 
 export function DashboardOverview({ user, members, groups }: AppDataProps) {
-  const presentCount = members.filter((member) => member.present).length;
-  const attendanceRate = members.length ? Math.round((presentCount / members.length) * 100) : 0;
+  const activeMembers = members.filter((member) => member.status !== "inactive");
+  const presentCount = activeMembers.filter((member) => member.present).length;
+  const attendanceRate = activeMembers.length ? Math.round((presentCount / activeMembers.length) * 100) : 0;
 
   return (
     <>
@@ -46,14 +47,14 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       <div className="metric-grid">
         <article className="metric-card">
           <span>전체 멤버</span>
-          <strong>{members.length}</strong>
-          <small>목표 규모 200명 기준</small>
+          <strong>{activeMembers.length}</strong>
+          <small>비활성 멤버 제외</small>
         </article>
         <article className="metric-card">
           <span>이번 주 출석</span>
           <strong>{attendanceRate}%</strong>
           <small>
-            {presentCount}/{members.length}명 출석
+            {presentCount}/{activeMembers.length}명 출석
           </small>
         </article>
         <article className="metric-card">
@@ -75,7 +76,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
             <span>새가족, 돌봄 필요, 결석</span>
           </div>
           <div className="care-list">
-            {members
+            {activeMembers
               .filter((member) => member.status !== "active" || !member.present)
               .map((member) => (
                 <article className="care-item" key={member.id}>
@@ -93,7 +94,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
           </div>
         </section>
 
-        <GroupSummaryPanel members={members} groups={groups} />
+        <GroupSummaryPanel members={activeMembers} groups={groups} />
       </div>
     </>
   );
