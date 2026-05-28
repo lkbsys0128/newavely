@@ -21,7 +21,13 @@ import {
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
 import type { AttendanceEvent, AuditLog, Group, Member, MemberLinkRequest } from "@/lib/types";
-import { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers, type MemberFilters } from "@/lib/member-filters";
+import {
+  defaultMemberFilters,
+  filterMembers,
+  findPotentialDuplicateMembers,
+  isMergedPlaceholderMember,
+  type MemberFilters,
+} from "@/lib/member-filters";
 
 type AppDataProps = {
   user: AppUser;
@@ -36,7 +42,7 @@ type AttendanceStatus = "present" | "absent" | "excused";
 const initialActionState: ActionState = { ok: false, message: "" };
 
 export function DashboardOverview({ user, members, groups }: AppDataProps) {
-  const activeMembers = members.filter((member) => member.status !== "inactive");
+  const activeMembers = members.filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member));
   const presentCount = activeMembers.filter((member) => member.present).length;
   const attendanceRate = activeMembers.length ? Math.round((presentCount / activeMembers.length) * 100) : 0;
 
@@ -115,8 +121,13 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     initialActionState,
   );
   const canManageMembers = hasPermission(user.role, "members:write");
-  const visibleMembers = showInactive ? members : members.filter((member) => member.status !== "inactive");
-  const duplicateMemberCandidates = useMemo(() => findPotentialDuplicateMembers(members), [members]);
+  const visibleMembers = (showInactive ? members : members.filter((member) => member.status !== "inactive")).filter(
+    (member) => !isMergedPlaceholderMember(member),
+  );
+  const duplicateMemberCandidates = useMemo(
+    () => findPotentialDuplicateMembers(members.filter((member) => !isMergedPlaceholderMember(member))),
+    [members],
+  );
   const selectedMember =
     visibleMembers.find((member) => member.id === selectedMemberId) ?? visibleMembers[0] ?? members[0];
   const filteredMembers = useMemo(() => {

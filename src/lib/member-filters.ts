@@ -23,10 +23,15 @@ export const defaultMemberFilters: MemberFilters = {
   account: "all",
 };
 
+export function isMergedPlaceholderMember(member: Pick<Member, "email">) {
+  return member.email.trim().toLowerCase().endsWith("@merged.local");
+}
+
 export function filterMembers(members: Member[], filters: MemberFilters) {
   const normalizedQuery = filters.query.trim().toLowerCase();
 
   return members.filter((member) => {
+    if (isMergedPlaceholderMember(member)) return false;
     if (filters.groupId === "unassigned" && member.groupId) return false;
     if (filters.groupId !== "all" && filters.groupId !== "unassigned" && member.groupId !== filters.groupId) {
       return false;

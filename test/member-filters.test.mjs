@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { loadTsModule } from "./load-ts-module.mjs";
 
-const { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers } = loadTsModule("../src/lib/member-filters.ts");
+const { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers, isMergedPlaceholderMember } = loadTsModule(
+  "../src/lib/member-filters.ts",
+);
 
 function member(overrides) {
   return {
@@ -53,6 +55,12 @@ test("filterMembers filters by text, group, role, status, and account connection
       groupName: "미배정",
       status: "inactive",
     }),
+    member({
+      id: "merged",
+      name: "병합잔여",
+      email: "merged-id@merged.local",
+      status: "inactive",
+    }),
   ];
 
   assert.deepEqual(
@@ -69,6 +77,7 @@ test("filterMembers filters by text, group, role, status, and account connection
     filterMembers(members, { ...defaultMemberFilters, groupId: "unassigned", status: "inactive" }).map((item) => item.id),
     ["c"],
   );
+  assert.equal(isMergedPlaceholderMember(members[3]), true);
 });
 
 test("findPotentialDuplicateMembers returns actionable login/import duplicate candidates", () => {
