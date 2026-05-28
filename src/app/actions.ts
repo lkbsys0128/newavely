@@ -765,6 +765,65 @@ export async function rejectMemberLinkRequest(_previousState: ActionState, formD
   });
 }
 
+export async function reopenMemberLinkRequest(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = memberLinkRequestDecisionSchema.parse({ id: formData.get("id") });
+
+    const { data: existingRequest, error: existingRequestError } = await supabase
+      .from("member_link_requests")
+      .select("*")
+      .eq("id", parsed.id)
+      .maybeSingle();
+
+    if (existingRequestError) throw existingRequestError;
+    if (!existingRequest) throw new Error("찾을 수 없는 요청입니다.");
+    if (existingRequest.status === "pending") return "이미 다시 검토 중인 요청입니다.";
+    if (existingRequest.status === "approved") throw new Error("이미 승인된 요청은 다시 검토로 돌릴 수 없습니다.");
+
+    const { count: existingPendingCount, error: existingPendingError } = await supabase
+      .from("member_link_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("requester_member_id", existingRequest.requester_member_id)
+      .eq("status", "pending")
+      .neq("id", parsed.id);
+
+    if (existingPendingError) throw existingPendingError;
+    if ((existingPendingCount ?? 0) > 0) {
+      throw new Error("이 사용자는 이미 다른 교적 연결 요청이 대기 중입니다.");
+    }
+
+    const reopenedPayload = {
+      status: "pending",
+      resolved_at: null,
+      resolved_by_member_id: null,
+    };
+    const { count: reopenedCount, error } = await supabase
+      .from("member_link_requests")
+      .update(reopenedPayload, { count: "exact" })
+      .eq("id", parsed.id)
+      .eq("status", "rejected");
+
+    if (error) throw error;
+    if (reopenedCount === 0) throw new Error("이미 처리되었거나 찾을 수 없는 요청입니다.");
+
+    await writeAuditLog({
+      supabase,
+      action: "member_link_request.reopen",
+      targetTable: "member_link_requests",
+      targetId: parsed.id,
+      beforeData: existingRequest as Record<string, unknown>,
+      afterData: {
+        id: parsed.id,
+        ...reopenedPayload,
+        reopened_by_member_id: currentMember.id,
+      },
+    });
+    revalidateAppData();
+    return "거절된 교적 연결 요청을 다시 검토 상태로 돌렸습니다.";
+  });
+}
+
 export async function updateMemberRole(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase } = await getAuthorizedCurrentMember("roles:manage");

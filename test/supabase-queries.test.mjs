@@ -73,7 +73,10 @@ test("link request decisions support rejection and new member creation", () => {
   assert.match(actionsSource, /요청이 이미 정리되었습니다/);
   assert.match(actionsSource, /교적 연결 요청이 거절되었습니다/);
   assert.match(actionsSource, /member\.create_for_link_request/);
+  assert.match(actionsSource, /member_link_request\.reopen/);
   assert.match(dashboardSource, /새 교적 생성 후 연결/);
+  assert.match(dashboardSource, /거절된 요청 다시 검토/);
+  assert.match(dashboardSource, /reopenMemberLinkRequest/);
   assert.match(memberDetailSource, /rejectedLinkRequest/);
   assert.match(memberLinkAdminPolicySource, /admins can update link requests/);
 });

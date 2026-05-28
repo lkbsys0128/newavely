@@ -10,6 +10,7 @@ import {
   deactivateMember,
   approveMemberLinkRequest,
   rejectMemberLinkRequest,
+  reopenMemberLinkRequest,
   reactivateMember,
   toggleAttendance,
   updateAttendanceReason,
@@ -1098,8 +1099,12 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
   const [roleState, roleAction, isUpdatingRole] = useActionState(updateMemberRole, initialActionState);
   const [approveState, approveAction, isApprovingRequest] = useActionState(approveMemberLinkRequest, initialActionState);
   const [rejectState, rejectAction, isRejectingRequest] = useActionState(rejectMemberLinkRequest, initialActionState);
+  const [reopenState, reopenAction, isReopeningRequest] = useActionState(reopenMemberLinkRequest, initialActionState);
   const canManageRoles = hasPermission(user.role, "roles:manage");
   const pendingLinkRequests = memberLinkRequests.filter(isActionableLinkRequest);
+  const rejectedLinkRequests = memberLinkRequests
+    .filter((request) => request.status === "rejected" && request.requesterStatus !== "inactive")
+    .slice(0, 10);
   const activeAdmins = members.filter((member) => member.role === "admin" && member.status !== "inactive");
   const connectedAdmins = activeAdmins.filter((member) => member.authUserId);
   const unlinkedActiveMembers = members
@@ -1284,6 +1289,41 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </div>
         <ActionMessage state={approveState} />
         <ActionMessage state={rejectState} />
+        {rejectedLinkRequests.length > 0 ? (
+          <div className="review-queue">
+            <div className="panel-heading compact-heading">
+              <div>
+                <h3>거절된 요청 다시 검토</h3>
+                <p className="meta">실수로 거절했거나 추가 확인이 끝난 요청은 다시 대기 상태로 돌릴 수 있습니다.</p>
+              </div>
+              <span>{rejectedLinkRequests.length}건</span>
+            </div>
+            <div className="role-management-list">
+              {rejectedLinkRequests.map((request) => (
+                <article className="definition-row rejected-review-row" key={request.id}>
+                  <div className="person-block">
+                    <strong>{request.requesterName}</strong>
+                    <span>
+                      {request.requesterEmail || "이메일 없음"} · 거절일{" "}
+                      {request.resolvedAt ? new Date(request.resolvedAt).toLocaleString("ko-KR") : "기록 없음"}
+                    </span>
+                    <span>
+                      연결 대상 · {request.targetName}
+                      {request.note ? ` · 메모: ${request.note}` : ""}
+                    </span>
+                  </div>
+                  <form action={reopenAction}>
+                    <input name="id" type="hidden" value={request.id} />
+                    <button className="secondary-button" type="submit" disabled={!canManageRoles || isReopeningRequest}>
+                      다시 검토
+                    </button>
+                  </form>
+                </article>
+              ))}
+            </div>
+            <ActionMessage state={reopenState} />
+          </div>
+        ) : null}
       </section>
 
       <section className="panel form-panel" id="role-management">
