@@ -190,6 +190,7 @@ function parseCustomFieldValue(value: FormDataEntryValue | null) {
 
 function revalidateAppData() {
   revalidatePath("/");
+  revalidatePath("/profile");
   revalidatePath("/members");
   revalidatePath("/groups");
   revalidatePath("/attendance");

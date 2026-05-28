@@ -1039,9 +1039,16 @@ export function PermissionsPageContent({ user, members }: AppDataProps) {
   const canManageRoles = hasPermission(user.role, "roles:manage");
   const activeAdmins = members.filter((member) => member.role === "admin" && member.status !== "inactive");
   const connectedAdmins = activeAdmins.filter((member) => member.authUserId);
+  const linkedAccountMembers = members
+    .filter((member) => member.authUserId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const unlinkedActiveMembers = members
+    .filter((member) => !member.authUserId && member.status !== "inactive")
+    .sort((a, b) => a.name.localeCompare(b.name));
   const roleManagedMembers = [...members]
     .filter((member) => member.status !== "inactive")
     .sort((a, b) => roleOrder[a.role] - roleOrder[b.role] || a.name.localeCompare(b.name));
+  const [manualLinkState, manualLinkAction, isLinkingAccount] = useActionState(mergeMemberAccount, initialActionState);
 
   return (
     <>
@@ -1125,6 +1132,51 @@ export function PermissionsPageContent({ user, members }: AppDataProps) {
           ))}
         </div>
         <ActionMessage state={roleState} />
+      </section>
+
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Google 계정 수동 연결</h2>
+            <p className="meta">예: Joo Lim 로그인 계정을 임주환 교적 멤버에 연결</p>
+          </div>
+          <span>{canManageRoles ? "관리자 전용" : "관리자 권한 필요"}</span>
+        </div>
+        <form action={manualLinkAction} className="member-form account-link-form">
+          <label>
+            Google 계정이 붙어있는 멤버
+            <select name="duplicateMemberId" disabled={!canManageRoles || linkedAccountMembers.length === 0}>
+              {linkedAccountMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} · {member.email || "이메일 없음"} · {roleLabels[member.role]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            실제 교적 멤버
+            <select name="targetMemberId" disabled={!canManageRoles || unlinkedActiveMembers.length === 0}>
+              {unlinkedActiveMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} · {member.groupName} · {member.email || "이메일 없음"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="form-actions">
+            <ActionMessage state={manualLinkState} />
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={!canManageRoles || isLinkingAccount || linkedAccountMembers.length === 0 || unlinkedActiveMembers.length === 0}
+            >
+              계정 연결
+            </button>
+          </div>
+        </form>
+        <p className="meta">
+          연결하면 Google 계정은 실제 교적 멤버로 이동하고, 원래 로그인으로 생긴 중복 멤버는 비활성화됩니다.
+        </p>
       </section>
 
       <section className="panel">

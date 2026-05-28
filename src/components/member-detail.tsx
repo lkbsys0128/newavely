@@ -24,17 +24,26 @@ export function MemberDetailPageContent({
   groups,
   members,
   customFieldDefinitions,
+  eyebrow = "멤버 상세",
+  backHref = "/members",
+  backLabel = "목록",
 }: {
   user: AppUser;
   member: Member;
   groups: Group[];
   members: Member[];
   customFieldDefinitions: CustomFieldDefinition[];
+  eyebrow?: string;
+  backHref?: string;
+  backLabel?: string;
 }) {
   const canManageMembers = hasPermission(user.role, "members:write");
   const canManageDefinitions = hasPermission(user.role, "roles:manage");
   const assignableMembers = members.filter((item) => item.status !== "inactive");
-  const currentMemberId = assignableMembers.find((item) => item.email === user.email)?.id ?? "";
+  const currentMemberId =
+    assignableMembers.find((item) => item.authUserId === user.id)?.id ??
+    assignableMembers.find((item) => item.email === user.email)?.id ??
+    "";
   const [profileState, profileAction, isSavingProfile] = useActionState(updateMember, initialActionState);
   const [customFieldsState, customFieldsAction, isSavingCustomFields] = useActionState(
     updateMemberCustomFields,
@@ -65,15 +74,15 @@ export function MemberDetailPageContent({
     <>
       <header className="topbar">
         <div>
-          <p className="eyebrow">멤버 상세</p>
+          <p className="eyebrow">{eyebrow}</p>
           <h1>{member.name}</h1>
           <p className="meta">
             {member.groupName} · {statusLabels[member.status]}
           </p>
         </div>
         <div className="topbar-actions">
-          <Link className="secondary-button" href="/members">
-            목록
+          <Link className="secondary-button" href={backHref}>
+            {backLabel}
           </Link>
         </div>
       </header>

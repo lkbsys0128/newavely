@@ -28,6 +28,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 
             <nav className="nav-list" aria-label="앱 섹션">
               <Link href="/">대시보드</Link>
+              <Link href="/profile">내 프로필</Link>
               <Link href="/members">멤버</Link>
               <Link href="/groups">소그룹</Link>
               <Link href="/attendance">출석</Link>

@@ -722,6 +722,10 @@ tbody tr:hover {
   grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
 }
 
+.account-link-form {
+  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr) auto;
+}
+
 .management-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1121,6 +1125,7 @@ tbody tr:hover {
   .member-form,
   .compact-form,
   .group-create-form,
+  .account-link-form,
   .management-form,
   .filter-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1154,6 +1159,7 @@ tbody tr:hover {
   .member-form,
   .compact-form,
   .group-create-form,
+  .account-link-form,
   .management-form,
   .filter-grid,
   .role-management-row {
