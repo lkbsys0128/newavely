@@ -32,10 +32,14 @@ const updateMemberSchema = memberSchema.extend({
   id: z.string().uuid(),
 });
 
+const mergeMemberAccountSchema = z.object({
+  targetMemberId: z.string().uuid(),
+  duplicateMemberId: z.string().uuid(),
+});
+
 const groupSchema = z.object({
   name: z.string().min(1),
   leaderMemberId: nullableUuid,
-  targetSize: z.coerce.number().int().min(1).max(500),
 });
 
 const updateGroupSchema = groupSchema.extend({
@@ -90,6 +94,17 @@ const updateCustomFieldDefinitionSchema = z.object({
   label: z.string().min(1, "항목 이름을 입력해주세요."),
   fieldType: z.enum(["text", "number", "date", "boolean"]),
   isSensitive: z.preprocess((value) => value === "on", z.boolean()),
+});
+
+const careFollowupSchema = z.object({
+  memberId: z.string().uuid(),
+  assignedToMemberId: nullableUuid,
+  status: z.enum(["needed", "contacted", "prayer", "resolved"]),
+  note: z.string().min(1, "팔로업 메모를 입력해주세요."),
+});
+
+const updateCareFollowupSchema = careFollowupSchema.extend({
+  id: z.string().uuid(),
 });
 
 export type ActionState = {
@@ -205,6 +220,23 @@ async function writeAuditLog({
   if (error) throw error;
 }
 
+const rolePriority: Record<"admin" | "leader" | "staff" | "member", number> = {
+  admin: 4,
+  leader: 3,
+  staff: 2,
+  member: 1,
+};
+
+function higherRole(a: "admin" | "leader" | "staff" | "member", b: "admin" | "leader" | "staff" | "member") {
+  return rolePriority[a] >= rolePriority[b] ? a : b;
+}
+
+function appendMergeNote(currentNote: unknown, targetName: unknown) {
+  const base = typeof currentNote === "string" ? currentNote.trim() : "";
+  const mergeNote = `중복 계정 병합됨: ${String(targetName ?? "기존 멤버")}에 Google 계정 연결`;
+  return base ? `${base}\n${mergeNote}` : mergeNote;
+}
+
 export async function createMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase } = await getAuthorizedCurrentMember("members:write");
@@ -302,6 +334,101 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     });
     revalidateAppData();
     return "멤버 정보를 저장했습니다.";
+  });
+}
+
+export async function mergeMemberAccount(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const parsed = mergeMemberAccountSchema.parse({
+      targetMemberId: formData.get("targetMemberId"),
+      duplicateMemberId: formData.get("duplicateMemberId"),
+    });
+
+    if (parsed.targetMemberId === parsed.duplicateMemberId) {
+      throw new Error("서로 다른 멤버를 선택해주세요.");
+    }
+
+    const { data: rows, error: rowsError } = await supabase
+      .from("members")
+      .select("*")
+      .in("id", [parsed.targetMemberId, parsed.duplicateMemberId]);
+
+    if (rowsError) throw rowsError;
+
+    const members = (rows ?? []) as Array<Record<string, unknown>>;
+    const targetMember = members.find((member) => member.id === parsed.targetMemberId);
+    const duplicateMember = members.find((member) => member.id === parsed.duplicateMemberId);
+
+    if (!targetMember || !duplicateMember) throw new Error("멤버 정보를 찾을 수 없습니다.");
+    if (targetMember.auth_user_id) throw new Error("기존 멤버에 이미 Google 계정이 연결되어 있습니다.");
+    if (!duplicateMember.auth_user_id) throw new Error("연결할 Google 계정이 있는 중복 멤버를 선택해주세요.");
+
+    const now = new Date().toISOString();
+    const duplicateAuthUserId = String(duplicateMember.auth_user_id);
+    const targetRole = higherRole(
+      String(targetMember.role ?? "member") as "admin" | "leader" | "staff" | "member",
+      String(duplicateMember.role ?? "member") as "admin" | "leader" | "staff" | "member",
+    );
+
+    const { data: deactivatedDuplicate, error: duplicateError } = await supabase
+      .from("members")
+      .update({
+        auth_user_id: null,
+        status: "inactive",
+        care_notes: appendMergeNote(duplicateMember.care_notes, targetMember.name),
+        updated_at: now,
+      })
+      .eq("id", parsed.duplicateMemberId)
+      .select("*")
+      .single();
+
+    if (duplicateError) throw duplicateError;
+
+    const { data: updatedTarget, error: targetError } = await supabase
+      .from("members")
+      .update({
+        auth_user_id: duplicateAuthUserId,
+        role: targetRole,
+        updated_at: now,
+      })
+      .eq("id", parsed.targetMemberId)
+      .is("auth_user_id", null)
+      .select("*")
+      .single();
+
+    if (targetError) {
+      await supabase
+        .from("members")
+        .update({
+          auth_user_id: duplicateAuthUserId,
+          status: duplicateMember.status,
+          care_notes: duplicateMember.care_notes,
+          updated_at: now,
+        })
+        .eq("id", parsed.duplicateMemberId);
+      throw targetError;
+    }
+
+    await writeAuditLog({
+      supabase,
+      action: "member.account_merge",
+      targetTable: "members",
+      targetId: parsed.targetMemberId,
+      beforeData: {
+        targetMember,
+        duplicateMember,
+      },
+      afterData: {
+        targetMember: updatedTarget as Record<string, unknown>,
+        duplicateMember: deactivatedDuplicate as Record<string, unknown>,
+      },
+      metadata: {
+        duplicateMemberId: parsed.duplicateMemberId,
+      },
+    });
+    revalidateAppData();
+    return "Google 계정을 기존 멤버에 연결하고 중복 멤버를 비활성화했습니다.";
   });
 }
 
@@ -548,7 +675,6 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
     const parsed = groupSchema.parse({
       name: formData.get("name"),
       leaderMemberId: formData.get("leaderMemberId"),
-      targetSize: formData.get("targetSize"),
     });
 
     const { data: inserted, error } = await supabase
@@ -556,7 +682,6 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
       .insert({
         name: parsed.name,
         leader_member_id: parsed.leaderMemberId,
-        target_size: parsed.targetSize,
       })
       .select("*")
       .single();
@@ -581,7 +706,6 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
       id: formData.get("id"),
       name: formData.get("name"),
       leaderMemberId: formData.get("leaderMemberId"),
-      targetSize: formData.get("targetSize"),
     });
 
     const { data: beforeData, error: beforeError } = await supabase
@@ -597,7 +721,6 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
       .update({
         name: parsed.name,
         leader_member_id: parsed.leaderMemberId,
-        target_size: parsed.targetSize,
         updated_at: new Date().toISOString(),
       })
       .eq("id", parsed.id)
@@ -630,16 +753,27 @@ export async function toggleAttendance(memberId: string, eventId: string, nextPr
 
   if (beforeError) throw beforeError;
 
+  const existingReason = beforeData as
+    | {
+        note?: string | null;
+        excuse_start_date?: string | null;
+        excuse_end_date?: string | null;
+      }
+    | null;
+  const hasExistingReason = Boolean(
+    existingReason?.note || existingReason?.excuse_start_date || existingReason?.excuse_end_date,
+  );
+
   const { data: afterData, error } = await supabase
     .from("attendance_records")
     .upsert(
       {
         event_id: eventId,
         member_id: memberId,
-        status: nextPresent ? "present" : "absent",
-        note: null,
-        excuse_start_date: null,
-        excuse_end_date: null,
+        status: nextPresent ? "present" : hasExistingReason ? "excused" : "absent",
+        note: existingReason?.note ?? null,
+        excuse_start_date: existingReason?.excuse_start_date ?? null,
+        excuse_end_date: existingReason?.excuse_end_date ?? null,
         checked_by_member_id: currentMember.id,
         checked_at: new Date().toISOString(),
       },
@@ -726,5 +860,92 @@ export async function updateAttendanceReason(_previousState: ActionState, formDa
     });
     revalidateAppData();
     return `${targetEventIds.length}개 이벤트에 출석 사유를 저장했습니다.`;
+  });
+}
+
+export async function createCareFollowup(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
+    const parsed = careFollowupSchema.parse({
+      memberId: formData.get("memberId"),
+      assignedToMemberId: formData.get("assignedToMemberId"),
+      status: formData.get("status"),
+      note: formData.get("note"),
+    });
+
+    const { data: inserted, error } = await supabase
+      .from("care_followups")
+      .insert({
+        member_id: parsed.memberId,
+        assigned_to_member_id: parsed.assignedToMemberId,
+        status: parsed.status,
+        note: parsed.note,
+        created_by_member_id: currentMember.id,
+        completed_at: parsed.status === "resolved" ? new Date().toISOString() : null,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "care_followup.create",
+      targetTable: "care_followups",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+      metadata: { memberId: parsed.memberId },
+    });
+    revalidateAppData();
+    revalidatePath(`/members/${parsed.memberId}`);
+    return "돌봄 팔로업을 추가했습니다.";
+  });
+}
+
+export async function updateCareFollowup(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const parsed = updateCareFollowupSchema.parse({
+      id: formData.get("id"),
+      memberId: formData.get("memberId"),
+      assignedToMemberId: formData.get("assignedToMemberId"),
+      status: formData.get("status"),
+      note: formData.get("note"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("care_followups")
+      .select("*")
+      .eq("id", parsed.id)
+      .eq("member_id", parsed.memberId)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
+      .from("care_followups")
+      .update({
+        assigned_to_member_id: parsed.assignedToMemberId,
+        status: parsed.status,
+        note: parsed.note,
+        completed_at: parsed.status === "resolved" ? new Date().toISOString() : null,
+      })
+      .eq("id", parsed.id)
+      .eq("member_id", parsed.memberId)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "care_followup.update",
+      targetTable: "care_followups",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+      metadata: { memberId: parsed.memberId },
+    });
+    revalidateAppData();
+    revalidatePath(`/members/${parsed.memberId}`);
+    return "돌봄 팔로업을 저장했습니다.";
   });
 }

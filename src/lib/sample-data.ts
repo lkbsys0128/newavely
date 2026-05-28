@@ -1,15 +1,16 @@
 import type { Group, Member } from "@/lib/types";
 
 export const sampleGroups: Group[] = [
-  { id: "g-faith-1", name: "믿음 1", leaderMemberId: "m-2", leaderName: "박서준", targetSize: 12 },
-  { id: "g-hope-2", name: "소망 2", leaderMemberId: "m-3", leaderName: "이예린", targetSize: 10 },
-  { id: "g-love-3", name: "사랑 3", leaderMemberId: "m-4", leaderName: "최도윤", targetSize: 12 },
-  { id: "g-young-a", name: "청년부 A", leaderMemberId: "m-5", leaderName: "정민재", targetSize: 14 },
-  { id: "g-new", name: "새가족", leaderMemberId: "m-6", leaderName: "한지우", targetSize: 8 },
+  { id: "g-faith-1", name: "믿음 1", leaderMemberId: "m-2", leaderName: "박서준" },
+  { id: "g-hope-2", name: "소망 2", leaderMemberId: "m-3", leaderName: "이예린" },
+  { id: "g-love-3", name: "사랑 3", leaderMemberId: "m-4", leaderName: "최도윤" },
+  { id: "g-young-a", name: "청년부 A", leaderMemberId: "m-5", leaderName: "정민재" },
+  { id: "g-new", name: "새가족", leaderMemberId: "m-6", leaderName: "한지우" },
 ];
 
 export const sampleMembers: Member[] = [
   {
+    authUserId: null,
     id: "m-1",
     name: "김하은",
     phone: "010-2145-7301",
@@ -24,8 +25,10 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-2",
     name: "박서준",
     phone: "010-7712-1185",
@@ -40,8 +43,10 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-3",
     name: "이예린",
     phone: "010-9038-4521",
@@ -56,8 +61,10 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: false,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-4",
     name: "최도윤",
     phone: "010-5820-3904",
@@ -72,8 +79,10 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: false,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-5",
     name: "정민재",
     phone: "010-4482-9300",
@@ -88,8 +97,10 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-6",
     name: "한지우",
     phone: "010-6304-8712",
@@ -104,8 +115,10 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-7",
     name: "윤서아",
     phone: "010-3290-7744",
@@ -120,8 +133,10 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: true,
     attendanceHistory: [],
+    careFollowups: [],
   },
   {
+    authUserId: null,
     id: "m-8",
     name: "오준호",
     phone: "010-8122-6509",
@@ -136,5 +151,6 @@ export const sampleMembers: Member[] = [
     customFields: {},
     present: false,
     attendanceHistory: [],
+    careFollowups: [],
   },
 ];

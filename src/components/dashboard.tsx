@@ -7,6 +7,7 @@ import {
   createGroup,
   createMember,
   deactivateMember,
+  mergeMemberAccount,
   reactivateMember,
   toggleAttendance,
   updateAttendanceReason,
@@ -107,8 +108,10 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     reactivateMember,
     initialActionState,
   );
+  const [mergeMemberState, mergeMemberAction, isMergingMember] = useActionState(mergeMemberAccount, initialActionState);
   const canManageMembers = hasPermission(user.role, "members:write");
   const visibleMembers = showInactive ? members : members.filter((member) => member.status !== "inactive");
+  const duplicateMemberCandidates = useMemo(() => findPotentialDuplicateMembers(members), [members]);
   const selectedMember =
     visibleMembers.find((member) => member.id === selectedMemberId) ?? visibleMembers[0] ?? members[0];
   const filteredMembers = useMemo(() => {
@@ -158,6 +161,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   <th>소그룹</th>
                   <th>역할</th>
                   <th>상태</th>
+                  <th>계정</th>
                   <th>연락처</th>
                   <th>상세</th>
                 </tr>
@@ -176,6 +180,11 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                     <td>
                       <span className={`status-pill ${member.status === "active" ? "active" : ""}`}>
                         {statusLabels[member.status]}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`account-pill ${member.authUserId ? "connected" : ""}`}>
+                        {member.authUserId ? "Google 연결" : "미연결"}
                       </span>
                     </td>
                     <td>{member.phone}</td>
@@ -288,6 +297,74 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
 
       <section className="panel form-panel">
         <div className="panel-heading">
+          <h2>중복/계정 연결 확인</h2>
+          <span>{duplicateMemberCandidates.length}건 후보</span>
+        </div>
+        <div className="duplicate-list">
+          {duplicateMemberCandidates.map((candidate) => {
+            const linkedMember = candidate.members.find((member) => member.authUserId);
+            const unlinkedMembers = candidate.members.filter((member) => !member.authUserId && member.status !== "inactive");
+            return (
+              <article className="duplicate-card" key={candidate.key}>
+                <div className="panel-heading compact-heading">
+                  <div>
+                    <h3>{candidate.reasonLabel}</h3>
+                    <p className="meta">같은 사람일 가능성이 있는 멤버를 확인한 뒤 연결해주세요.</p>
+                  </div>
+                  <span>{candidate.members.length}명</span>
+                </div>
+                <div className="duplicate-member-list">
+                  {candidate.members.map((member) => (
+                    <div className="detail-row" key={member.id}>
+                      <div className="person-block">
+                        <strong>{member.name}</strong>
+                        <span>
+                          {member.groupName} · {member.email || "이메일 없음"} · {member.phone}
+                        </span>
+                      </div>
+                      <div className="row-actions">
+                        <span className={`status-pill ${member.status === "active" ? "active" : ""}`}>
+                          {statusLabels[member.status]}
+                        </span>
+                        <span className={`account-pill ${member.authUserId ? "connected" : ""}`}>
+                          {member.authUserId ? "Google 연결" : "미연결"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {linkedMember && unlinkedMembers.length > 0 ? (
+                  <div className="merge-action-list">
+                    {unlinkedMembers.map((targetMember) => (
+                      <form action={mergeMemberAction} className="single-action-form compact-action-form" key={targetMember.id}>
+                        <input name="targetMemberId" type="hidden" value={targetMember.id} />
+                        <input name="duplicateMemberId" type="hidden" value={linkedMember.id} />
+                        <ActionMessage state={mergeMemberState} />
+                        <button className="primary-button" type="submit" disabled={!canManageMembers || isMergingMember}>
+                          {targetMember.name}에 Google 계정 연결
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="meta">자동 연결 가능한 조합은 없습니다. 이름/연락처를 확인해 수동으로 정리해주세요.</p>
+                )}
+              </article>
+            );
+          })}
+          {duplicateMemberCandidates.length === 0 ? (
+            <article className="care-item">
+              <div className="person-block">
+                <strong>확인할 중복 후보가 없습니다</strong>
+                <span>같은 이름이나 연락처로 겹치는 멤버가 생기면 여기에 표시됩니다.</span>
+              </div>
+            </article>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="panel form-panel">
+        <div className="panel-heading">
           <h2>멤버 추가</h2>
           <span>{canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}</span>
         </div>
@@ -361,19 +438,46 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
   const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
   const [updateGroupState, updateGroupAction, isUpdatingGroup] = useActionState(updateGroup, initialActionState);
+  const activeMembers = members.filter((member) => member.status !== "inactive");
+  const unassignedMembers = activeMembers.filter((member) => !member.groupId);
+  const totalPresent = activeMembers.filter((member) => member.present).length;
+  const totalAttendanceRate = activeMembers.length ? Math.round((totalPresent / activeMembers.length) * 100) : 0;
 
   return (
     <>
       <PageHeader eyebrow="소그룹 관리" title="소그룹" user={user} />
+      <div className="metric-grid">
+        <article className="metric-card">
+          <span>전체 활동 멤버</span>
+          <strong>{activeMembers.length}</strong>
+          <small>비활성 멤버 제외</small>
+        </article>
+        <article className="metric-card">
+          <span>소그룹</span>
+          <strong>{groups.length}</strong>
+          <small>현재 등록된 순</small>
+        </article>
+        <article className="metric-card">
+          <span>미배정</span>
+          <strong>{unassignedMembers.length}</strong>
+          <small>소그룹 배정 필요</small>
+        </article>
+        <article className="metric-card">
+          <span>최근 출석률</span>
+          <strong>{totalAttendanceRate}%</strong>
+          <small>{totalPresent}명 출석</small>
+        </article>
+      </div>
+
       <section className="panel form-panel">
         <div className="panel-heading">
           <h2>소그룹 추가</h2>
-          <span>{canManageGroups ? "이름, 리더, 목표 인원 설정" : "관리자 권한 필요"}</span>
+          <span>{canManageGroups ? "이름과 리더를 지정" : "관리자 권한 필요"}</span>
         </div>
-        <form action={createGroupAction} className="member-form compact-form">
+        <form action={createGroupAction} className="member-form group-create-form">
           <label>
             소그룹 이름
-            <input name="name" required placeholder="예: 믿음 1그룹" disabled={!canManageGroups} />
+            <input name="name" required placeholder="예: 은미 순" disabled={!canManageGroups} />
           </label>
           <label>
             리더
@@ -386,11 +490,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
               ))}
             </select>
           </label>
-          <label>
-            목표 인원
-            <input name="targetSize" type="number" min="1" max="500" defaultValue="12" disabled={!canManageGroups} />
-          </label>
-          <div className="form-actions full-width">
+          <div className="form-actions">
             <ActionMessage state={createGroupState} />
             <button className="primary-button" type="submit" disabled={!canManageGroups || isCreatingGroup}>
               추가
@@ -401,8 +501,14 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
 
       <section className="group-grid">
         {groups.map((group) => {
-          const groupMembers = members.filter((member) => member.groupName === group.name);
-          const fill = group.targetSize ? Math.min(Math.round((groupMembers.length / group.targetSize) * 100), 100) : 0;
+          const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
+          const present = groupMembers.filter((member) => member.present).length;
+          const rate = groupMembers.length ? Math.round((present / groupMembers.length) * 100) : 0;
+          const careCount = groupMembers.filter(
+            (member) =>
+              member.status === "care" ||
+              member.careFollowups.some((followup) => followup.status !== "resolved"),
+          ).length;
           return (
             <article className="group-card" key={group.id}>
               <header>
@@ -412,11 +518,31 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                 </div>
                 <span className="role-pill">{groupMembers.length}명</span>
               </header>
-              <div>
-                <div className="progress" aria-label={`${group.name} 목표 인원 대비 ${fill}%`}>
-                  <span style={{ width: `${fill}%` }} />
+              <div className="group-card-stats">
+                <div>
+                  <strong>{rate}%</strong>
+                  <span>출석률</span>
                 </div>
-                <p className="meta">목표 {group.targetSize}명</p>
+                <div>
+                  <strong>{present}</strong>
+                  <span>출석</span>
+                </div>
+                <div>
+                  <strong>{careCount}</strong>
+                  <span>돌봄</span>
+                </div>
+              </div>
+              <div className="progress" aria-label={`${group.name} 출석률 ${rate}%`}>
+                <span style={{ width: `${rate}%` }} />
+              </div>
+              <div className="group-member-list">
+                {groupMembers.slice(0, 6).map((member) => (
+                  <Link className="member-chip" href={`/members/${member.id}`} key={member.id}>
+                    {member.name}
+                  </Link>
+                ))}
+                {groupMembers.length > 6 ? <span className="member-chip muted">+{groupMembers.length - 6}</span> : null}
+                {groupMembers.length === 0 ? <span className="meta">배정된 멤버가 없습니다</span> : null}
               </div>
               <form action={updateGroupAction} className="management-form group-edit-form">
                 <input name="id" type="hidden" value={group.id} />
@@ -435,17 +561,6 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                     ))}
                   </select>
                 </label>
-                <label>
-                  목표 인원
-                  <input
-                    name="targetSize"
-                    type="number"
-                    min="1"
-                    max="500"
-                    defaultValue={group.targetSize}
-                    disabled={!canManageGroups}
-                  />
-                </label>
                 <ActionMessage state={updateGroupState} />
                 <button className="secondary-button" type="submit" disabled={!canManageGroups || isUpdatingGroup}>
                   저장
@@ -455,9 +570,21 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
           );
         })}
       </section>
-      <div className="section-spacer">
-        <GroupSummaryPanel members={members} groups={groups} />
-      </div>
+      {unassignedMembers.length > 0 ? (
+        <section className="panel section-spacer">
+          <div className="panel-heading">
+            <h2>미배정 멤버</h2>
+            <span>{unassignedMembers.length}명</span>
+          </div>
+          <div className="group-member-list">
+            {unassignedMembers.map((member) => (
+              <Link className="member-chip" href={`/members/${member.id}`} key={member.id}>
+                {member.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }
@@ -678,7 +805,12 @@ export function AttendanceManager({
                   <strong>{member.name}</strong>
                   <span>{member.groupName}</span>
                 </div>
-                <span className="status-pill">{streak}회 연속</span>
+                <div className="row-actions">
+                  <span className="status-pill">{streak}회 연속</span>
+                  <Link className="secondary-button table-action" href={`/members/${member.id}`}>
+                    팔로업
+                  </Link>
+                </div>
               </div>
             ))}
             {absenceWatchList.length === 0 ? (
@@ -832,6 +964,50 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
   return "absent";
 }
 
+type DuplicateMemberCandidate = {
+  key: string;
+  reasonLabel: string;
+  members: Member[];
+};
+
+function findPotentialDuplicateMembers(members: Member[]): DuplicateMemberCandidate[] {
+  const candidates = new Map<string, DuplicateMemberCandidate>();
+
+  function addCandidate(key: string, reasonLabel: string, candidateMembers: Member[]) {
+    const actionableMembers = candidateMembers.filter((member) => member.status !== "inactive" || member.authUserId);
+    const hasLinked = actionableMembers.some((member) => member.authUserId);
+    const hasUnlinkedActive = actionableMembers.some((member) => !member.authUserId && member.status !== "inactive");
+
+    if (actionableMembers.length < 2 || !hasLinked || !hasUnlinkedActive) return;
+    candidates.set(key, { key, reasonLabel, members: actionableMembers });
+  }
+
+  const byPhone = new Map<string, Member[]>();
+  const byName = new Map<string, Member[]>();
+
+  for (const member of members) {
+    const phoneKey = member.phone.replace(/\D/g, "");
+    if (phoneKey.length >= 7) {
+      byPhone.set(phoneKey, [...(byPhone.get(phoneKey) ?? []), member]);
+    }
+
+    const nameKey = member.name.replace(/\s+/g, "").toLowerCase();
+    if (nameKey.length >= 2) {
+      byName.set(nameKey, [...(byName.get(nameKey) ?? []), member]);
+    }
+  }
+
+  for (const [phone, candidateMembers] of byPhone.entries()) {
+    addCandidate(`phone:${phone}`, `연락처 중복 ${candidateMembers[0]?.phone ?? ""}`, candidateMembers);
+  }
+
+  for (const [name, candidateMembers] of byName.entries()) {
+    addCandidate(`name:${name}`, `이름 중복 ${candidateMembers[0]?.name ?? ""}`, candidateMembers);
+  }
+
+  return [...candidates.values()].sort((a, b) => a.reasonLabel.localeCompare(b.reasonLabel));
+}
+
 export function PermissionsPageContent({ user, members }: AppDataProps) {
   return (
     <>
@@ -968,7 +1144,7 @@ function GroupSummaryPanel({ members, groups }: { members: Member[]; groups: Gro
               <div className="person-block">
                 <strong>{group.name}</strong>
                 <span>
-                  리더 {group.leaderName} · {groupMembers.length}/{group.targetSize}명
+                  리더 {group.leaderName} · {groupMembers.length}명
                 </span>
               </div>
               <span className={`attendance-pill ${rate >= 70 ? "present" : ""}`}>{rate}%</span>
@@ -1023,11 +1199,14 @@ const auditActionLabels: Record<string, string> = {
   "member.update": "멤버 수정",
   "member.deactivate": "멤버 비활성화",
   "member.reactivate": "멤버 다시 활성화",
+  "member.account_merge": "멤버 계정 연결",
   "member.custom_fields.update": "멤버 커스텀 필드 수정",
   "group.create": "소그룹 생성",
   "group.update": "소그룹 수정",
   "attendance_event.create": "출석 이벤트 생성",
   "attendance.toggle": "출석 변경",
   "attendance.reason.update": "출석 사유 수정",
+  "care_followup.create": "돌봄 팔로업 생성",
+  "care_followup.update": "돌봄 팔로업 수정",
   "custom_field.create": "커스텀 필드 생성",
 };

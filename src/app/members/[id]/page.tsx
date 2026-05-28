@@ -33,6 +33,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
             user={readyData.user}
             member={member}
             groups={readyData.groups}
+            members={readyData.members}
             customFieldDefinitions={readyData.customFieldDefinitions}
           />
         );

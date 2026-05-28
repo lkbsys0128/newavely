@@ -5,11 +5,11 @@ export type Group = {
   name: string;
   leaderMemberId: string | null;
   leaderName: string;
-  targetSize: number;
 };
 
 export type Member = {
   id: string;
+  authUserId: string | null;
   name: string;
   phone: string;
   groupId: string | null;
@@ -23,6 +23,7 @@ export type Member = {
   customFields: Record<string, unknown>;
   present: boolean;
   attendanceHistory: AttendanceRecordSummary[];
+  careFollowups: CareFollowup[];
 };
 
 export type AttendanceEvent = {
@@ -47,6 +48,16 @@ export type CustomFieldDefinition = {
   label: string;
   fieldType: "text" | "number" | "date" | "boolean";
   isSensitive: boolean;
+};
+
+export type CareFollowup = {
+  id: string;
+  status: "needed" | "contacted" | "prayer" | "resolved";
+  note: string;
+  assignedToMemberId: string | null;
+  assignedToName: string;
+  createdAt: string;
+  completedAt: string | null;
 };
 
 export type AuditLog = {

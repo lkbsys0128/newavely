@@ -1,6 +1,7 @@
 create type member_role as enum ('admin', 'leader', 'staff', 'member');
 create type member_status as enum ('active', 'new', 'care', 'inactive');
 create type attendance_status as enum ('present', 'absent', 'excused');
+create type care_followup_status as enum ('needed', 'contacted', 'prayer', 'resolved');
 
 create table groups (
   id uuid primary key default gen_random_uuid(),
@@ -62,17 +63,31 @@ create table member_custom_field_definitions (
   created_at timestamptz not null default now()
 );
 
+create table care_followups (
+  id uuid primary key default gen_random_uuid(),
+  member_id uuid not null references members(id) on delete cascade,
+  assigned_to_member_id uuid references members(id) on delete set null,
+  status care_followup_status not null default 'needed',
+  note text not null,
+  created_by_member_id uuid references members(id) on delete set null,
+  created_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+
 create index members_group_idx on members(group_id);
 create index members_role_idx on members(role);
 create index members_auth_user_idx on members(auth_user_id);
 create index attendance_records_event_idx on attendance_records(event_id);
 create index attendance_records_member_idx on attendance_records(member_id);
+create index care_followups_member_idx on care_followups(member_id);
+create index care_followups_status_idx on care_followups(status);
 
 alter table groups enable row level security;
 alter table members enable row level security;
 alter table attendance_events enable row level security;
 alter table attendance_records enable row level security;
 alter table member_custom_field_definitions enable row level security;
+alter table care_followups enable row level security;
 
 create or replace function current_member_role()
 returns member_role
@@ -177,3 +192,14 @@ create policy "admins and leaders can read custom field definitions"
 on member_custom_field_definitions for select
 to authenticated
 using (current_member_role() in ('admin', 'leader'));
+
+create policy "admins and leaders can read care followups"
+on care_followups for select
+to authenticated
+using (can_manage_members());
+
+create policy "admins and leaders can manage care followups"
+on care_followups for all
+to authenticated
+using (can_manage_members())
+with check (can_manage_members());

@@ -1,5 +1,5 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
-import type { AttendanceEvent, AuditLog, CustomFieldDefinition, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, CareFollowup, CustomFieldDefinition, Group, Member } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -8,12 +8,12 @@ type DbGroup = {
   id: string;
   name: string;
   leader_member_id: string | null;
-  target_size: number;
   leader?: { name: string | null } | Array<{ name: string | null }> | null;
 };
 
 type DbMember = {
   id: string;
+  auth_user_id: string | null;
   name: string;
   email: string | null;
   phone: string | null;
@@ -33,6 +33,17 @@ type DbMember = {
         excuse_start_date: string | null;
         excuse_end_date: string | null;
         attendance_events?: { event_date: string; title: string } | Array<{ event_date: string; title: string }> | null;
+      }>
+    | null;
+  care_followups?:
+    | Array<{
+        id: string;
+        status: CareFollowup["status"];
+        note: string;
+        assigned_to_member_id: string | null;
+        created_at: string;
+        completed_at: string | null;
+        assigned_to?: { name: string | null } | Array<{ name: string | null }> | null;
       }>
     | null;
 };
@@ -77,12 +88,27 @@ export async function getOrCreateCurrentMember(
   if (existing) return { id: existing.id as string, role: existing.role as Role };
 
   const role = getRoleForEmail(user.email ?? "");
+  const normalizedEmail = user.email?.trim().toLowerCase();
+
+  if (normalizedEmail) {
+    const { data: importedMember, error: importedMemberError } = await supabase
+      .from("members")
+      .update({ auth_user_id: user.id, role })
+      .eq("email", normalizedEmail)
+      .is("auth_user_id", null)
+      .select("id, role")
+      .maybeSingle();
+
+    if (importedMemberError) throw importedMemberError;
+    if (importedMember) return { id: importedMember.id as string, role: importedMember.role as Role };
+  }
+
   const { data: inserted, error: insertError } = await supabase
     .from("members")
     .insert({
       auth_user_id: user.id,
       name: user.name ?? user.email ?? "새 멤버",
-      email: user.email ?? null,
+      email: normalizedEmail ?? null,
       role,
       status: "active",
     })
@@ -141,7 +167,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
 
   const { data: groupsData, error: groupsError } = await supabase
     .from("groups")
-    .select("id, name, leader_member_id, target_size, leader:members!groups_leader_member_id_fkey(name)")
+    .select("id, name, leader_member_id, leader:members!groups_leader_member_id_fkey(name)")
     .order("name");
 
   if (groupsError) throw groupsError;
@@ -149,7 +175,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
   const { data: membersData, error: membersError } = await supabase
     .from("members")
     .select(
-      "id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events(event_date, title))",
+      "id, auth_user_id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events(event_date, title)), care_followups!care_followups_member_id_fkey(id, status, note, assigned_to_member_id, created_at, completed_at, assigned_to:members!care_followups_assigned_to_member_id_fkey(name))",
     )
     .order("name");
 
@@ -162,7 +188,6 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
       name: group.name,
       leaderMemberId: group.leader_member_id,
       leaderName: leader?.name ?? "미배정",
-      targetSize: group.target_size,
     };
   });
 
@@ -182,8 +207,23 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
         };
       })
       .sort((a, b) => b.eventDate.localeCompare(a.eventDate));
+    const careFollowups = (member.care_followups ?? [])
+      .map<CareFollowup>((followup) => {
+        const assignedTo = Array.isArray(followup.assigned_to) ? followup.assigned_to[0] : followup.assigned_to;
+        return {
+          id: followup.id,
+          status: followup.status,
+          note: followup.note,
+          assignedToMemberId: followup.assigned_to_member_id,
+          assignedToName: assignedTo?.name ?? "미배정",
+          createdAt: followup.created_at,
+          completedAt: followup.completed_at,
+        };
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return {
       id: member.id,
+      authUserId: member.auth_user_id,
       name: member.name,
       phone: member.phone ?? "미입력",
       groupId: member.group_id,
@@ -197,6 +237,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
       customFields: member.custom_fields ?? {},
       present: Boolean(member.attendance_records?.some((record) => record.event_id === selectedEvent?.id && record.status === "present")),
       attendanceHistory,
+      careFollowups,
     };
   });
 
