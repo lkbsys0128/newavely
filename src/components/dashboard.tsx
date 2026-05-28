@@ -1065,7 +1065,9 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
   const [approveState, approveAction, isApprovingRequest] = useActionState(approveMemberLinkRequest, initialActionState);
   const [rejectState, rejectAction, isRejectingRequest] = useActionState(rejectMemberLinkRequest, initialActionState);
   const canManageRoles = hasPermission(user.role, "roles:manage");
-  const pendingLinkRequests = memberLinkRequests.filter((request) => request.status === "pending");
+  const pendingLinkRequests = memberLinkRequests.filter(
+    (request) => request.status === "pending" && request.requesterName !== "알 수 없음",
+  );
   const activeAdmins = members.filter((member) => member.role === "admin" && member.status !== "inactive");
   const connectedAdmins = activeAdmins.filter((member) => member.authUserId);
   const unlinkedActiveMembers = members

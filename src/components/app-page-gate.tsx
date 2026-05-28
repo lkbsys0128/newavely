@@ -85,7 +85,9 @@ export function AppPageGate({
 function AdminNotificationBar({ data }: { data: ReadyAppPageData }) {
   if (!hasPermission(data.user.role, "roles:manage")) return null;
 
-  const pendingLinkRequests = data.memberLinkRequests.filter((request) => request.status === "pending");
+  const pendingLinkRequests = data.memberLinkRequests.filter(
+    (request) => request.status === "pending" && request.requesterName !== "알 수 없음",
+  );
   if (pendingLinkRequests.length === 0) return null;
 
   return (

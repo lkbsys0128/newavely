@@ -1161,6 +1161,22 @@ export async function deleteMemberPermanently(_previousState: ActionState, formD
     if (careError) throw careError;
     if (linkError) throw linkError;
 
+    const closedAt = new Date().toISOString();
+    const { count: closedLinkRequestCount, error: closeLinkRequestsError } = await supabase
+      .from("member_link_requests")
+      .update(
+        {
+          status: "rejected",
+          resolved_at: closedAt,
+          resolved_by_member_id: null,
+        },
+        { count: "exact" },
+      )
+      .or(`requester_member_id.eq.${parsed.id},target_member_id.eq.${parsed.id}`)
+      .eq("status", "pending");
+
+    if (closeLinkRequestsError) throw closeLinkRequestsError;
+
     await writeAuditLog({
       supabase,
       action: "member.permanent_delete",
@@ -1175,6 +1191,7 @@ export async function deleteMemberPermanently(_previousState: ActionState, formD
           attendanceRecords: attendanceCount ?? 0,
           careFollowups: careCount ?? 0,
           memberLinkRequests: linkCount ?? 0,
+          closedPendingLinkRequests: closedLinkRequestCount ?? 0,
         },
       },
     });

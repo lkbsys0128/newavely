@@ -59,6 +59,7 @@ test("schema allows admin-routed link requests while tightening member reads", (
 test("admins get a visible pending link request notification", () => {
   assert.match(appGateSource, /AdminNotificationBar/);
   assert.match(appGateSource, /pendingLinkRequests\.length/);
+  assert.match(appGateSource, /request\.requesterName !== "알 수 없음"/);
   assert.match(appGateSource, /\/permissions#link-requests/);
 });
 
@@ -74,5 +75,6 @@ test("member permanent delete is admin-only and audited", () => {
   assert.match(actionsSource, /getAuthorizedCurrentMember\("roles:manage"\)/);
   assert.match(actionsSource, /member\.permanent_delete/);
   assert.match(actionsSource, /cascadingRecords/);
+  assert.match(actionsSource, /closedPendingLinkRequests/);
   assert.match(dashboardSource, /완전 삭제/);
 });
