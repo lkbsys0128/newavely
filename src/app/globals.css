@@ -256,8 +256,10 @@ a {
 }
 
 .main-content {
+  width: min(100%, 1480px);
   min-width: 0;
-  padding: 30px;
+  margin: 0 auto;
+  padding: 30px clamp(20px, 2.6vw, 38px);
 }
 
 .notification-bar {
@@ -347,7 +349,9 @@ h2 {
 .search-field,
 .member-form label,
 .management-form label,
-.filter-grid label {
+.filter-grid label,
+.link-request-resolution label,
+.new-member-inline-fields label {
   display: grid;
   gap: 7px;
   color: var(--muted);
@@ -362,6 +366,8 @@ h2 {
 .management-form select,
 .management-form textarea,
 .filter-grid select,
+.link-request-resolution input,
+.link-request-resolution select,
 .role-management-row select {
   width: 100%;
   min-height: 42px;
@@ -384,6 +390,8 @@ h2 {
 .management-form select:focus,
 .management-form textarea:focus,
 .filter-grid select:focus,
+.link-request-resolution input:focus,
+.link-request-resolution select:focus,
 .role-management-row select:focus,
 .reason-form input:focus,
 .reason-form textarea:focus {
@@ -516,7 +524,7 @@ h2 {
 .group-grid,
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 
@@ -908,6 +916,22 @@ tbody tr:hover {
   align-items: center;
 }
 
+.link-request-resolution,
+.new-member-inline-fields {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.link-request-resolution {
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+}
+
+.new-member-inline-fields {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
 .empty-state,
 .onboarding-request-admin {
   display: grid;
@@ -1269,6 +1293,11 @@ tbody tr:hover {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .link-request-resolution,
+  .new-member-inline-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .group-edit-form {
     grid-template-columns: 1fr;
   }
@@ -1300,6 +1329,8 @@ tbody tr:hover {
   .account-link-form,
   .management-form,
   .filter-grid,
+  .link-request-resolution,
+  .new-member-inline-fields,
   .role-management-row {
     grid-template-columns: 1fr;
   }

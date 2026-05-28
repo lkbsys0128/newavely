@@ -66,6 +66,11 @@ const createMemberLinkRequestSchema = z.object({
 const memberLinkRequestDecisionSchema = z.object({
   id: z.string().uuid(),
   targetMemberId: nullableUuid.optional(),
+  createTargetMode: z.enum(["existing", "new"]).optional(),
+  newMemberName: nullableText.optional(),
+  newMemberEmail: nullableText.optional(),
+  newMemberPhone: nullableText.optional(),
+  newMemberGroupId: nullableUuid.optional(),
 });
 
 const groupSchema = z.object({
@@ -688,6 +693,11 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
     const parsed = memberLinkRequestDecisionSchema.parse({
       id: formData.get("id"),
       targetMemberId: formData.get("targetMemberId"),
+      createTargetMode: formData.get("createTargetMode") || "existing",
+      newMemberName: formData.get("newMemberName"),
+      newMemberEmail: formData.get("newMemberEmail"),
+      newMemberPhone: formData.get("newMemberPhone"),
+      newMemberGroupId: formData.get("newMemberGroupId"),
     });
 
     const { data: request, error: requestError } = await supabase
@@ -698,7 +708,41 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
       .single();
 
     if (requestError) throw requestError;
-    const targetMemberId = (request.target_member_id as string | null) ?? parsed.targetMemberId;
+    let targetMemberId = (request.target_member_id as string | null) ?? null;
+
+    if (!targetMemberId && parsed.createTargetMode === "new") {
+      if (!parsed.newMemberName) throw new Error("새 교적 이름을 입력해주세요.");
+
+      const { data: newMember, error: newMemberError } = await supabase
+        .from("members")
+        .insert({
+          name: parsed.newMemberName,
+          email: parsed.newMemberEmail,
+          phone: parsed.newMemberPhone,
+          group_id: parsed.newMemberGroupId,
+          role: "member",
+          status: "active",
+        })
+        .select("id")
+        .single();
+
+      if (newMemberError) throw newMemberError;
+      targetMemberId = newMember.id as string;
+
+      await writeAuditLog({
+        supabase,
+        action: "member.create_for_link_request",
+        targetTable: "members",
+        targetId: targetMemberId,
+        afterData: newMember as Record<string, unknown>,
+        metadata: { linkRequestId: parsed.id },
+      });
+    }
+
+    if (!targetMemberId) {
+      targetMemberId = parsed.targetMemberId ?? null;
+    }
+
     if (!targetMemberId) {
       throw new Error("연결할 교적 멤버를 선택해주세요.");
     }
@@ -764,9 +808,10 @@ export async function rejectMemberLinkRequest(_previousState: ActionState, formD
       .eq("id", parsed.id)
       .eq("status", "pending")
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!updatedRequest) throw new Error("이미 처리되었거나 찾을 수 없는 요청입니다.");
     await writeAuditLog({
       supabase,
       action: "member_link_request.reject",

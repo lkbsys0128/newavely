@@ -4,7 +4,9 @@ import test from "node:test";
 
 const dataSource = readFileSync(new URL("../src/lib/supabase/data.ts", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
+const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
+const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
 const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
@@ -58,4 +60,11 @@ test("admins get a visible pending link request notification", () => {
   assert.match(appGateSource, /AdminNotificationBar/);
   assert.match(appGateSource, /pendingLinkRequests\.length/);
   assert.match(appGateSource, /\/permissions#link-requests/);
+});
+
+test("link request decisions support rejection and new member creation", () => {
+  assert.match(actionsSource, /\.maybeSingle\(\)/);
+  assert.match(actionsSource, /이미 처리되었거나 찾을 수 없는 요청/);
+  assert.match(actionsSource, /member\.create_for_link_request/);
+  assert.match(dashboardSource, /새 교적 생성 후 연결/);
 });
