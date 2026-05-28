@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
+import { getRoleChangeBlockReason } from "@/lib/role-policy";
 
 const nullableUuid = z.preprocess((value) => {
   const normalized = String(value ?? "").trim();
@@ -35,6 +36,11 @@ const updateMemberSchema = memberSchema.extend({
 const mergeMemberAccountSchema = z.object({
   targetMemberId: z.string().uuid(),
   duplicateMemberId: z.string().uuid(),
+});
+
+const updateMemberRoleSchema = z.object({
+  id: z.string().uuid(),
+  role: z.enum(["admin", "leader", "staff", "member"]),
 });
 
 const groupSchema = z.object({
@@ -429,6 +435,62 @@ export async function mergeMemberAccount(_previousState: ActionState, formData: 
     });
     revalidateAppData();
     return "Google 계정을 기존 멤버에 연결하고 중복 멤버를 비활성화했습니다.";
+  });
+}
+
+export async function updateMemberRole(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = updateMemberRoleSchema.parse({
+      id: formData.get("id"),
+      role: formData.get("role"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("members")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { count: activeAdminCount, error: countError } = await supabase
+      .from("members")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin")
+      .neq("status", "inactive");
+
+    if (countError) throw countError;
+
+    const blockReason = getRoleChangeBlockReason({
+      targetCurrentRole: beforeData.role,
+      nextRole: parsed.role,
+      activeAdminCount: activeAdminCount ?? 0,
+    });
+
+    if (blockReason) throw new Error(blockReason);
+
+    const { data: afterData, error } = await supabase
+      .from("members")
+      .update({
+        role: parsed.role,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member.role.update",
+      targetTable: "members",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "멤버 역할을 변경했습니다.";
   });
 }
 

@@ -301,7 +301,8 @@ h2 {
 
 .search-field,
 .member-form label,
-.management-form label {
+.management-form label,
+.filter-grid label {
   display: grid;
   gap: 7px;
   color: var(--muted);
@@ -314,7 +315,9 @@ h2 {
 .member-form select,
 .management-form input,
 .management-form select,
-.management-form textarea {
+.management-form textarea,
+.filter-grid select,
+.role-management-row select {
   width: 100%;
   min-height: 42px;
   border: 1px solid var(--line);
@@ -335,6 +338,8 @@ h2 {
 .management-form input:focus,
 .management-form select:focus,
 .management-form textarea:focus,
+.filter-grid select:focus,
+.role-management-row select:focus,
 .reason-form input:focus,
 .reason-form textarea:focus {
   border-color: var(--accent);
@@ -678,6 +683,26 @@ tbody tr:hover {
   margin-bottom: 16px;
 }
 
+.filter-panel {
+  margin-bottom: 16px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.empty-table-state {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 24px 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
 .section-spacer {
   margin-top: 16px;
 }
@@ -755,6 +780,23 @@ tbody tr:hover {
   border-radius: 8px;
   padding: 14px;
   background: #fbfeff;
+}
+
+.onboarding-list,
+.role-management-list {
+  display: grid;
+  gap: 10px;
+}
+
+.role-management-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-strong);
 }
 
 .action-message {
@@ -1079,7 +1121,8 @@ tbody tr:hover {
   .member-form,
   .compact-form,
   .group-create-form,
-  .management-form {
+  .management-form,
+  .filter-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
@@ -1111,7 +1154,9 @@ tbody tr:hover {
   .member-form,
   .compact-form,
   .group-create-form,
-  .management-form {
+  .management-form,
+  .filter-grid,
+  .role-management-row {
     grid-template-columns: 1fr;
   }
 
