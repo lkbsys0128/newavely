@@ -6,6 +6,7 @@ import {
   createAttendanceEvent,
   createGroup,
   createMember,
+  deleteMemberPermanently,
   deactivateMember,
   approveMemberLinkRequest,
   rejectMemberLinkRequest,
@@ -119,7 +120,9 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     reactivateMember,
     initialActionState,
   );
+  const [deleteMemberState, deleteMemberAction, isDeletingMember] = useActionState(deleteMemberPermanently, initialActionState);
   const canManageMembers = hasPermission(user.role, "members:write");
+  const canDeleteMembers = hasPermission(user.role, "roles:manage");
   const visibleMembers = (showInactive ? members : members.filter((member) => member.status !== "inactive")).filter(
     (member) => !isMergedPlaceholderMember(member),
   );
@@ -372,6 +375,23 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               <ActionMessage state={reactivateMemberState} />
               <button className="primary-button" type="submit" disabled={!canManageMembers || isReactivatingMember}>
                 다시 활성화
+              </button>
+            </form>
+          ) : null}
+          {selectedMember && canDeleteMembers ? (
+            <form action={deleteMemberAction} className="danger-zone-form">
+              <input name="id" type="hidden" value={selectedMember.id} />
+              <div className="person-block">
+                <strong>완전 삭제</strong>
+                <span>삭제하면 이메일과 Google 연결 충돌은 사라지지만, 출석/돌봄/연결 요청 기록도 함께 정리됩니다.</span>
+              </div>
+              <label>
+                확인을 위해 멤버 이름 입력
+                <input name="confirmName" placeholder={selectedMember.name} />
+              </label>
+              <ActionMessage state={deleteMemberState} />
+              <button className="danger-button" type="submit" disabled={isDeletingMember}>
+                완전히 삭제
               </button>
             </form>
           ) : null}

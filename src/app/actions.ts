@@ -58,6 +58,11 @@ const updateMemberRoleSchema = z.object({
   role: z.enum(["admin", "leader", "staff", "member"]),
 });
 
+const deleteMemberSchema = z.object({
+  id: z.string().uuid(),
+  confirmName: z.string().min(1, "삭제할 멤버 이름을 입력해주세요."),
+});
+
 const createMemberLinkRequestSchema = z.object({
   targetMemberId: nullableUuid,
   note: nullableText,
@@ -1122,6 +1127,63 @@ export async function reactivateMember(_previousState: ActionState, formData: Fo
     });
     revalidateAppData();
     return "멤버를 다시 활성화했습니다.";
+  });
+}
+
+export async function deleteMemberPermanently(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = deleteMemberSchema.parse({
+      id: formData.get("id"),
+      confirmName: formData.get("confirmName"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase.from("members").select("*").eq("id", parsed.id).single();
+    if (beforeError) throw beforeError;
+
+    const member = beforeData as Record<string, unknown>;
+    const memberName = String(member.name ?? "");
+    if (parsed.confirmName.trim() !== memberName) {
+      throw new Error("삭제 확인 이름이 멤버 이름과 일치하지 않습니다.");
+    }
+
+    const [{ count: attendanceCount, error: attendanceError }, { count: careCount, error: careError }, { count: linkCount, error: linkError }] =
+      await Promise.all([
+        supabase.from("attendance_records").select("id", { count: "exact", head: true }).eq("member_id", parsed.id),
+        supabase.from("care_followups").select("id", { count: "exact", head: true }).eq("member_id", parsed.id),
+        supabase
+          .from("member_link_requests")
+          .select("id", { count: "exact", head: true })
+          .or(`requester_member_id.eq.${parsed.id},target_member_id.eq.${parsed.id}`),
+      ]);
+
+    if (attendanceError) throw attendanceError;
+    if (careError) throw careError;
+    if (linkError) throw linkError;
+
+    await writeAuditLog({
+      supabase,
+      action: "member.permanent_delete",
+      targetTable: "members",
+      targetId: parsed.id,
+      beforeData: member,
+      metadata: {
+        deletedMemberName: memberName,
+        deletedMemberEmail: member.email ?? null,
+        deletedAuthUserId: member.auth_user_id ?? null,
+        cascadingRecords: {
+          attendanceRecords: attendanceCount ?? 0,
+          careFollowups: careCount ?? 0,
+          memberLinkRequests: linkCount ?? 0,
+        },
+      },
+    });
+
+    const { error } = await supabase.from("members").delete().eq("id", parsed.id);
+    if (error) throw error;
+
+    revalidateAppData();
+    return "멤버를 완전히 삭제했습니다. 감사 로그에는 삭제 전 정보가 남아 있습니다.";
   });
 }
 

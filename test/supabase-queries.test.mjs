@@ -68,3 +68,11 @@ test("link request decisions support rejection and new member creation", () => {
   assert.match(actionsSource, /member\.create_for_link_request/);
   assert.match(dashboardSource, /새 교적 생성 후 연결/);
 });
+
+test("member permanent delete is admin-only and audited", () => {
+  assert.match(actionsSource, /deleteMemberPermanently/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("roles:manage"\)/);
+  assert.match(actionsSource, /member\.permanent_delete/);
+  assert.match(actionsSource, /cascadingRecords/);
+  assert.match(dashboardSource, /완전 삭제/);
+});
