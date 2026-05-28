@@ -4,6 +4,7 @@ import test from "node:test";
 
 const dataSource = readFileSync(new URL("../src/lib/supabase/data.ts", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
+const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
@@ -51,4 +52,10 @@ test("schema allows admin-routed link requests while tightening member reads", (
   assert.match(schemaSource, /and role = 'member'/);
   assert.match(schemaSource, /and status = 'new'/);
   assert.match(schemaSource, /authorized users can read attendance records/);
+});
+
+test("admins get a visible pending link request notification", () => {
+  assert.match(appGateSource, /AdminNotificationBar/);
+  assert.match(appGateSource, /pendingLinkRequests\.length/);
+  assert.match(appGateSource, /\/permissions#link-requests/);
 });

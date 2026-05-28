@@ -1119,44 +1119,13 @@ export function PermissionsPageContent({ user, members, memberLinkRequests = [] 
 
       <section className="panel form-panel">
         <div className="panel-heading">
-          <h2>멤버 역할 변경</h2>
-          <span>{roleManagedMembers.length}명</span>
-        </div>
-        <div className="role-management-list">
-          {roleManagedMembers.map((member) => (
-            <form action={roleAction} className="role-management-row" key={member.id}>
-              <input name="id" type="hidden" value={member.id} />
-              <div className="person-block">
-                <strong>{member.name}</strong>
-                <span>
-                  {member.groupName} · {member.email || "이메일 없음"} · {member.authUserId ? "Google 연결" : "미연결"}
-                </span>
-              </div>
-              <select name="role" defaultValue={member.role} disabled={!canManageRoles}>
-                {Object.entries(roleLabels).map(([role, label]) => (
-                  <option key={role} value={role}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <button className="secondary-button" type="submit" disabled={!canManageRoles || isUpdatingRole}>
-                변경
-              </button>
-            </form>
-          ))}
-        </div>
-        <ActionMessage state={roleState} />
-      </section>
-
-      <section className="panel form-panel">
-        <div className="panel-heading">
           <div>
             <h2>교적 연결 요청</h2>
             <p className="meta">첫 로그인 사용자가 기존 CSV 교적 멤버와 연결을 요청하면 여기서 승인합니다.</p>
           </div>
           <span>{pendingLinkRequests.length}건 대기</span>
         </div>
-        <div className="role-management-list">
+        <div className="role-management-list" id="link-requests">
           {pendingLinkRequests.map((request) => (
             <article className="definition-row" key={request.id}>
               <div className="detail-row">
@@ -1212,6 +1181,37 @@ export function PermissionsPageContent({ user, members, memberLinkRequests = [] 
         </div>
         <ActionMessage state={approveState} />
         <ActionMessage state={rejectState} />
+      </section>
+
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <h2>멤버 역할 변경</h2>
+          <span>{roleManagedMembers.length}명</span>
+        </div>
+        <div className="role-management-list">
+          {roleManagedMembers.map((member) => (
+            <form action={roleAction} className="role-management-row" key={member.id}>
+              <input name="id" type="hidden" value={member.id} />
+              <div className="person-block">
+                <strong>{member.name}</strong>
+                <span>
+                  {member.groupName} · {member.email || "이메일 없음"} · {member.authUserId ? "Google 연결" : "미연결"}
+                </span>
+              </div>
+              <select name="role" defaultValue={member.role} disabled={!canManageRoles}>
+                {Object.entries(roleLabels).map(([role, label]) => (
+                  <option key={role} value={role}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <button className="secondary-button" type="submit" disabled={!canManageRoles || isUpdatingRole}>
+                변경
+              </button>
+            </form>
+          ))}
+        </div>
+        <ActionMessage state={roleState} />
       </section>
 
       <section className="panel form-panel">

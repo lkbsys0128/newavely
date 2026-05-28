@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { AuthPanel } from "@/components/auth-panel";
 import { ErrorPanel } from "@/components/error-panel";
 import { OnboardingPanel } from "@/components/onboarding-panel";
 import { SetupPanel } from "@/components/setup-panel";
 import type { AppPageData, ReadyAppPageData } from "@/lib/app-page-data";
+import { hasPermission } from "@/lib/rbac";
 
 export function AppPageGate({
   data,
@@ -72,5 +74,39 @@ export function AppPageGate({
     );
   }
 
-  return <main className="main-content">{children(data)}</main>;
+  return (
+    <main className="main-content">
+      <AdminNotificationBar data={data} />
+      {children(data)}
+    </main>
+  );
+}
+
+function AdminNotificationBar({ data }: { data: ReadyAppPageData }) {
+  if (!hasPermission(data.user.role, "roles:manage")) return null;
+
+  const pendingLinkRequests = data.memberLinkRequests.filter((request) => request.status === "pending");
+  if (pendingLinkRequests.length === 0) return null;
+
+  return (
+    <details className="notification-bar">
+      <summary>
+        <span>{pendingLinkRequests.length}개의 교적 연결 요청이 대기 중입니다</span>
+        <strong>확인</strong>
+      </summary>
+      <div className="notification-list">
+        {pendingLinkRequests.slice(0, 5).map((request) => (
+          <article className="notification-item" key={request.id}>
+            <strong>{request.requesterName}</strong>
+            <span>
+              {request.requesterEmail || "이메일 없음"} → {request.targetName}
+            </span>
+          </article>
+        ))}
+        <Link className="secondary-button" href="/permissions#link-requests">
+          요청 관리로 이동
+        </Link>
+      </div>
+    </details>
+  );
 }
