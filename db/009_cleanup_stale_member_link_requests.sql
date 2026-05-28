@@ -3,8 +3,16 @@ set
   status = 'rejected',
   resolved_at = now()
 where status = 'pending'
-  and not exists (
-    select 1
-    from members
-    where members.id = member_link_requests.requester_member_id
+  and (
+    not exists (
+      select 1
+      from members
+      where members.id = member_link_requests.requester_member_id
+    )
+    or exists (
+      select 1
+      from members
+      where members.id = member_link_requests.requester_member_id
+        and members.status <> 'new'
+    )
   );

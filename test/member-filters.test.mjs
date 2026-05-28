@@ -5,6 +5,7 @@ import { loadTsModule } from "./load-ts-module.mjs";
 const { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers, isMergedPlaceholderMember } = loadTsModule(
   "../src/lib/member-filters.ts",
 );
+const { isActionableLinkRequest } = loadTsModule("../src/lib/member-link-requests.ts");
 
 function member(overrides) {
   return {
@@ -93,4 +94,26 @@ test("findPotentialDuplicateMembers returns actionable login/import duplicate ca
   assert(candidates.some((candidate) => candidate.key === "phone:2065551111"));
   assert(candidates.every((candidate) => candidate.members.some((candidateMember) => candidateMember.id === "login")));
   assert(candidates.every((candidate) => candidate.members.some((candidateMember) => candidateMember.id === "imported")));
+});
+
+test("link request notifications only count pending first-login requests", () => {
+  const baseRequest = {
+    id: "request-id",
+    requesterMemberId: "requester-id",
+    requesterName: "새 로그인",
+    requesterEmail: "new@example.com",
+    requesterStatus: "new",
+    targetMemberId: null,
+    targetName: "관리자 확인 필요",
+    targetEmail: "",
+    status: "pending",
+    note: "",
+    createdAt: "2026-05-28T00:00:00.000Z",
+    resolvedAt: null,
+  };
+
+  assert.equal(isActionableLinkRequest(baseRequest), true);
+  assert.equal(isActionableLinkRequest({ ...baseRequest, requesterStatus: "active" }), false);
+  assert.equal(isActionableLinkRequest({ ...baseRequest, requesterName: "알 수 없음" }), false);
+  assert.equal(isActionableLinkRequest({ ...baseRequest, status: "approved" }), false);
 });

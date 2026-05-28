@@ -65,6 +65,7 @@ export type MemberLinkRequest = {
   requesterMemberId: string;
   requesterName: string;
   requesterEmail: string;
+  requesterStatus: "active" | "new" | "care" | "inactive" | null;
   targetMemberId: string | null;
   targetName: string;
   targetEmail: string;

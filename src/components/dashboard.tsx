@@ -28,6 +28,7 @@ import {
   isMergedPlaceholderMember,
   type MemberFilters,
 } from "@/lib/member-filters";
+import { isActionableLinkRequest } from "@/lib/member-link-requests";
 
 type AppDataProps = {
   user: AppUser;
@@ -1065,9 +1066,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
   const [approveState, approveAction, isApprovingRequest] = useActionState(approveMemberLinkRequest, initialActionState);
   const [rejectState, rejectAction, isRejectingRequest] = useActionState(rejectMemberLinkRequest, initialActionState);
   const canManageRoles = hasPermission(user.role, "roles:manage");
-  const pendingLinkRequests = memberLinkRequests.filter(
-    (request) => request.status === "pending" && request.requesterName !== "알 수 없음",
-  );
+  const pendingLinkRequests = memberLinkRequests.filter(isActionableLinkRequest);
   const activeAdmins = members.filter((member) => member.role === "admin" && member.status !== "inactive");
   const connectedAdmins = activeAdmins.filter((member) => member.authUserId);
   const unlinkedActiveMembers = members

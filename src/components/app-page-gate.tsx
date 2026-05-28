@@ -5,6 +5,7 @@ import { ErrorPanel } from "@/components/error-panel";
 import { OnboardingPanel } from "@/components/onboarding-panel";
 import { SetupPanel } from "@/components/setup-panel";
 import type { AppPageData, ReadyAppPageData } from "@/lib/app-page-data";
+import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import { hasPermission } from "@/lib/rbac";
 
 export function AppPageGate({
@@ -85,9 +86,7 @@ export function AppPageGate({
 function AdminNotificationBar({ data }: { data: ReadyAppPageData }) {
   if (!hasPermission(data.user.role, "roles:manage")) return null;
 
-  const pendingLinkRequests = data.memberLinkRequests.filter(
-    (request) => request.status === "pending" && request.requesterName !== "알 수 없음",
-  );
+  const pendingLinkRequests = data.memberLinkRequests.filter(isActionableLinkRequest);
   if (pendingLinkRequests.length === 0) return null;
 
   return (

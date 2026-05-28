@@ -60,7 +60,7 @@ test("schema allows admin-routed link requests while tightening member reads", (
 test("admins get a visible pending link request notification", () => {
   assert.match(appGateSource, /AdminNotificationBar/);
   assert.match(appGateSource, /pendingLinkRequests\.length/);
-  assert.match(appGateSource, /request\.requesterName !== "알 수 없음"/);
+  assert.match(appGateSource, /isActionableLinkRequest/);
   assert.match(appGateSource, /\/permissions#link-requests/);
 });
 

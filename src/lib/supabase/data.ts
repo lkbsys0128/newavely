@@ -82,7 +82,10 @@ type DbMemberLinkRequest = {
   note: string | null;
   created_at: string;
   resolved_at: string | null;
-  requester?: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
+  requester?:
+    | { name: string | null; email: string | null; status: DbMember["status"] | null }
+    | Array<{ name: string | null; email: string | null; status: DbMember["status"] | null }>
+    | null;
   target?: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
 };
 
@@ -339,7 +342,7 @@ export async function getMemberLinkRequests(supabase: SupabaseClient, currentMem
   let query = supabase
     .from("member_link_requests")
     .select(
-      "id, requester_member_id, target_member_id, status, note, created_at, resolved_at, requester:members!member_link_requests_requester_member_id_fkey(name, email), target:members!member_link_requests_target_member_id_fkey(name, email)",
+      "id, requester_member_id, target_member_id, status, note, created_at, resolved_at, requester:members!member_link_requests_requester_member_id_fkey(name, email, status), target:members!member_link_requests_target_member_id_fkey(name, email)",
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -363,6 +366,7 @@ export async function getMemberLinkRequests(supabase: SupabaseClient, currentMem
       requesterMemberId: request.requester_member_id,
       requesterName: requester?.name ?? "알 수 없음",
       requesterEmail: requester?.email ?? "",
+      requesterStatus: requester?.status ?? null,
       targetMemberId: request.target_member_id,
       targetName: target?.name ?? "관리자 확인 필요",
       targetEmail: target?.email ?? "",
