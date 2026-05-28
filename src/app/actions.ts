@@ -287,6 +287,10 @@ function mergeCustomFields(survivorMember: Record<string, unknown>, sourceMember
   };
 }
 
+function makeMergedPlaceholderEmail(memberId: unknown) {
+  return `${String(memberId)}@merged.local`;
+}
+
 export async function createMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase } = await getAuthorizedCurrentMember("members:write");
@@ -518,13 +522,13 @@ export async function mergeMemberProfile(_previousState: ActionState, formData: 
     if (sourceMember.auth_user_id) throw new Error("흡수할 교적 멤버에는 Google 계정이 연결되어 있지 않아야 합니다.");
 
     const now = new Date().toISOString();
-    const selectedEmail = chooseMergeValue(parsed.emailChoice, survivorMember.email, sourceMember.email);
+    const selectedEmail = chooseMergeValue(parsed.emailChoice, survivorMember.email, sourceMember.email) ?? null;
     const movesSourceEmail =
       parsed.emailChoice === "source" &&
       typeof sourceMember.email === "string" &&
       sourceMember.email.length > 0 &&
       sourceMember.email !== survivorMember.email;
-    const sourceEmailAfterMerge = movesSourceEmail ? `${sourceMember.id}@merged.local` : sourceMember.email;
+    const sourceEmailAfterMerge = movesSourceEmail ? makeMergedPlaceholderEmail(sourceMember.id) : sourceMember.email;
     const survivorPayload = {
       name: chooseMergeValue(parsed.nameChoice, survivorMember.name, sourceMember.name),
       email: selectedEmail,
@@ -538,6 +542,22 @@ export async function mergeMemberProfile(_previousState: ActionState, formData: 
       custom_fields: mergeCustomFields(survivorMember, sourceMember),
       updated_at: now,
     };
+
+    const { data: conflictingEmailOwner, error: conflictError } =
+      typeof selectedEmail === "string" && selectedEmail.length > 0
+        ? await supabase.from("members").select("id").eq("email", selectedEmail).neq("id", parsed.survivorMemberId).maybeSingle()
+        : { data: null, error: null };
+
+    if (conflictError) throw conflictError;
+
+    if (conflictingEmailOwner) {
+      const { error: releaseEmailError } = await supabase
+        .from("members")
+        .update({ email: makeMergedPlaceholderEmail(conflictingEmailOwner.id), updated_at: now })
+        .eq("id", conflictingEmailOwner.id);
+
+      if (releaseEmailError) throw releaseEmailError;
+    }
 
     const { data: deactivatedSource, error: sourceError } = await supabase
       .from("members")
