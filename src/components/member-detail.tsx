@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import {
   createCareFollowup,
   createCustomFieldDefinition,
+  createMemberLinkRequest,
   deleteCustomFieldDefinition,
   updateCareFollowup,
   updateMember,
@@ -14,7 +15,7 @@ import {
 } from "@/app/actions";
 import { hasPermission } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
-import type { CustomFieldDefinition, Group, Member } from "@/lib/types";
+import type { CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 
 const initialActionState: ActionState = { ok: false, message: "" };
 
@@ -24,18 +25,22 @@ export function MemberDetailPageContent({
   groups,
   members,
   customFieldDefinitions,
+  memberLinkRequests = [],
   eyebrow = "멤버 상세",
   backHref = "/members",
   backLabel = "목록",
+  showLinkRequest = false,
 }: {
   user: AppUser;
   member: Member;
   groups: Group[];
   members: Member[];
   customFieldDefinitions: CustomFieldDefinition[];
+  memberLinkRequests?: MemberLinkRequest[];
   eyebrow?: string;
   backHref?: string;
   backLabel?: string;
+  showLinkRequest?: boolean;
 }) {
   const canManageMembers = hasPermission(user.role, "members:write");
   const canManageDefinitions = hasPermission(user.role, "roles:manage");
@@ -65,12 +70,18 @@ export function MemberDetailPageContent({
     createCareFollowup,
     initialActionState,
   );
+  const [linkRequestState, linkRequestAction, isCreatingLinkRequest] = useActionState(
+    createMemberLinkRequest,
+    initialActionState,
+  );
   const [updateFollowupState, updateFollowupAction, isUpdatingFollowup] = useActionState(
     updateCareFollowup,
     initialActionState,
   );
   const googleAccountName =
     typeof member.customFields.google_account_name === "string" ? member.customFields.google_account_name : "";
+  const pendingLinkRequest = memberLinkRequests.find((request) => request.status === "pending");
+  const linkableMembers = members.filter((item) => item.id !== member.id && !item.authUserId && item.status !== "inactive");
 
   return (
     <>
@@ -89,6 +100,50 @@ export function MemberDetailPageContent({
           </Link>
         </div>
       </header>
+
+      {showLinkRequest ? (
+        <section className="panel form-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>기존 교적 멤버와 연결</h2>
+              <p className="meta">CSV로 이미 등록된 내 교적 정보가 있으면 관리자에게 연결을 요청하세요.</p>
+            </div>
+            <span>{pendingLinkRequest ? "승인 대기 중" : "첫 로그인 설정"}</span>
+          </div>
+          {pendingLinkRequest ? (
+            <article className="detail-row">
+              <div className="person-block">
+                <strong>{pendingLinkRequest.targetName}</strong>
+                <span>관리자 승인 후 이 프로필로 교적 정보가 병합됩니다.</span>
+              </div>
+              <span className="status-pill">대기</span>
+            </article>
+          ) : (
+            <form action={linkRequestAction} className="member-form account-link-form">
+              <label>
+                연결할 교적 멤버
+                <select name="targetMemberId" disabled={linkableMembers.length === 0}>
+                  {linkableMembers.map((candidate) => (
+                    <option key={candidate.id} value={candidate.id}>
+                      {candidate.name} · {candidate.groupName} · {candidate.email || "이메일 없음"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                메모
+                <input name="note" placeholder="예: 제가 이 멤버입니다" />
+              </label>
+              <div className="form-actions">
+                <ActionMessage state={linkRequestState} />
+                <button className="primary-button" type="submit" disabled={isCreatingLinkRequest || linkableMembers.length === 0}>
+                  연결 요청
+                </button>
+              </div>
+            </form>
+          )}
+        </section>
+      ) : null}
 
       <div className="detail-layout">
         <section className="panel">

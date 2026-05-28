@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const dataSource = readFileSync(new URL("../src/lib/supabase/data.ts", import.meta.url), "utf8");
+const schemaSource = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
   assert.match(dataSource, /id, auth_user_id, name/);
@@ -24,4 +25,11 @@ test("dashboard queries do not use known ambiguous embeds", () => {
 test("group leader query uses the explicit leader relationship", () => {
   assert.match(dataSource, /leader:members!groups_leader_member_id_fkey\(name\)/);
   assert.match(dataSource, /leader_member_id/);
+});
+
+test("schema includes member link request workflow", () => {
+  assert.match(schemaSource, /create table member_link_requests/);
+  assert.match(schemaSource, /member_link_requests_one_pending_per_requester_idx/);
+  assert.match(schemaSource, /users can create their own link requests/);
+  assert.match(dataSource, /member_link_requests/);
 });

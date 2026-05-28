@@ -1,5 +1,5 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
-import type { AttendanceEvent, AuditLog, CareFollowup, CustomFieldDefinition, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, CareFollowup, CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -72,6 +72,18 @@ type DbAuditLog = {
   metadata: Record<string, unknown> | null;
   created_at: string;
   actor?: { name: string | null } | Array<{ name: string | null }> | null;
+};
+
+type DbMemberLinkRequest = {
+  id: string;
+  requester_member_id: string;
+  target_member_id: string;
+  status: "pending" | "approved" | "rejected";
+  note: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  requester?: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
+  target?: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
 };
 
 export async function getOrCreateCurrentMember(
@@ -328,6 +340,45 @@ export async function getAuditLogs(supabase: SupabaseClient) {
       afterData: log.after_data,
       metadata: log.metadata ?? {},
       createdAt: log.created_at,
+    };
+  });
+}
+
+export async function getMemberLinkRequests(supabase: SupabaseClient, currentMemberId: string, includeAll: boolean) {
+  let query = supabase
+    .from("member_link_requests")
+    .select(
+      "id, requester_member_id, target_member_id, status, note, created_at, resolved_at, requester:members!member_link_requests_requester_member_id_fkey(name, email), target:members!member_link_requests_target_member_id_fkey(name, email)",
+    )
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (!includeAll) {
+    query = query.eq("requester_member_id", currentMemberId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  return (data as unknown as DbMemberLinkRequest[]).map<MemberLinkRequest>((request) => {
+    const requester = Array.isArray(request.requester) ? request.requester[0] : request.requester;
+    const target = Array.isArray(request.target) ? request.target[0] : request.target;
+    return {
+      id: request.id,
+      requesterMemberId: request.requester_member_id,
+      requesterName: requester?.name ?? "알 수 없음",
+      requesterEmail: requester?.email ?? "",
+      targetMemberId: request.target_member_id,
+      targetName: target?.name ?? "알 수 없음",
+      targetEmail: target?.email ?? "",
+      status: request.status,
+      note: request.note ?? "",
+      createdAt: request.created_at,
+      resolvedAt: request.resolved_at,
     };
   });
 }

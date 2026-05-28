@@ -37,9 +37,11 @@ export default async function ProfilePage() {
             groups={readyData.groups}
             members={readyData.members}
             customFieldDefinitions={readyData.customFieldDefinitions}
+            memberLinkRequests={readyData.memberLinkRequests}
             eyebrow="내 프로필"
             backHref="/"
             backLabel="대시보드"
+            showLinkRequest
           />
         );
       }}

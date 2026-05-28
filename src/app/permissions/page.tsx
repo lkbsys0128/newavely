@@ -10,7 +10,12 @@ export default async function PermissionsPage() {
   return (
     <AppPageGate data={data}>
       {(readyData) => (
-        <PermissionsPageContent user={readyData.user} members={readyData.members} groups={readyData.groups} />
+        <PermissionsPageContent
+          user={readyData.user}
+          members={readyData.members}
+          groups={readyData.groups}
+          memberLinkRequests={readyData.memberLinkRequests}
+        />
       )}
     </AppPageGate>
   );

@@ -7,7 +7,9 @@ import {
   createGroup,
   createMember,
   deactivateMember,
+  approveMemberLinkRequest,
   mergeMemberProfile,
+  rejectMemberLinkRequest,
   reactivateMember,
   toggleAttendance,
   updateAttendanceReason,
@@ -18,13 +20,14 @@ import {
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
-import type { AttendanceEvent, AuditLog, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, Group, Member, MemberLinkRequest } from "@/lib/types";
 import { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers, type MemberFilters } from "@/lib/member-filters";
 
 type AppDataProps = {
   user: AppUser;
   members: Member[];
   groups: Group[];
+  memberLinkRequests?: MemberLinkRequest[];
 };
 
 type AttendanceFilter = "all" | "present" | "absent" | "excused";
@@ -1026,9 +1029,12 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
   return "absent";
 }
 
-export function PermissionsPageContent({ user, members }: AppDataProps) {
+export function PermissionsPageContent({ user, members, memberLinkRequests = [] }: AppDataProps) {
   const [roleState, roleAction, isUpdatingRole] = useActionState(updateMemberRole, initialActionState);
+  const [approveState, approveAction, isApprovingRequest] = useActionState(approveMemberLinkRequest, initialActionState);
+  const [rejectState, rejectAction, isRejectingRequest] = useActionState(rejectMemberLinkRequest, initialActionState);
   const canManageRoles = hasPermission(user.role, "roles:manage");
+  const pendingLinkRequests = memberLinkRequests.filter((request) => request.status === "pending");
   const activeAdmins = members.filter((member) => member.role === "admin" && member.status !== "inactive");
   const connectedAdmins = activeAdmins.filter((member) => member.authUserId);
   const linkedAccountMembers = members
@@ -1128,6 +1134,59 @@ export function PermissionsPageContent({ user, members }: AppDataProps) {
           ))}
         </div>
         <ActionMessage state={roleState} />
+      </section>
+
+      <section className="panel form-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>교적 연결 요청</h2>
+            <p className="meta">첫 로그인 사용자가 기존 CSV 교적 멤버와 연결을 요청하면 여기서 승인합니다.</p>
+          </div>
+          <span>{pendingLinkRequests.length}건 대기</span>
+        </div>
+        <div className="role-management-list">
+          {pendingLinkRequests.map((request) => (
+            <article className="definition-row" key={request.id}>
+              <div className="detail-row">
+                <div className="person-block">
+                  <strong>{request.requesterName}</strong>
+                  <span>
+                    요청자 · {request.requesterEmail || "이메일 없음"} · {new Date(request.createdAt).toLocaleString("ko-KR")}
+                  </span>
+                  {request.note ? <span>메모: {request.note}</span> : null}
+                </div>
+                <div className="person-block">
+                  <strong>{request.targetName}</strong>
+                  <span>연결 대상 · {request.targetEmail || "이메일 없음"}</span>
+                </div>
+              </div>
+              <div className="row-actions request-actions">
+                <form action={approveAction}>
+                  <input name="id" type="hidden" value={request.id} />
+                  <button className="primary-button" type="submit" disabled={!canManageRoles || isApprovingRequest}>
+                    승인
+                  </button>
+                </form>
+                <form action={rejectAction}>
+                  <input name="id" type="hidden" value={request.id} />
+                  <button className="danger-button" type="submit" disabled={!canManageRoles || isRejectingRequest}>
+                    거절
+                  </button>
+                </form>
+              </div>
+            </article>
+          ))}
+          {pendingLinkRequests.length === 0 ? (
+            <article className="care-item">
+              <div className="person-block">
+                <strong>대기 중인 요청이 없습니다</strong>
+                <span>새 사용자가 내 프로필에서 연결 요청을 만들면 이곳에 표시됩니다.</span>
+              </div>
+            </article>
+          ) : null}
+        </div>
+        <ActionMessage state={approveState} />
+        <ActionMessage state={rejectState} />
       </section>
 
       <section className="panel form-panel">

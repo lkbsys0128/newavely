@@ -1,5 +1,5 @@
 import { hasPermission, type Role } from "@/lib/rbac";
-import type { AttendanceEvent, AuditLog, CustomFieldDefinition, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -8,6 +8,7 @@ import {
   getAuditLogs,
   getCustomFieldDefinitions,
   getDashboardData,
+  getMemberLinkRequests,
   getOrCreateCurrentMember,
 } from "@/lib/supabase/data";
 
@@ -27,6 +28,7 @@ export type ReadyAppPageData = {
   attendanceEvents: AttendanceEvent[];
   members: Member[];
   groups: Group[];
+  memberLinkRequests: MemberLinkRequest[];
   auditLogs?: AuditLog[];
   customFieldDefinitions: CustomFieldDefinition[];
 };
@@ -65,6 +67,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       ? allCustomFieldDefinitions
       : allCustomFieldDefinitions.filter((field) => !field.isSensitive);
     const auditLogs = currentMember.role === "admin" ? await getAuditLogs(supabase) : undefined;
+    const memberLinkRequests = await getMemberLinkRequests(supabase, currentMember.id, currentMember.role === "admin");
 
     return {
       status: "ready",
@@ -80,6 +83,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       attendanceEvents: dashboardData.attendanceEvents,
       members: dashboardData.members,
       groups: dashboardData.groups,
+      memberLinkRequests,
       auditLogs,
       customFieldDefinitions,
     };

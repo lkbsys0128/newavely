@@ -58,6 +58,15 @@ const updateMemberRoleSchema = z.object({
   role: z.enum(["admin", "leader", "staff", "member"]),
 });
 
+const createMemberLinkRequestSchema = z.object({
+  targetMemberId: z.string().uuid(),
+  note: nullableText,
+});
+
+const memberLinkRequestDecisionSchema = z.object({
+  id: z.string().uuid(),
+});
+
 const groupSchema = z.object({
   name: z.string().min(1),
   leaderMemberId: nullableUuid,
@@ -173,7 +182,7 @@ async function runAction(callback: () => Promise<string>): Promise<ActionState> 
 }
 
 async function getAuthorizedCurrentMember(
-  permission: "members:write" | "groups:write" | "attendance:write" | "roles:manage",
+  permission: "members:read" | "members:write" | "groups:write" | "attendance:write" | "roles:manage",
 ) {
   const supabase = await createClient();
   const {
@@ -622,6 +631,134 @@ export async function mergeMemberProfile(_previousState: ActionState, formData: 
     });
     revalidateAppData();
     return "Google 계정 멤버에 교적 정보를 병합했습니다.";
+  });
+}
+
+export async function createMemberLinkRequest(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:read");
+    const parsed = createMemberLinkRequestSchema.parse({
+      targetMemberId: formData.get("targetMemberId"),
+      note: formData.get("note"),
+    });
+
+    if (parsed.targetMemberId === currentMember.id) {
+      throw new Error("본인 프로필과 같은 멤버는 선택할 수 없습니다.");
+    }
+
+    const { data: targetMember, error: targetError } = await supabase
+      .from("members")
+      .select("id, auth_user_id, status")
+      .eq("id", parsed.targetMemberId)
+      .single();
+
+    if (targetError) throw targetError;
+    if (targetMember.auth_user_id) throw new Error("이미 Google 계정이 연결된 멤버입니다.");
+    if (targetMember.status === "inactive") throw new Error("비활성화된 멤버에는 연결 요청을 만들 수 없습니다.");
+
+    const { data: inserted, error } = await supabase
+      .from("member_link_requests")
+      .insert({
+        requester_member_id: currentMember.id,
+        target_member_id: parsed.targetMemberId,
+        note: parsed.note,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member_link_request.create",
+      targetTable: "member_link_requests",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "교적 연결 요청을 보냈습니다. 관리자가 확인하면 내 프로필에 반영됩니다.";
+  });
+}
+
+export async function approveMemberLinkRequest(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = memberLinkRequestDecisionSchema.parse({ id: formData.get("id") });
+
+    const { data: request, error: requestError } = await supabase
+      .from("member_link_requests")
+      .select("*")
+      .eq("id", parsed.id)
+      .eq("status", "pending")
+      .single();
+
+    if (requestError) throw requestError;
+
+    const mergeFormData = new FormData();
+    mergeFormData.set("survivorMemberId", request.requester_member_id as string);
+    mergeFormData.set("sourceMemberId", request.target_member_id as string);
+    mergeFormData.set("nameChoice", "source");
+    mergeFormData.set("emailChoice", "survivor");
+    mergeFormData.set("phoneChoice", "source");
+    mergeFormData.set("groupChoice", "source");
+    mergeFormData.set("statusChoice", "source");
+    mergeFormData.set("addressChoice", "source");
+    mergeFormData.set("baptismChoice", "source");
+    mergeFormData.set("notesChoice", "source");
+
+    const mergeResult = await mergeMemberProfile(_previousState, mergeFormData);
+    if (!mergeResult.ok) throw new Error(mergeResult.message);
+
+    const { data: updatedRequest, error: updateError } = await supabase
+      .from("member_link_requests")
+      .update({
+        status: "approved",
+        resolved_at: new Date().toISOString(),
+        resolved_by_member_id: currentMember.id,
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+
+    if (updateError) throw updateError;
+    await writeAuditLog({
+      supabase,
+      action: "member_link_request.approve",
+      targetTable: "member_link_requests",
+      targetId: parsed.id,
+      afterData: updatedRequest as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "교적 연결 요청을 승인했습니다.";
+  });
+}
+
+export async function rejectMemberLinkRequest(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = memberLinkRequestDecisionSchema.parse({ id: formData.get("id") });
+
+    const { data: updatedRequest, error } = await supabase
+      .from("member_link_requests")
+      .update({
+        status: "rejected",
+        resolved_at: new Date().toISOString(),
+        resolved_by_member_id: currentMember.id,
+      })
+      .eq("id", parsed.id)
+      .eq("status", "pending")
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member_link_request.reject",
+      targetTable: "member_link_requests",
+      targetId: parsed.id,
+      afterData: updatedRequest as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "교적 연결 요청을 거절했습니다.";
   });
 }
 

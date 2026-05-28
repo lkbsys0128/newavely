@@ -74,6 +74,18 @@ create table care_followups (
   completed_at timestamptz
 );
 
+create table member_link_requests (
+  id uuid primary key default gen_random_uuid(),
+  requester_member_id uuid not null references members(id) on delete cascade,
+  target_member_id uuid not null references members(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  note text,
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz,
+  resolved_by_member_id uuid references members(id) on delete set null,
+  constraint member_link_requests_distinct_members check (requester_member_id <> target_member_id)
+);
+
 create index members_group_idx on members(group_id);
 create index members_role_idx on members(role);
 create index members_auth_user_idx on members(auth_user_id);
@@ -81,6 +93,11 @@ create index attendance_records_event_idx on attendance_records(event_id);
 create index attendance_records_member_idx on attendance_records(member_id);
 create index care_followups_member_idx on care_followups(member_id);
 create index care_followups_status_idx on care_followups(status);
+create unique index member_link_requests_one_pending_per_requester_idx
+on member_link_requests(requester_member_id)
+where status = 'pending';
+create index member_link_requests_target_idx on member_link_requests(target_member_id);
+create index member_link_requests_status_idx on member_link_requests(status);
 
 alter table groups enable row level security;
 alter table members enable row level security;
@@ -88,6 +105,7 @@ alter table attendance_events enable row level security;
 alter table attendance_records enable row level security;
 alter table member_custom_field_definitions enable row level security;
 alter table care_followups enable row level security;
+alter table member_link_requests enable row level security;
 
 create or replace function current_member_role()
 returns member_role
@@ -203,3 +221,24 @@ on care_followups for all
 to authenticated
 using (can_manage_members())
 with check (can_manage_members());
+
+create policy "users can read their own link requests"
+on member_link_requests for select
+to authenticated
+using (
+  requester_member_id in (select id from members where auth_user_id = auth.uid())
+  or current_member_role() = 'admin'
+);
+
+create policy "users can create their own link requests"
+on member_link_requests for insert
+to authenticated
+with check (
+  requester_member_id in (select id from members where auth_user_id = auth.uid())
+);
+
+create policy "admins can update link requests"
+on member_link_requests for update
+to authenticated
+using (current_member_role() = 'admin')
+with check (current_member_role() = 'admin');
