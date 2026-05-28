@@ -523,12 +523,10 @@ export async function mergeMemberProfile(_previousState: ActionState, formData: 
 
     const now = new Date().toISOString();
     const selectedEmail = chooseMergeValue(parsed.emailChoice, survivorMember.email, sourceMember.email) ?? null;
-    const movesSourceEmail =
-      parsed.emailChoice === "source" &&
-      typeof sourceMember.email === "string" &&
-      sourceMember.email.length > 0 &&
-      sourceMember.email !== survivorMember.email;
-    const sourceEmailAfterMerge = movesSourceEmail ? makeMergedPlaceholderEmail(sourceMember.id) : sourceMember.email;
+    const sourceEmailAfterMerge =
+      typeof sourceMember.email === "string" && sourceMember.email.length > 0
+        ? makeMergedPlaceholderEmail(sourceMember.id)
+        : null;
     const survivorPayload = {
       name: chooseMergeValue(parsed.nameChoice, survivorMember.name, sourceMember.name),
       email: selectedEmail,

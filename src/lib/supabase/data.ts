@@ -91,6 +91,26 @@ export async function getOrCreateCurrentMember(
   const normalizedEmail = user.email?.trim().toLowerCase();
 
   if (normalizedEmail) {
+    const { data: emailOwner, error: emailOwnerError } = await supabase
+      .from("members")
+      .select("id, role, auth_user_id")
+      .eq("email", normalizedEmail)
+      .maybeSingle();
+
+    if (emailOwnerError) throw emailOwnerError;
+
+    if (emailOwner && (!emailOwner.auth_user_id || emailOwner.auth_user_id === user.id)) {
+      const { data: linkedEmailOwner, error: linkedEmailOwnerError } = await supabase
+        .from("members")
+        .update({ auth_user_id: user.id, role })
+        .eq("id", emailOwner.id)
+        .select("id, role")
+        .single();
+
+      if (linkedEmailOwnerError) throw linkedEmailOwnerError;
+      return { id: linkedEmailOwner.id as string, role: linkedEmailOwner.role as Role };
+    }
+
     const { data: importedMember, error: importedMemberError } = await supabase
       .from("members")
       .update({ auth_user_id: user.id, role })
@@ -108,12 +128,29 @@ export async function getOrCreateCurrentMember(
     .insert({
       auth_user_id: user.id,
       name: user.name ?? user.email ?? "새 멤버",
-      email: normalizedEmail ?? null,
+      email: normalizedEmail && !normalizedEmail.endsWith("@merged.local") ? normalizedEmail : null,
       role,
       status: "active",
     })
     .select("id, role")
     .single();
+
+  if (insertError?.code === "23505" && normalizedEmail) {
+    const { data: insertedWithoutEmail, error: fallbackInsertError } = await supabase
+      .from("members")
+      .insert({
+        auth_user_id: user.id,
+        name: user.name ?? user.email ?? "새 멤버",
+        email: null,
+        role,
+        status: "active",
+      })
+      .select("id, role")
+      .single();
+
+    if (fallbackInsertError) throw fallbackInsertError;
+    return { id: insertedWithoutEmail.id as string, role: insertedWithoutEmail.role as Role };
+  }
 
   if (insertError) throw insertError;
   return { id: inserted.id as string, role: inserted.role as Role };
