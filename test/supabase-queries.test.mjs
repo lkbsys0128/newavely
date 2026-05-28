@@ -6,6 +6,7 @@ const dataSource = readFileSync(new URL("../src/lib/supabase/data.ts", import.me
 const schemaSource = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
 const staleLinkCleanupSource = readFileSync(new URL("../db/009_cleanup_stale_member_link_requests.sql", import.meta.url), "utf8");
 const memberDeletePolicySource = readFileSync(new URL("../db/010_admin_member_delete_policy.sql", import.meta.url), "utf8");
+const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_request_admin_policy.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
@@ -68,8 +69,10 @@ test("admins get a visible pending link request notification", () => {
 test("link request decisions support rejection and new member creation", () => {
   assert.match(actionsSource, /\.maybeSingle\(\)/);
   assert.match(actionsSource, /요청이 이미 정리되었습니다/);
+  assert.match(actionsSource, /교적 연결 요청이 거절되었습니다/);
   assert.match(actionsSource, /member\.create_for_link_request/);
   assert.match(dashboardSource, /새 교적 생성 후 연결/);
+  assert.match(memberLinkAdminPolicySource, /admins can update link requests/);
 });
 
 test("member permanent delete is admin-only and audited", () => {

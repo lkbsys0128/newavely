@@ -116,4 +116,5 @@ test("link request notifications only count pending first-login requests", () =>
   assert.equal(isActionableLinkRequest({ ...baseRequest, requesterStatus: "active" }), false);
   assert.equal(isActionableLinkRequest({ ...baseRequest, requesterName: "알 수 없음" }), false);
   assert.equal(isActionableLinkRequest({ ...baseRequest, status: "approved" }), false);
+  assert.equal(isActionableLinkRequest({ ...baseRequest, status: "rejected", resolvedAt: "2026-05-28T01:00:00.000Z" }), false);
 });

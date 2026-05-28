@@ -657,6 +657,23 @@ export async function createMemberLinkRequest(_previousState: ActionState, formD
       throw new Error("본인 프로필과 같은 멤버는 선택할 수 없습니다.");
     }
 
+    const { data: existingRequests, error: existingRequestsError } = await supabase
+      .from("member_link_requests")
+      .select("id, status")
+      .eq("requester_member_id", currentMember.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (existingRequestsError) throw existingRequestsError;
+
+    const latestRequest = existingRequests?.[0];
+    if (latestRequest?.status === "pending") {
+      throw new Error("이미 교적 연결 요청을 보냈습니다. 관리자의 승인을 기다려주세요.");
+    }
+    if (latestRequest?.status === "rejected") {
+      throw new Error("교적 연결 요청이 거절되었습니다. Newave 운영 관리자에게 직접 연락해주세요.");
+    }
+
     if (parsed.targetMemberId) {
       const { data: targetMember, error: targetError } = await supabase
         .from("members")

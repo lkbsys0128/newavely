@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { createMemberLinkRequest, type ActionState } from "@/app/actions";
 import { isMergedPlaceholderMember } from "@/lib/member-filters";
+import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import type { AppUser } from "@/lib/app-page-data";
 import type { Member, MemberLinkRequest } from "@/lib/types";
 
@@ -21,7 +22,8 @@ export function OnboardingPanel({
 }) {
   const [query, setQuery] = useState("");
   const [state, action, isSubmitting] = useActionState(createMemberLinkRequest, initialActionState);
-  const pendingRequest = memberLinkRequests.find((request) => request.status === "pending");
+  const pendingRequest = memberLinkRequests.find(isActionableLinkRequest);
+  const rejectedRequest = memberLinkRequests.find((request) => request.status === "rejected");
   const normalizedQuery = query.trim().toLowerCase();
   const canShowResults = normalizedQuery.length >= 2;
   const candidates = useMemo(
@@ -61,6 +63,16 @@ export function OnboardingPanel({
               {pendingRequest.targetEmail ? ` · ${pendingRequest.targetEmail}` : ""}
             </span>
             <span>승인되면 앱 권한은 기본 멤버 권한으로 시작하며, 관리 권한은 관리자가 별도로 부여합니다.</span>
+          </div>
+        ) : rejectedRequest ? (
+          <div className="empty-state rejected-state">
+            <strong>교적 연결 요청이 거절되었습니다</strong>
+            <span>
+              {rejectedRequest.resolvedAt
+                ? `${new Date(rejectedRequest.resolvedAt).toLocaleString("ko-KR")}에 관리자가 요청을 거절했습니다.`
+                : "관리자가 요청을 거절했습니다."}
+            </span>
+            <span>계정 연결이 필요하면 Newave 운영 관리자에게 직접 연락해주세요.</span>
           </div>
         ) : (
           <>

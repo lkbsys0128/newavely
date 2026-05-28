@@ -979,6 +979,15 @@ tbody tr:hover {
   color: var(--ink);
 }
 
+.rejected-state {
+  border-color: rgba(198, 80, 80, 0.35);
+  background: rgba(198, 80, 80, 0.06);
+}
+
+.rejected-state strong {
+  color: var(--accent-2);
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
