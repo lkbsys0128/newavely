@@ -4,6 +4,7 @@ import test from "node:test";
 
 const dataSource = readFileSync(new URL("../src/lib/supabase/data.ts", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
+const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
   assert.match(dataSource, /id, auth_user_id, name/);
@@ -32,4 +33,21 @@ test("schema includes member link request workflow", () => {
   assert.match(schemaSource, /member_link_requests_one_pending_per_requester_idx/);
   assert.match(schemaSource, /users can create their own link requests/);
   assert.match(dataSource, /member_link_requests/);
+});
+
+test("first-login onboarding does not auto-link or auto-admin new Google users", () => {
+  assert.doesNotMatch(dataSource, /\.update\(\{ auth_user_id: user\.id, role \}\)/);
+  assert.match(dataSource, /status: "new"/);
+  assert.match(dataSource, /needsOnboarding: true/);
+  assert.match(onboardingSource, /본인 교적을 연결해주세요/);
+});
+
+test("schema allows admin-routed link requests while tightening member reads", () => {
+  assert.match(schemaSource, /target_member_id uuid references members/);
+  assert.match(schemaSource, /current_member_status\(\) = 'new'/);
+  assert.match(schemaSource, /auth_user_id is null/);
+  assert.match(schemaSource, /users can create their own pending member profile/);
+  assert.match(schemaSource, /and role = 'member'/);
+  assert.match(schemaSource, /and status = 'new'/);
+  assert.match(schemaSource, /authorized users can read attendance records/);
 });

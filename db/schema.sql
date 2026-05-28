@@ -77,13 +77,13 @@ create table care_followups (
 create table member_link_requests (
   id uuid primary key default gen_random_uuid(),
   requester_member_id uuid not null references members(id) on delete cascade,
-  target_member_id uuid not null references members(id) on delete cascade,
+  target_member_id uuid references members(id) on delete cascade,
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   note text,
   created_at timestamptz not null default now(),
   resolved_at timestamptz,
   resolved_by_member_id uuid references members(id) on delete set null,
-  constraint member_link_requests_distinct_members check (requester_member_id <> target_member_id)
+  constraint member_link_requests_distinct_members check (target_member_id is null or requester_member_id <> target_member_id)
 );
 
 create index members_group_idx on members(group_id);
@@ -120,6 +120,19 @@ as $$
   );
 $$;
 
+create or replace function current_member_status()
+returns member_status
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select status from members where auth_user_id = auth.uid()),
+    'new'::member_status
+  );
+$$;
+
 create or replace function can_manage_members()
 returns boolean
 language sql
@@ -128,6 +141,16 @@ security definer
 set search_path = public
 as $$
   select current_member_role() in ('admin', 'leader');
+$$;
+
+create or replace function can_read_members()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select current_member_role() in ('admin', 'leader', 'staff');
 $$;
 
 create or replace function can_manage_attendance()
@@ -151,32 +174,38 @@ to authenticated
 using (current_member_role() = 'admin')
 with check (current_member_role() = 'admin');
 
-create policy "authenticated users can read active members"
+create policy "authenticated users can read allowed members"
 on members for select
 to authenticated
-using (status <> 'inactive' or auth_user_id = auth.uid() or current_member_role() = 'admin');
+using (
+  can_read_members()
+  or auth_user_id = auth.uid()
+  or (
+    current_member_status() = 'new'
+    and status <> 'inactive'
+    and auth_user_id is null
+  )
+);
 
-create policy "users can create their own member profile"
+create policy "users can create their own pending member profile"
 on members for insert
 to authenticated
-with check (auth_user_id = auth.uid());
+with check (
+  auth_user_id = auth.uid()
+  and role = 'member'
+  and status = 'new'
+);
 
 create policy "admins and leaders can insert members"
 on members for insert
 to authenticated
 with check (can_manage_members());
 
-create policy "users can update their own member profile"
-on members for update
-to authenticated
-using (auth_user_id = auth.uid())
-with check (auth_user_id = auth.uid());
-
 create policy "admins and leaders can update members"
 on members for update
 to authenticated
-using (can_manage_members() or auth_user_id = auth.uid())
-with check (can_manage_members() or auth_user_id = auth.uid());
+using (can_manage_members())
+with check (can_manage_members());
 
 create policy "authenticated users can read attendance events"
 on attendance_events for select
@@ -189,10 +218,13 @@ to authenticated
 using (can_manage_attendance())
 with check (can_manage_attendance());
 
-create policy "authenticated users can read attendance records"
+create policy "authorized users can read attendance records"
 on attendance_records for select
 to authenticated
-using (true);
+using (
+  current_member_role() in ('admin', 'leader', 'staff')
+  or member_id in (select id from members where auth_user_id = auth.uid())
+);
 
 create policy "admins and leaders can manage attendance records"
 on attendance_records for all

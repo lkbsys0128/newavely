@@ -77,7 +77,7 @@ type DbAuditLog = {
 type DbMemberLinkRequest = {
   id: string;
   requester_member_id: string;
-  target_member_id: string;
+  target_member_id: string | null;
   status: "pending" | "approved" | "rejected";
   note: string | null;
   created_at: string;
@@ -92,48 +92,27 @@ export async function getOrCreateCurrentMember(
 ) {
   const { data: existing, error: existingError } = await supabase
     .from("members")
-    .select("id, role")
+    .select("id, role, status")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
   if (existingError) throw existingError;
-  if (existing) return { id: existing.id as string, role: existing.role as Role };
+  if (existing) {
+    return {
+      id: existing.id as string,
+      role: existing.role as Role,
+      status: existing.status as DbMember["status"],
+      needsOnboarding: existing.status === "new",
+    };
+  }
 
   const role = getRoleForEmail(user.email ?? "");
   const normalizedEmail = user.email?.trim().toLowerCase();
-
-  if (normalizedEmail) {
-    const { data: emailOwner, error: emailOwnerError } = await supabase
-      .from("members")
-      .select("id, role, auth_user_id")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
-
-    if (emailOwnerError) throw emailOwnerError;
-
-    if (emailOwner && (!emailOwner.auth_user_id || emailOwner.auth_user_id === user.id)) {
-      const { data: linkedEmailOwner, error: linkedEmailOwnerError } = await supabase
-        .from("members")
-        .update({ auth_user_id: user.id, role })
-        .eq("id", emailOwner.id)
-        .select("id, role")
-        .single();
-
-      if (linkedEmailOwnerError) throw linkedEmailOwnerError;
-      return { id: linkedEmailOwner.id as string, role: linkedEmailOwner.role as Role };
-    }
-
-    const { data: importedMember, error: importedMemberError } = await supabase
-      .from("members")
-      .update({ auth_user_id: user.id, role })
-      .eq("email", normalizedEmail)
-      .is("auth_user_id", null)
-      .select("id, role")
-      .maybeSingle();
-
-    if (importedMemberError) throw importedMemberError;
-    if (importedMember) return { id: importedMember.id as string, role: importedMember.role as Role };
-  }
+  const customFields = {
+    google_account_name: user.name ?? user.email ?? "새 로그인 사용자",
+    google_account_email: normalizedEmail ?? "",
+    onboarding_status: "profile_link_required",
+  };
 
   const { data: inserted, error: insertError } = await supabase
     .from("members")
@@ -142,9 +121,10 @@ export async function getOrCreateCurrentMember(
       name: user.name ?? user.email ?? "새 멤버",
       email: normalizedEmail && !normalizedEmail.endsWith("@merged.local") ? normalizedEmail : null,
       role,
-      status: "active",
+      status: "new",
+      custom_fields: customFields,
     })
-    .select("id, role")
+    .select("id, role, status")
     .single();
 
   if (insertError?.code === "23505" && normalizedEmail) {
@@ -155,17 +135,28 @@ export async function getOrCreateCurrentMember(
         name: user.name ?? user.email ?? "새 멤버",
         email: null,
         role,
-        status: "active",
+        status: "new",
+        custom_fields: customFields,
       })
-      .select("id, role")
+      .select("id, role, status")
       .single();
 
     if (fallbackInsertError) throw fallbackInsertError;
-    return { id: insertedWithoutEmail.id as string, role: insertedWithoutEmail.role as Role };
+    return {
+      id: insertedWithoutEmail.id as string,
+      role: insertedWithoutEmail.role as Role,
+      status: insertedWithoutEmail.status as DbMember["status"],
+      needsOnboarding: true,
+    };
   }
 
   if (insertError) throw insertError;
-  return { id: inserted.id as string, role: inserted.role as Role };
+  return {
+    id: inserted.id as string,
+    role: inserted.role as Role,
+    status: inserted.status as DbMember["status"],
+    needsOnboarding: true,
+  };
 }
 
 export async function ensureAttendanceEvent(supabase: SupabaseClient) {
@@ -373,7 +364,7 @@ export async function getMemberLinkRequests(supabase: SupabaseClient, currentMem
       requesterName: requester?.name ?? "알 수 없음",
       requesterEmail: requester?.email ?? "",
       targetMemberId: request.target_member_id,
-      targetName: target?.name ?? "알 수 없음",
+      targetName: target?.name ?? "관리자 확인 필요",
       targetEmail: target?.email ?? "",
       status: request.status,
       note: request.note ?? "",

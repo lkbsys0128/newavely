@@ -59,12 +59,13 @@ const updateMemberRoleSchema = z.object({
 });
 
 const createMemberLinkRequestSchema = z.object({
-  targetMemberId: z.string().uuid(),
+  targetMemberId: nullableUuid,
   note: nullableText,
 });
 
 const memberLinkRequestDecisionSchema = z.object({
   id: z.string().uuid(),
+  targetMemberId: nullableUuid.optional(),
 });
 
 const groupSchema = z.object({
@@ -646,15 +647,17 @@ export async function createMemberLinkRequest(_previousState: ActionState, formD
       throw new Error("본인 프로필과 같은 멤버는 선택할 수 없습니다.");
     }
 
-    const { data: targetMember, error: targetError } = await supabase
-      .from("members")
-      .select("id, auth_user_id, status")
-      .eq("id", parsed.targetMemberId)
-      .single();
+    if (parsed.targetMemberId) {
+      const { data: targetMember, error: targetError } = await supabase
+        .from("members")
+        .select("id, auth_user_id, status")
+        .eq("id", parsed.targetMemberId)
+        .single();
 
-    if (targetError) throw targetError;
-    if (targetMember.auth_user_id) throw new Error("이미 Google 계정이 연결된 멤버입니다.");
-    if (targetMember.status === "inactive") throw new Error("비활성화된 멤버에는 연결 요청을 만들 수 없습니다.");
+      if (targetError) throw targetError;
+      if (targetMember.auth_user_id) throw new Error("이미 Google 계정이 연결된 멤버입니다.");
+      if (targetMember.status === "inactive") throw new Error("비활성화된 멤버에는 연결 요청을 만들 수 없습니다.");
+    }
 
     const { data: inserted, error } = await supabase
       .from("member_link_requests")
@@ -682,7 +685,10 @@ export async function createMemberLinkRequest(_previousState: ActionState, formD
 export async function approveMemberLinkRequest(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
-    const parsed = memberLinkRequestDecisionSchema.parse({ id: formData.get("id") });
+    const parsed = memberLinkRequestDecisionSchema.parse({
+      id: formData.get("id"),
+      targetMemberId: formData.get("targetMemberId"),
+    });
 
     const { data: request, error: requestError } = await supabase
       .from("member_link_requests")
@@ -692,10 +698,14 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
       .single();
 
     if (requestError) throw requestError;
+    const targetMemberId = (request.target_member_id as string | null) ?? parsed.targetMemberId;
+    if (!targetMemberId) {
+      throw new Error("연결할 교적 멤버를 선택해주세요.");
+    }
 
     const mergeFormData = new FormData();
     mergeFormData.set("survivorMemberId", request.requester_member_id as string);
-    mergeFormData.set("sourceMemberId", request.target_member_id as string);
+    mergeFormData.set("sourceMemberId", targetMemberId);
     mergeFormData.set("nameChoice", "source");
     mergeFormData.set("emailChoice", "survivor");
     mergeFormData.set("phoneChoice", "source");
@@ -707,6 +717,13 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
 
     const mergeResult = await mergeMemberProfile(_previousState, mergeFormData);
     if (!mergeResult.ok) throw new Error(mergeResult.message);
+
+    const { error: roleResetError } = await supabase
+      .from("members")
+      .update({ role: "member", updated_at: new Date().toISOString() })
+      .eq("id", request.requester_member_id as string);
+
+    if (roleResetError) throw roleResetError;
 
     const { data: updatedRequest, error: updateError } = await supabase
       .from("member_link_requests")

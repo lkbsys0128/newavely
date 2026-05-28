@@ -1053,7 +1053,7 @@ export function PermissionsPageContent({ user, members, memberLinkRequests = [] 
     .filter((member) => member.authUserId)
     .sort((a, b) => a.name.localeCompare(b.name));
   const unlinkedActiveMembers = members
-    .filter((member) => !member.authUserId && member.status !== "inactive")
+    .filter((member) => !member.authUserId && member.status !== "inactive" && !isMergedPlaceholderMember(member))
     .sort((a, b) => a.name.localeCompare(b.name));
   const roleManagedMembers = [...members]
     .filter((member) => member.status !== "inactive")
@@ -1169,11 +1169,24 @@ export function PermissionsPageContent({ user, members, memberLinkRequests = [] 
                 </div>
                 <div className="person-block">
                   <strong>{request.targetName}</strong>
-                  <span>연결 대상 · {request.targetEmail || "이메일 없음"}</span>
+                  <span>연결 대상 · {request.targetEmail || (request.targetMemberId ? "이메일 없음" : "관리자가 선택 필요")}</span>
+                  {!request.targetMemberId ? (
+                    <label>
+                      연결할 교적 멤버
+                      <select name="targetMemberId" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
+                        <option value="">선택</option>
+                        {unlinkedActiveMembers.map((member) => (
+                          <option key={member.id} value={member.id}>
+                            {member.name} · {member.groupName} · {member.email || "이메일 없음"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
                 </div>
               </div>
               <div className="row-actions request-actions">
-                <form action={approveAction}>
+                <form action={approveAction} id={`approve-link-request-${request.id}`}>
                   <input name="id" type="hidden" value={request.id} />
                   <button className="primary-button" type="submit" disabled={!canManageRoles || isApprovingRequest}>
                     승인

@@ -33,10 +33,19 @@ export type ReadyAppPageData = {
   customFieldDefinitions: CustomFieldDefinition[];
 };
 
+export type OnboardingAppPageData = {
+  status: "onboarding";
+  user: AppUser;
+  currentMemberId: string;
+  members: Member[];
+  memberLinkRequests: MemberLinkRequest[];
+};
+
 export type AppPageData =
   | { status: "setup" }
   | { status: "auth" }
   | { status: "error"; message: string }
+  | OnboardingAppPageData
   | ReadyAppPageData;
 
 export async function getAppPageData(options?: { attendanceEventId?: string }): Promise<AppPageData> {
@@ -59,8 +68,28 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       email: user.email,
       name: user.user_metadata?.full_name,
     });
+
     await ensureAttendanceEvent(supabase);
     const dashboardData = await getDashboardData(supabase, options?.attendanceEventId);
+    const appUser = {
+      id: user.id,
+      name: user.user_metadata?.full_name ?? user.email ?? "새 로그인 사용자",
+      email: user.email ?? "",
+      role: currentMember.role,
+    };
+
+    if (currentMember.needsOnboarding) {
+      const memberLinkRequests = await getMemberLinkRequests(supabase, currentMember.id, false);
+
+      return {
+        status: "onboarding",
+        user: appUser,
+        currentMemberId: currentMember.id,
+        members: dashboardData.members,
+        memberLinkRequests,
+      };
+    }
+
     const allCustomFieldDefinitions =
       currentMember.role === "admin" || currentMember.role === "leader" ? await getCustomFieldDefinitions(supabase) : [];
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
@@ -71,12 +100,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
 
     return {
       status: "ready",
-      user: {
-        id: user.id,
-        name: user.user_metadata?.full_name ?? user.email ?? "관리자",
-        email: user.email ?? "",
-        role: currentMember.role,
-      },
+      user: appUser,
       attendanceDate: dashboardData.attendanceDate,
       attendanceTitle: dashboardData.attendanceTitle,
       attendanceEventId: dashboardData.attendanceEventId,

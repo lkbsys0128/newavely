@@ -65,7 +65,7 @@ export type MemberLinkRequest = {
   requesterMemberId: string;
   requesterName: string;
   requesterEmail: string;
-  targetMemberId: string;
+  targetMemberId: string | null;
   targetName: string;
   targetEmail: string;
   status: "pending" | "approved" | "rejected";

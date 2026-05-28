@@ -26,11 +26,6 @@ export function hasPermission(role: Role, permission: Permission) {
   return permissionsByRole[role].includes(permission);
 }
 
-export function getRoleForEmail(email: string, metadataRole?: string): Role {
-  if (metadataRole && roles.includes(metadataRole as Role)) return metadataRole as Role;
-  if (!email) return "admin";
-  if (email.includes("+leader@")) return "leader";
-  if (email.includes("+staff@")) return "staff";
-  if (email.includes("+member@")) return "member";
-  return "admin";
+export function getRoleForEmail(_email: string, _metadataRole?: string): Role {
+  return "member";
 }

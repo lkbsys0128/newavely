@@ -838,9 +838,40 @@ tbody tr:hover {
 }
 
 .onboarding-list,
+.onboarding-candidate-list,
 .role-management-list {
   display: grid;
   gap: 10px;
+}
+
+.onboarding-panel {
+  max-width: 920px;
+}
+
+.onboarding-candidate {
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: center;
+}
+
+.empty-state,
+.onboarding-request-admin {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--surface-strong);
+  color: var(--muted);
+}
+
+.empty-state strong {
+  color: var(--ink);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .role-management-row {
