@@ -69,6 +69,8 @@ export function MemberDetailPageContent({
     updateCareFollowup,
     initialActionState,
   );
+  const googleAccountName =
+    typeof member.customFields.google_account_name === "string" ? member.customFields.google_account_name : "";
 
   return (
     <>
@@ -78,6 +80,7 @@ export function MemberDetailPageContent({
           <h1>{member.name}</h1>
           <p className="meta">
             {member.groupName} · {statusLabels[member.status]}
+            {googleAccountName ? ` · Google 이름 ${googleAccountName}` : ""}
           </p>
         </div>
         <div className="topbar-actions">

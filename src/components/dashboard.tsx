@@ -7,7 +7,7 @@ import {
   createGroup,
   createMember,
   deactivateMember,
-  mergeMemberAccount,
+  mergeMemberProfile,
   reactivateMember,
   toggleAttendance,
   updateAttendanceReason,
@@ -110,7 +110,6 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     reactivateMember,
     initialActionState,
   );
-  const [mergeMemberState, mergeMemberAction, isMergingMember] = useActionState(mergeMemberAccount, initialActionState);
   const canManageMembers = hasPermission(user.role, "members:write");
   const visibleMembers = showInactive ? members : members.filter((member) => member.status !== "inactive");
   const duplicateMemberCandidates = useMemo(() => findPotentialDuplicateMembers(members), [members]);
@@ -405,16 +404,9 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 </div>
                 {linkedMember && unlinkedMembers.length > 0 ? (
                   <div className="merge-action-list">
-                    {unlinkedMembers.map((targetMember) => (
-                      <form action={mergeMemberAction} className="single-action-form compact-action-form" key={targetMember.id}>
-                        <input name="targetMemberId" type="hidden" value={targetMember.id} />
-                        <input name="duplicateMemberId" type="hidden" value={linkedMember.id} />
-                        <ActionMessage state={mergeMemberState} />
-                        <button className="primary-button" type="submit" disabled={!canManageMembers || isMergingMember}>
-                          {targetMember.name}에 Google 계정 연결
-                        </button>
-                      </form>
-                    ))}
+                    <Link className="primary-button table-action" href="/permissions">
+                      권한에서 프로필 병합
+                    </Link>
                   </div>
                 ) : (
                   <p className="meta">자동 연결 가능한 조합은 없습니다. 이름/연락처를 확인해 수동으로 정리해주세요.</p>
@@ -1048,7 +1040,11 @@ export function PermissionsPageContent({ user, members }: AppDataProps) {
   const roleManagedMembers = [...members]
     .filter((member) => member.status !== "inactive")
     .sort((a, b) => roleOrder[a.role] - roleOrder[b.role] || a.name.localeCompare(b.name));
-  const [manualLinkState, manualLinkAction, isLinkingAccount] = useActionState(mergeMemberAccount, initialActionState);
+  const [selectedSurvivorId, setSelectedSurvivorId] = useState(linkedAccountMembers[0]?.id ?? "");
+  const [selectedSourceId, setSelectedSourceId] = useState(unlinkedActiveMembers[0]?.id ?? "");
+  const selectedSurvivor = linkedAccountMembers.find((member) => member.id === selectedSurvivorId) ?? linkedAccountMembers[0];
+  const selectedSource = unlinkedActiveMembers.find((member) => member.id === selectedSourceId) ?? unlinkedActiveMembers[0];
+  const [manualMergeState, manualMergeAction, isMergingProfile] = useActionState(mergeMemberProfile, initialActionState);
 
   return (
     <>
@@ -1137,45 +1133,120 @@ export function PermissionsPageContent({ user, members }: AppDataProps) {
       <section className="panel form-panel">
         <div className="panel-heading">
           <div>
-            <h2>Google 계정 수동 연결</h2>
-            <p className="meta">예: Joo Lim 로그인 계정을 임주환 교적 멤버에 연결</p>
+            <h2>Google 계정 프로필 병합</h2>
+            <p className="meta">예: Joo Lim 계정에 임주환 교적 정보를 흡수하고 앱 이름은 임주환으로 통일</p>
           </div>
           <span>{canManageRoles ? "관리자 전용" : "관리자 권한 필요"}</span>
         </div>
-        <form action={manualLinkAction} className="member-form account-link-form">
-          <label>
-            Google 계정이 붙어있는 멤버
-            <select name="duplicateMemberId" disabled={!canManageRoles || linkedAccountMembers.length === 0}>
-              {linkedAccountMembers.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} · {member.email || "이메일 없음"} · {roleLabels[member.role]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            실제 교적 멤버
-            <select name="targetMemberId" disabled={!canManageRoles || unlinkedActiveMembers.length === 0}>
-              {unlinkedActiveMembers.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} · {member.groupName} · {member.email || "이메일 없음"}
-                </option>
-              ))}
-            </select>
-          </label>
+        <form action={manualMergeAction} className="profile-merge-form">
+          <div className="member-form account-link-form">
+            <label>
+              살아남을 Google 계정 멤버
+              <select
+                name="survivorMemberId"
+                disabled={!canManageRoles || linkedAccountMembers.length === 0}
+                value={selectedSurvivor?.id ?? ""}
+                onChange={(event) => setSelectedSurvivorId(event.target.value)}
+              >
+                {linkedAccountMembers.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name} · {member.email || "이메일 없음"} · {roleLabels[member.role]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              흡수할 CSV 교적 멤버
+              <select
+                name="sourceMemberId"
+                disabled={!canManageRoles || unlinkedActiveMembers.length === 0}
+                value={selectedSource?.id ?? ""}
+                onChange={(event) => setSelectedSourceId(event.target.value)}
+              >
+                {unlinkedActiveMembers.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name} · {member.groupName} · {member.email || "이메일 없음"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {selectedSurvivor && selectedSource ? (
+            <div className="merge-choice-list">
+              <MergeChoiceRow
+                fieldName="nameChoice"
+                label="앱에서 사용할 이름"
+                survivorValue={selectedSurvivor.name}
+                sourceValue={selectedSource.name}
+                defaultChoice="source"
+              />
+              <MergeChoiceRow
+                fieldName="emailChoice"
+                label="이메일"
+                survivorValue={selectedSurvivor.email}
+                sourceValue={selectedSource.email}
+                defaultChoice="survivor"
+              />
+              <MergeChoiceRow
+                fieldName="phoneChoice"
+                label="연락처"
+                survivorValue={selectedSurvivor.phone}
+                sourceValue={selectedSource.phone}
+                defaultChoice="source"
+              />
+              <MergeChoiceRow
+                fieldName="groupChoice"
+                label="소그룹"
+                survivorValue={selectedSurvivor.groupName}
+                sourceValue={selectedSource.groupName}
+                defaultChoice="source"
+              />
+              <MergeChoiceRow
+                fieldName="statusChoice"
+                label="상태"
+                survivorValue={statusLabels[selectedSurvivor.status]}
+                sourceValue={statusLabels[selectedSource.status]}
+                defaultChoice="source"
+              />
+              <MergeChoiceRow
+                fieldName="addressChoice"
+                label="주소"
+                survivorValue={selectedSurvivor.address}
+                sourceValue={selectedSource.address}
+                defaultChoice="source"
+              />
+              <MergeChoiceRow
+                fieldName="baptismChoice"
+                label="세례/등록"
+                survivorValue={selectedSurvivor.baptismStatus}
+                sourceValue={selectedSource.baptismStatus}
+                defaultChoice="source"
+              />
+              <MergeChoiceRow
+                fieldName="notesChoice"
+                label="돌봄 메모"
+                survivorValue={selectedSurvivor.notes}
+                sourceValue={selectedSource.notes}
+                defaultChoice="source"
+              />
+            </div>
+          ) : null}
+
           <div className="form-actions">
-            <ActionMessage state={manualLinkState} />
+            <ActionMessage state={manualMergeState} />
             <button
               className="primary-button"
               type="submit"
-              disabled={!canManageRoles || isLinkingAccount || linkedAccountMembers.length === 0 || unlinkedActiveMembers.length === 0}
+              disabled={!canManageRoles || isMergingProfile || !selectedSurvivor || !selectedSource}
             >
-              계정 연결
+              프로필 병합
             </button>
           </div>
         </form>
         <p className="meta">
-          연결하면 Google 계정은 실제 교적 멤버로 이동하고, 원래 로그인으로 생긴 중복 멤버는 비활성화됩니다.
+          병합하면 Google 계정 멤버가 유지되고, 선택한 교적 정보가 흡수됩니다. 원래 Google 이름은 추가 정보의
+          google_account_name 값으로 남고, 흡수된 CSV 멤버는 비활성화됩니다.
         </p>
       </section>
 
@@ -1266,6 +1337,50 @@ function ActionMessage({ state }: { state: ActionState }) {
     <p className={`action-message ${state.ok ? "success" : "error"}`} role="status">
       {state.message}
     </p>
+  );
+}
+
+function MergeChoiceRow({
+  fieldName,
+  label,
+  survivorValue,
+  sourceValue,
+  defaultChoice,
+}: {
+  fieldName: string;
+  label: string;
+  survivorValue: string;
+  sourceValue: string;
+  defaultChoice: "survivor" | "source";
+}) {
+  const normalizedSurvivor = survivorValue || "미입력";
+  const normalizedSource = sourceValue || "미입력";
+  const isSame = normalizedSurvivor === normalizedSource;
+
+  return (
+    <fieldset className="merge-choice-row">
+      <legend>{label}</legend>
+      <label>
+        <input
+          name={fieldName}
+          type="radio"
+          value="survivor"
+          defaultChecked={isSame || defaultChoice === "survivor"}
+        />
+        <span>
+          현재 Google 계정
+          <strong>{normalizedSurvivor}</strong>
+        </span>
+      </label>
+      <label>
+        <input name={fieldName} type="radio" value="source" defaultChecked={!isSame && defaultChoice === "source"} />
+        <span>
+          CSV 교적 정보
+          <strong>{normalizedSource}</strong>
+        </span>
+      </label>
+      {isSame ? <span className="status-pill active">동일</span> : null}
+    </fieldset>
   );
 }
 
@@ -1374,6 +1489,7 @@ const auditActionLabels: Record<string, string> = {
   "member.deactivate": "멤버 비활성화",
   "member.reactivate": "멤버 다시 활성화",
   "member.account_merge": "멤버 계정 연결",
+  "member.profile_merge": "멤버 프로필 병합",
   "member.custom_fields.update": "멤버 커스텀 필드 수정",
   "group.create": "소그룹 생성",
   "group.update": "소그룹 수정",

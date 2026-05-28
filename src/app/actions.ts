@@ -38,6 +38,21 @@ const mergeMemberAccountSchema = z.object({
   duplicateMemberId: z.string().uuid(),
 });
 
+const mergeChoice = z.enum(["survivor", "source"]);
+
+const mergeMemberProfileSchema = z.object({
+  survivorMemberId: z.string().uuid(),
+  sourceMemberId: z.string().uuid(),
+  nameChoice: mergeChoice,
+  emailChoice: mergeChoice,
+  phoneChoice: mergeChoice,
+  groupChoice: mergeChoice,
+  statusChoice: mergeChoice,
+  addressChoice: mergeChoice,
+  baptismChoice: mergeChoice,
+  notesChoice: mergeChoice,
+});
+
 const updateMemberRoleSchema = z.object({
   id: z.string().uuid(),
   role: z.enum(["admin", "leader", "staff", "member"]),
@@ -244,6 +259,34 @@ function appendMergeNote(currentNote: unknown, targetName: unknown) {
   return base ? `${base}\n${mergeNote}` : mergeNote;
 }
 
+function chooseMergeValue(choice: "survivor" | "source", survivorValue: unknown, sourceValue: unknown) {
+  if (survivorValue === sourceValue) return survivorValue;
+  return choice === "source" ? sourceValue : survivorValue;
+}
+
+function toRole(value: unknown) {
+  return String(value ?? "member") as "admin" | "leader" | "staff" | "member";
+}
+
+function mergeCustomFields(survivorMember: Record<string, unknown>, sourceMember: Record<string, unknown>) {
+  const survivorFields =
+    survivorMember.custom_fields && typeof survivorMember.custom_fields === "object"
+      ? (survivorMember.custom_fields as Record<string, unknown>)
+      : {};
+  const sourceFields =
+    sourceMember.custom_fields && typeof sourceMember.custom_fields === "object"
+      ? (sourceMember.custom_fields as Record<string, unknown>)
+      : {};
+
+  return {
+    ...sourceFields,
+    ...survivorFields,
+    google_account_name: survivorMember.name ?? null,
+    merged_source_member_id: sourceMember.id,
+    merged_source_member_name: sourceMember.name ?? null,
+  };
+}
+
 export async function createMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase } = await getAuthorizedCurrentMember("members:write");
@@ -436,6 +479,131 @@ export async function mergeMemberAccount(_previousState: ActionState, formData: 
     });
     revalidateAppData();
     return "Google 계정을 기존 멤버에 연결하고 중복 멤버를 비활성화했습니다.";
+  });
+}
+
+export async function mergeMemberProfile(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = mergeMemberProfileSchema.parse({
+      survivorMemberId: formData.get("survivorMemberId"),
+      sourceMemberId: formData.get("sourceMemberId"),
+      nameChoice: formData.get("nameChoice"),
+      emailChoice: formData.get("emailChoice"),
+      phoneChoice: formData.get("phoneChoice"),
+      groupChoice: formData.get("groupChoice"),
+      statusChoice: formData.get("statusChoice"),
+      addressChoice: formData.get("addressChoice"),
+      baptismChoice: formData.get("baptismChoice"),
+      notesChoice: formData.get("notesChoice"),
+    });
+
+    if (parsed.survivorMemberId === parsed.sourceMemberId) {
+      throw new Error("서로 다른 멤버를 선택해주세요.");
+    }
+
+    const { data: rows, error: rowsError } = await supabase
+      .from("members")
+      .select("*")
+      .in("id", [parsed.survivorMemberId, parsed.sourceMemberId]);
+
+    if (rowsError) throw rowsError;
+
+    const members = (rows ?? []) as Array<Record<string, unknown>>;
+    const survivorMember = members.find((member) => member.id === parsed.survivorMemberId);
+    const sourceMember = members.find((member) => member.id === parsed.sourceMemberId);
+
+    if (!survivorMember || !sourceMember) throw new Error("멤버 정보를 찾을 수 없습니다.");
+    if (!survivorMember.auth_user_id) throw new Error("살아남을 멤버에는 Google 계정이 연결되어 있어야 합니다.");
+    if (sourceMember.auth_user_id) throw new Error("흡수할 교적 멤버에는 Google 계정이 연결되어 있지 않아야 합니다.");
+
+    const now = new Date().toISOString();
+    const selectedEmail = chooseMergeValue(parsed.emailChoice, survivorMember.email, sourceMember.email);
+    const movesSourceEmail =
+      parsed.emailChoice === "source" &&
+      typeof sourceMember.email === "string" &&
+      sourceMember.email.length > 0 &&
+      sourceMember.email !== survivorMember.email;
+    const sourceEmailAfterMerge = movesSourceEmail ? `${sourceMember.id}@merged.local` : sourceMember.email;
+    const survivorPayload = {
+      name: chooseMergeValue(parsed.nameChoice, survivorMember.name, sourceMember.name),
+      email: selectedEmail,
+      phone: chooseMergeValue(parsed.phoneChoice, survivorMember.phone, sourceMember.phone),
+      group_id: chooseMergeValue(parsed.groupChoice, survivorMember.group_id, sourceMember.group_id),
+      status: chooseMergeValue(parsed.statusChoice, survivorMember.status, sourceMember.status),
+      address: chooseMergeValue(parsed.addressChoice, survivorMember.address, sourceMember.address),
+      baptism_status: chooseMergeValue(parsed.baptismChoice, survivorMember.baptism_status, sourceMember.baptism_status),
+      care_notes: chooseMergeValue(parsed.notesChoice, survivorMember.care_notes, sourceMember.care_notes),
+      role: higherRole(toRole(survivorMember.role), toRole(sourceMember.role)),
+      custom_fields: mergeCustomFields(survivorMember, sourceMember),
+      updated_at: now,
+    };
+
+    const { data: deactivatedSource, error: sourceError } = await supabase
+      .from("members")
+      .update({
+        auth_user_id: null,
+        status: "inactive",
+        email: sourceEmailAfterMerge,
+        care_notes: appendMergeNote(sourceMember.care_notes, survivorPayload.name),
+        updated_at: now,
+      })
+      .eq("id", parsed.sourceMemberId)
+      .is("auth_user_id", null)
+      .select("*")
+      .single();
+
+    if (sourceError) throw sourceError;
+
+    const { data: updatedSurvivor, error: survivorError } = await supabase
+      .from("members")
+      .update(survivorPayload)
+      .eq("id", parsed.survivorMemberId)
+      .select("*")
+      .single();
+
+    if (survivorError) {
+      await supabase
+        .from("members")
+        .update({
+          status: sourceMember.status,
+          email: sourceMember.email,
+          care_notes: sourceMember.care_notes,
+          updated_at: now,
+        })
+        .eq("id", parsed.sourceMemberId);
+      throw survivorError;
+    }
+
+    await writeAuditLog({
+      supabase,
+      action: "member.profile_merge",
+      targetTable: "members",
+      targetId: parsed.survivorMemberId,
+      beforeData: {
+        survivorMember,
+        sourceMember,
+      },
+      afterData: {
+        survivorMember: updatedSurvivor as Record<string, unknown>,
+        sourceMember: deactivatedSource as Record<string, unknown>,
+      },
+      metadata: {
+        sourceMemberId: parsed.sourceMemberId,
+        choices: {
+          name: parsed.nameChoice,
+          email: parsed.emailChoice,
+          phone: parsed.phoneChoice,
+          group: parsed.groupChoice,
+          status: parsed.statusChoice,
+          address: parsed.addressChoice,
+          baptism: parsed.baptismChoice,
+          notes: parsed.notesChoice,
+        },
+      },
+    });
+    revalidateAppData();
+    return "Google 계정 멤버에 교적 정보를 병합했습니다.";
   });
 }
 
