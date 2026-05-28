@@ -1,5 +1,5 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
-import type { AttendanceEvent, AuditLog, CareFollowup, CustomFieldDefinition, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, CareFollowup, CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -74,49 +74,92 @@ type DbAuditLog = {
   actor?: { name: string | null } | Array<{ name: string | null }> | null;
 };
 
+type DbMemberLinkRequest = {
+  id: string;
+  requester_member_id: string;
+  target_member_id: string | null;
+  status: "pending" | "approved" | "rejected";
+  note: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  requester?:
+    | { name: string | null; email: string | null; status: DbMember["status"] | null }
+    | Array<{ name: string | null; email: string | null; status: DbMember["status"] | null }>
+    | null;
+  target?: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
+};
+
 export async function getOrCreateCurrentMember(
   supabase: SupabaseClient,
   user: { id: string; email?: string; name?: string },
 ) {
   const { data: existing, error: existingError } = await supabase
     .from("members")
-    .select("id, role")
+    .select("id, role, status")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
   if (existingError) throw existingError;
-  if (existing) return { id: existing.id as string, role: existing.role as Role };
+  if (existing) {
+    return {
+      id: existing.id as string,
+      role: existing.role as Role,
+      status: existing.status as DbMember["status"],
+      needsOnboarding: existing.status === "new",
+    };
+  }
 
   const role = getRoleForEmail(user.email ?? "");
   const normalizedEmail = user.email?.trim().toLowerCase();
-
-  if (normalizedEmail) {
-    const { data: importedMember, error: importedMemberError } = await supabase
-      .from("members")
-      .update({ auth_user_id: user.id, role })
-      .eq("email", normalizedEmail)
-      .is("auth_user_id", null)
-      .select("id, role")
-      .maybeSingle();
-
-    if (importedMemberError) throw importedMemberError;
-    if (importedMember) return { id: importedMember.id as string, role: importedMember.role as Role };
-  }
+  const customFields = {
+    google_account_name: user.name ?? user.email ?? "새 로그인 사용자",
+    google_account_email: normalizedEmail ?? "",
+    onboarding_status: "profile_link_required",
+  };
 
   const { data: inserted, error: insertError } = await supabase
     .from("members")
     .insert({
       auth_user_id: user.id,
       name: user.name ?? user.email ?? "새 멤버",
-      email: normalizedEmail ?? null,
+      email: normalizedEmail && !normalizedEmail.endsWith("@merged.local") ? normalizedEmail : null,
       role,
-      status: "active",
+      status: "new",
+      custom_fields: customFields,
     })
-    .select("id, role")
+    .select("id, role, status")
     .single();
 
+  if (insertError?.code === "23505" && normalizedEmail) {
+    const { data: insertedWithoutEmail, error: fallbackInsertError } = await supabase
+      .from("members")
+      .insert({
+        auth_user_id: user.id,
+        name: user.name ?? user.email ?? "새 멤버",
+        email: null,
+        role,
+        status: "new",
+        custom_fields: customFields,
+      })
+      .select("id, role, status")
+      .single();
+
+    if (fallbackInsertError) throw fallbackInsertError;
+    return {
+      id: insertedWithoutEmail.id as string,
+      role: insertedWithoutEmail.role as Role,
+      status: insertedWithoutEmail.status as DbMember["status"],
+      needsOnboarding: true,
+    };
+  }
+
   if (insertError) throw insertError;
-  return { id: inserted.id as string, role: inserted.role as Role };
+  return {
+    id: inserted.id as string,
+    role: inserted.role as Role,
+    status: inserted.status as DbMember["status"],
+    needsOnboarding: true,
+  };
 }
 
 export async function ensureAttendanceEvent(supabase: SupabaseClient) {
@@ -291,6 +334,46 @@ export async function getAuditLogs(supabase: SupabaseClient) {
       afterData: log.after_data,
       metadata: log.metadata ?? {},
       createdAt: log.created_at,
+    };
+  });
+}
+
+export async function getMemberLinkRequests(supabase: SupabaseClient, currentMemberId: string, includeAll: boolean) {
+  let query = supabase
+    .from("member_link_requests")
+    .select(
+      "id, requester_member_id, target_member_id, status, note, created_at, resolved_at, requester:members!member_link_requests_requester_member_id_fkey(name, email, status), target:members!member_link_requests_target_member_id_fkey(name, email)",
+    )
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (!includeAll) {
+    query = query.eq("requester_member_id", currentMemberId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  return (data as unknown as DbMemberLinkRequest[]).map<MemberLinkRequest>((request) => {
+    const requester = Array.isArray(request.requester) ? request.requester[0] : request.requester;
+    const target = Array.isArray(request.target) ? request.target[0] : request.target;
+    return {
+      id: request.id,
+      requesterMemberId: request.requester_member_id,
+      requesterName: requester?.name ?? "알 수 없음",
+      requesterEmail: requester?.email ?? "",
+      requesterStatus: requester?.status ?? null,
+      targetMemberId: request.target_member_id,
+      targetName: target?.name ?? "관리자 확인 필요",
+      targetEmail: target?.email ?? "",
+      status: request.status,
+      note: request.note ?? "",
+      createdAt: request.created_at,
+      resolvedAt: request.resolved_at,
     };
   });
 }

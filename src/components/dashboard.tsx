@@ -6,23 +6,36 @@ import {
   createAttendanceEvent,
   createGroup,
   createMember,
+  deleteMemberPermanently,
   deactivateMember,
-  mergeMemberAccount,
+  approveMemberLinkRequest,
+  rejectMemberLinkRequest,
   reactivateMember,
   toggleAttendance,
   updateAttendanceReason,
   updateGroup,
   updateMember,
+  updateMemberRole,
   type ActionState,
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import type { AppUser } from "@/lib/app-page-data";
-import type { AttendanceEvent, AuditLog, Group, Member } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, Group, Member, MemberLinkRequest } from "@/lib/types";
+import {
+  defaultMemberFilters,
+  filterMembers,
+  findPotentialDuplicateMembers,
+  isMergedPlaceholderMember,
+  type MemberFilters,
+} from "@/lib/member-filters";
+import { isActionableLinkRequest } from "@/lib/member-link-requests";
+import { SectionNav } from "@/components/section-nav";
 
 type AppDataProps = {
   user: AppUser;
   members: Member[];
   groups: Group[];
+  memberLinkRequests?: MemberLinkRequest[];
 };
 
 type AttendanceFilter = "all" | "present" | "absent" | "excused";
@@ -31,24 +44,32 @@ type AttendanceStatus = "present" | "absent" | "excused";
 const initialActionState: ActionState = { ok: false, message: "" };
 
 export function DashboardOverview({ user, members, groups }: AppDataProps) {
-  const presentCount = members.filter((member) => member.present).length;
-  const attendanceRate = members.length ? Math.round((presentCount / members.length) * 100) : 0;
+  const activeMembers = members.filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member));
+  const presentCount = activeMembers.filter((member) => member.present).length;
+  const attendanceRate = activeMembers.length ? Math.round((presentCount / activeMembers.length) * 100) : 0;
 
   return (
     <>
       <PageHeader eyebrow="2026 공동체 관리 MVP" title="대시보드" user={user} />
+      <SectionNav
+        items={[
+          { href: "#overview-metrics", label: "요약" },
+          { href: "#care-today", label: "오늘 챙길 멤버" },
+          { href: "#group-summary", label: "소그룹 현황" },
+        ]}
+      />
 
-      <div className="metric-grid">
+      <div className="metric-grid" id="overview-metrics">
         <article className="metric-card">
           <span>전체 멤버</span>
-          <strong>{members.length}</strong>
-          <small>목표 규모 200명 기준</small>
+          <strong>{activeMembers.length}</strong>
+          <small>비활성 멤버 제외</small>
         </article>
         <article className="metric-card">
           <span>이번 주 출석</span>
           <strong>{attendanceRate}%</strong>
           <small>
-            {presentCount}/{members.length}명 출석
+            {presentCount}/{activeMembers.length}명 출석
           </small>
         </article>
         <article className="metric-card">
@@ -64,13 +85,13 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       </div>
 
       <div className="dashboard-layout">
-        <section className="panel">
+        <section className="panel" id="care-today">
           <div className="panel-heading">
             <h2>오늘 챙길 멤버</h2>
             <span>새가족, 돌봄 필요, 결석</span>
           </div>
           <div className="care-list">
-            {members
+            {activeMembers
               .filter((member) => member.status !== "active" || !member.present)
               .map((member) => (
                 <article className="care-item" key={member.id}>
@@ -88,14 +109,14 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
           </div>
         </section>
 
-        <GroupSummaryPanel members={members} groups={groups} />
+        <GroupSummaryPanel members={activeMembers} groups={groups} />
       </div>
     </>
   );
 }
 
 export function MembersManager({ user, members, groups }: AppDataProps) {
-  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<MemberFilters>(defaultMemberFilters);
   const [selectedMemberId, setSelectedMemberId] = useState(members[0]?.id ?? "");
   const [showInactive, setShowInactive] = useState(false);
   const [createMemberState, createMemberAction, isCreatingMember] = useActionState(createMember, initialActionState);
@@ -108,22 +129,31 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     reactivateMember,
     initialActionState,
   );
-  const [mergeMemberState, mergeMemberAction, isMergingMember] = useActionState(mergeMemberAccount, initialActionState);
+  const [deleteMemberState, deleteMemberAction, isDeletingMember] = useActionState(deleteMemberPermanently, initialActionState);
   const canManageMembers = hasPermission(user.role, "members:write");
-  const visibleMembers = showInactive ? members : members.filter((member) => member.status !== "inactive");
-  const duplicateMemberCandidates = useMemo(() => findPotentialDuplicateMembers(members), [members]);
+  const canDeleteMembers = hasPermission(user.role, "roles:manage");
+  const visibleMembers = (showInactive ? members : members.filter((member) => member.status !== "inactive")).filter(
+    (member) => !isMergedPlaceholderMember(member),
+  );
+  const duplicateMemberCandidates = useMemo(
+    () => findPotentialDuplicateMembers(members.filter((member) => !isMergedPlaceholderMember(member))),
+    [members],
+  );
   const selectedMember =
     visibleMembers.find((member) => member.id === selectedMemberId) ?? visibleMembers[0] ?? members[0];
   const filteredMembers = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return visibleMembers;
-    return visibleMembers.filter((member) =>
-      [member.name, member.phone, member.groupName, member.role, member.status]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalized),
-    );
-  }, [visibleMembers, query]);
+    return filterMembers(visibleMembers, filters);
+  }, [visibleMembers, filters]);
+  const hasActiveFilters =
+    filters.query !== "" ||
+    filters.groupId !== "all" ||
+    filters.role !== "all" ||
+    filters.status !== "all" ||
+    filters.account !== "all";
+
+  function updateFilters(nextFilters: Partial<MemberFilters>) {
+    setFilters((current) => ({ ...current, ...nextFilters }));
+  }
 
   return (
     <>
@@ -132,9 +162,9 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           <span>검색</span>
           <input
             type="search"
-            placeholder="이름, 연락처, 소그룹"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            placeholder="이름, 이메일, 연락처, 메모"
+            value={filters.query}
+            onChange={(event) => updateFilters({ query: event.target.value })}
           />
         </label>
         <label className="toggle-field">
@@ -146,9 +176,73 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           비활성화 포함
         </label>
       </PageHeader>
+      <SectionNav
+        items={[
+          { href: "#member-filters", label: "필터" },
+          { href: "#member-list", label: "목록" },
+          { href: "#member-detail", label: "상세" },
+          { href: "#duplicate-candidates", label: "중복 후보" },
+          { href: "#member-create", label: "새 멤버" },
+        ]}
+      />
+
+      <section className="panel filter-panel" id="member-filters">
+        <div className="filter-grid">
+          <label>
+            소그룹
+            <select value={filters.groupId} onChange={(event) => updateFilters({ groupId: event.target.value })}>
+              <option value="all">전체 소그룹</option>
+              <option value="unassigned">미배정</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            역할
+            <select value={filters.role} onChange={(event) => updateFilters({ role: event.target.value as MemberFilters["role"] })}>
+              <option value="all">전체 역할</option>
+              {Object.entries(roleLabels).map(([role, label]) => (
+                <option key={role} value={role}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            상태
+            <select value={filters.status} onChange={(event) => updateFilters({ status: event.target.value as MemberFilters["status"] })}>
+              <option value="all">전체 상태</option>
+              {Object.entries(statusLabels).map(([status, label]) => (
+                <option key={status} value={status}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            계정
+            <select value={filters.account} onChange={(event) => updateFilters({ account: event.target.value as MemberFilters["account"] })}>
+              <option value="all">전체 계정</option>
+              <option value="connected">Google 연결</option>
+              <option value="unconnected">미연결</option>
+            </select>
+          </label>
+          <button
+            className="secondary-button"
+            disabled={!hasActiveFilters}
+            onClick={() => setFilters(defaultMemberFilters)}
+            type="button"
+          >
+            필터 초기화
+          </button>
+        </div>
+      </section>
 
       <section className="content-grid">
-        <section className="panel wide">
+        <section className="panel wide" id="member-list">
           <div className="panel-heading">
             <h2>멤버 목록</h2>
             <span>{filteredMembers.length}명</span>
@@ -195,12 +289,22 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                     </td>
                   </tr>
                 ))}
+                {filteredMembers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7}>
+                      <div className="empty-table-state">
+                        <strong>조건에 맞는 멤버가 없습니다</strong>
+                        <span>검색어 또는 필터를 조금 넓혀보세요.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
         </section>
 
-        <aside className="panel">
+        <aside className="panel" id="member-detail">
           <div className="panel-heading">
             <h2>멤버 상세</h2>
             <span>{selectedMember ? statusLabels[selectedMember.status] : "선택 없음"}</span>
@@ -292,10 +396,27 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               </button>
             </form>
           ) : null}
+          {selectedMember && canDeleteMembers ? (
+            <form action={deleteMemberAction} className="danger-zone-form">
+              <input name="id" type="hidden" value={selectedMember.id} />
+              <div className="person-block">
+                <strong>완전 삭제</strong>
+                <span>삭제하면 이메일과 Google 연결 충돌은 사라지지만, 출석/돌봄/연결 요청 기록도 함께 정리됩니다.</span>
+              </div>
+              <label>
+                확인을 위해 멤버 이름 입력
+                <input name="confirmName" placeholder={selectedMember.name} />
+              </label>
+              <ActionMessage state={deleteMemberState} />
+              <button className="danger-button" type="submit" disabled={isDeletingMember}>
+                완전히 삭제
+              </button>
+            </form>
+          ) : null}
         </aside>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="duplicate-candidates">
         <div className="panel-heading">
           <h2>중복/계정 연결 확인</h2>
           <span>{duplicateMemberCandidates.length}건 후보</span>
@@ -335,16 +456,9 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 </div>
                 {linkedMember && unlinkedMembers.length > 0 ? (
                   <div className="merge-action-list">
-                    {unlinkedMembers.map((targetMember) => (
-                      <form action={mergeMemberAction} className="single-action-form compact-action-form" key={targetMember.id}>
-                        <input name="targetMemberId" type="hidden" value={targetMember.id} />
-                        <input name="duplicateMemberId" type="hidden" value={linkedMember.id} />
-                        <ActionMessage state={mergeMemberState} />
-                        <button className="primary-button" type="submit" disabled={!canManageMembers || isMergingMember}>
-                          {targetMember.name}에 Google 계정 연결
-                        </button>
-                      </form>
-                    ))}
+                    <Link className="primary-button table-action" href="/permissions#link-requests">
+                      연결 요청 확인
+                    </Link>
                   </div>
                 ) : (
                   <p className="meta">자동 연결 가능한 조합은 없습니다. 이름/연락처를 확인해 수동으로 정리해주세요.</p>
@@ -363,7 +477,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         </div>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="member-create">
         <div className="panel-heading">
           <h2>멤버 추가</h2>
           <span>{canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}</span>
@@ -446,7 +560,15 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   return (
     <>
       <PageHeader eyebrow="소그룹 관리" title="소그룹" user={user} />
-      <div className="metric-grid">
+      <SectionNav
+        items={[
+          { href: "#group-metrics", label: "요약" },
+          { href: "#group-create", label: "소그룹 추가" },
+          { href: "#group-list", label: "소그룹 목록" },
+          { href: "#unassigned-members", label: "미배정" },
+        ]}
+      />
+      <div className="metric-grid" id="group-metrics">
         <article className="metric-card">
           <span>전체 활동 멤버</span>
           <strong>{activeMembers.length}</strong>
@@ -469,7 +591,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
         </article>
       </div>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="group-create">
         <div className="panel-heading">
           <h2>소그룹 추가</h2>
           <span>{canManageGroups ? "이름과 리더를 지정" : "관리자 권한 필요"}</span>
@@ -499,7 +621,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
         </form>
       </section>
 
-      <section className="group-grid">
+      <section className="group-grid" id="group-list">
         {groups.map((group) => {
           const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
           const present = groupMembers.filter((member) => member.present).length;
@@ -571,7 +693,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
         })}
       </section>
       {unassignedMembers.length > 0 ? (
-        <section className="panel section-spacer">
+        <section className="panel section-spacer" id="unassigned-members">
           <div className="panel-heading">
             <h2>미배정 멤버</h2>
             <span>{unassignedMembers.length}명</span>
@@ -670,7 +792,15 @@ export function AttendanceManager({
   return (
     <>
       <PageHeader eyebrow="출석 관리" title="출석" user={user} />
-      <section className="panel form-panel">
+      <SectionNav
+        items={[
+          { href: "#attendance-events", label: "이벤트" },
+          { href: "#attendance-create", label: "새 이벤트" },
+          { href: "#attendance-stats", label: "통계" },
+          { href: "#attendance-checklist", label: "출석 체크" },
+        ]}
+      />
+      <section className="panel form-panel" id="attendance-events">
         <div className="panel-heading">
           <h2>출석 이벤트 선택</h2>
           <span>{attendanceEvents.length}개 이벤트</span>
@@ -697,7 +827,7 @@ export function AttendanceManager({
         </div>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="attendance-create">
         <div className="panel-heading">
           <h2>새 출석 이벤트</h2>
           <span>{canManageAttendance ? "날짜와 이름을 입력" : "리더/관리자 권한 필요"}</span>
@@ -720,7 +850,7 @@ export function AttendanceManager({
         </form>
       </section>
 
-      <section className="stats-grid">
+      <section className="stats-grid" id="attendance-stats">
         <article className="metric-card">
           <span>선택 이벤트 출석률</span>
           <strong>{currentAttendanceRate}%</strong>
@@ -825,7 +955,7 @@ export function AttendanceManager({
         </article>
       </section>
 
-      <section className="panel">
+      <section className="panel" id="attendance-checklist">
         <div className="panel-heading">
           <div>
             <h2>{attendanceTitle}</h2>
@@ -964,55 +1094,230 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
   return "absent";
 }
 
-type DuplicateMemberCandidate = {
-  key: string;
-  reasonLabel: string;
-  members: Member[];
-};
+export function PermissionsPageContent({ user, members, groups, memberLinkRequests = [] }: AppDataProps) {
+  const [roleState, roleAction, isUpdatingRole] = useActionState(updateMemberRole, initialActionState);
+  const [approveState, approveAction, isApprovingRequest] = useActionState(approveMemberLinkRequest, initialActionState);
+  const [rejectState, rejectAction, isRejectingRequest] = useActionState(rejectMemberLinkRequest, initialActionState);
+  const canManageRoles = hasPermission(user.role, "roles:manage");
+  const pendingLinkRequests = memberLinkRequests.filter(isActionableLinkRequest);
+  const activeAdmins = members.filter((member) => member.role === "admin" && member.status !== "inactive");
+  const connectedAdmins = activeAdmins.filter((member) => member.authUserId);
+  const unlinkedActiveMembers = members
+    .filter((member) => !member.authUserId && member.status !== "inactive" && !isMergedPlaceholderMember(member))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const roleManagedMembers = [...members]
+    .filter((member) => member.status !== "inactive")
+    .sort((a, b) => roleOrder[a.role] - roleOrder[b.role] || a.name.localeCompare(b.name));
 
-function findPotentialDuplicateMembers(members: Member[]): DuplicateMemberCandidate[] {
-  const candidates = new Map<string, DuplicateMemberCandidate>();
-
-  function addCandidate(key: string, reasonLabel: string, candidateMembers: Member[]) {
-    const actionableMembers = candidateMembers.filter((member) => member.status !== "inactive" || member.authUserId);
-    const hasLinked = actionableMembers.some((member) => member.authUserId);
-    const hasUnlinkedActive = actionableMembers.some((member) => !member.authUserId && member.status !== "inactive");
-
-    if (actionableMembers.length < 2 || !hasLinked || !hasUnlinkedActive) return;
-    candidates.set(key, { key, reasonLabel, members: actionableMembers });
-  }
-
-  const byPhone = new Map<string, Member[]>();
-  const byName = new Map<string, Member[]>();
-
-  for (const member of members) {
-    const phoneKey = member.phone.replace(/\D/g, "");
-    if (phoneKey.length >= 7) {
-      byPhone.set(phoneKey, [...(byPhone.get(phoneKey) ?? []), member]);
-    }
-
-    const nameKey = member.name.replace(/\s+/g, "").toLowerCase();
-    if (nameKey.length >= 2) {
-      byName.set(nameKey, [...(byName.get(nameKey) ?? []), member]);
-    }
-  }
-
-  for (const [phone, candidateMembers] of byPhone.entries()) {
-    addCandidate(`phone:${phone}`, `연락처 중복 ${candidateMembers[0]?.phone ?? ""}`, candidateMembers);
-  }
-
-  for (const [name, candidateMembers] of byName.entries()) {
-    addCandidate(`name:${name}`, `이름 중복 ${candidateMembers[0]?.name ?? ""}`, candidateMembers);
-  }
-
-  return [...candidates.values()].sort((a, b) => a.reasonLabel.localeCompare(b.reasonLabel));
-}
-
-export function PermissionsPageContent({ user, members }: AppDataProps) {
   return (
     <>
       <PageHeader eyebrow="권한 관리" title="권한" user={user} />
-      <section className="panel">
+      <SectionNav
+        items={[
+          { href: "#permission-metrics", label: "요약" },
+          { href: "#admin-checks", label: "관리자 체크" },
+          { href: "#link-requests", label: "연결 요청" },
+          { href: "#role-management", label: "역할 변경" },
+          { href: "#permission-matrix", label: "권한표" },
+        ]}
+      />
+      <div className="metric-grid" id="permission-metrics">
+        <article className="metric-card">
+          <span>활성 관리자</span>
+          <strong>{activeAdmins.length}</strong>
+          <small>최소 1명 유지 필요</small>
+        </article>
+        <article className="metric-card">
+          <span>Google 연결 관리자</span>
+          <strong>{connectedAdmins.length}</strong>
+          <small>실제 로그인 가능한 관리자</small>
+        </article>
+        <article className="metric-card">
+          <span>리더/스태프</span>
+          <strong>{members.filter((member) => member.role === "leader" || member.role === "staff").length}</strong>
+          <small>운영 권한 보유</small>
+        </article>
+        <article className="metric-card">
+          <span>멤버 기본 권한</span>
+          <strong>{permissionsByRole.member.length}</strong>
+          <small>읽기 중심 접근</small>
+        </article>
+      </div>
+
+      <section className="panel form-panel" id="admin-checks">
+        <div className="panel-heading">
+          <h2>관리자 온보딩 체크</h2>
+          <span>{canManageRoles ? "관리자만 역할을 변경할 수 있습니다" : "관리자 권한 필요"}</span>
+        </div>
+        <div className="onboarding-list">
+          <article className="detail-row">
+            <div className="person-block">
+              <strong>최소 1명의 활성 관리자 유지</strong>
+              <span>마지막 활성 관리자는 다른 역할로 변경할 수 없도록 막혀 있습니다.</span>
+            </div>
+            <span className={`status-pill ${activeAdmins.length > 0 ? "active" : ""}`}>
+              {activeAdmins.length > 0 ? "정상" : "필요"}
+            </span>
+          </article>
+          <article className="detail-row">
+            <div className="person-block">
+              <strong>관리자 Google 계정 연결</strong>
+              <span>관리자 권한은 실제 로그인 계정과 연결된 멤버에 부여하는 것이 안전합니다.</span>
+            </div>
+            <span className={`status-pill ${connectedAdmins.length > 0 ? "active" : ""}`}>
+              {connectedAdmins.length > 0 ? "정상" : "확인 필요"}
+            </span>
+          </article>
+        </div>
+      </section>
+
+      <section className="panel form-panel" id="link-requests">
+        <div className="panel-heading">
+          <div>
+            <h2>교적 연결 요청</h2>
+            <p className="meta">첫 로그인 사용자가 기존 CSV 교적 멤버와 연결을 요청하면 여기서 승인합니다.</p>
+          </div>
+          <span>{pendingLinkRequests.length}건 대기</span>
+        </div>
+        <div className="role-management-list">
+          {pendingLinkRequests.map((request) => (
+            <article className="definition-row" key={request.id}>
+              <div className="detail-row">
+                <div className="person-block">
+                  <strong>{request.requesterName}</strong>
+                  <span>
+                    요청자 · {request.requesterEmail || "이메일 없음"} · {new Date(request.createdAt).toLocaleString("ko-KR")}
+                  </span>
+                  {request.note ? <span>메모: {request.note}</span> : null}
+                </div>
+                <div className="person-block">
+                  <strong>{request.targetName}</strong>
+                  <span>연결 대상 · {request.targetEmail || (request.targetMemberId ? "이메일 없음" : "관리자가 선택 필요")}</span>
+                  {!request.targetMemberId ? (
+                    <div className="link-request-resolution">
+                      <label>
+                        처리 방식
+                        <select name="createTargetMode" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
+                          <option value="existing">기존 교적에 연결</option>
+                          <option value="new">새 교적 생성 후 연결</option>
+                        </select>
+                      </label>
+                      <label>
+                        기존 교적 멤버
+                        <select name="targetMemberId" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
+                          <option value="">선택</option>
+                          {unlinkedActiveMembers.map((member) => (
+                            <option key={member.id} value={member.id}>
+                              {member.name} · {member.groupName} · {member.email || "이메일 없음"}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <div className="new-member-inline-fields">
+                        <label>
+                          새 이름
+                          <input
+                            name="newMemberName"
+                            form={`approve-link-request-${request.id}`}
+                            placeholder={request.requesterName}
+                            disabled={!canManageRoles}
+                          />
+                        </label>
+                        <label>
+                          이메일
+                          <input
+                            name="newMemberEmail"
+                            form={`approve-link-request-${request.id}`}
+                            placeholder={request.requesterEmail || "선택 입력"}
+                            disabled={!canManageRoles}
+                          />
+                        </label>
+                        <label>
+                          전화번호
+                          <input
+                            name="newMemberPhone"
+                            form={`approve-link-request-${request.id}`}
+                            placeholder="선택 입력"
+                            disabled={!canManageRoles}
+                          />
+                        </label>
+                        <label>
+                          소그룹
+                          <select name="newMemberGroupId" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
+                            <option value="">미배정</option>
+                            {groups.map((group) => (
+                              <option key={group.id} value={group.id}>
+                                {group.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <div className="row-actions request-actions">
+                <form action={approveAction} id={`approve-link-request-${request.id}`}>
+                  <input name="id" type="hidden" value={request.id} />
+                  <button className="primary-button" type="submit" disabled={!canManageRoles || isApprovingRequest}>
+                    승인
+                  </button>
+                </form>
+                <form action={rejectAction}>
+                  <input name="id" type="hidden" value={request.id} />
+                  <button className="danger-button" type="submit" disabled={!canManageRoles || isRejectingRequest}>
+                    거절
+                  </button>
+                </form>
+              </div>
+            </article>
+          ))}
+          {pendingLinkRequests.length === 0 ? (
+            <article className="care-item">
+              <div className="person-block">
+                <strong>대기 중인 요청이 없습니다</strong>
+                <span>새 사용자가 내 프로필에서 연결 요청을 만들면 이곳에 표시됩니다.</span>
+              </div>
+            </article>
+          ) : null}
+        </div>
+        <ActionMessage state={approveState} />
+        <ActionMessage state={rejectState} />
+      </section>
+
+      <section className="panel form-panel" id="role-management">
+        <div className="panel-heading">
+          <h2>멤버 역할 변경</h2>
+          <span>{roleManagedMembers.length}명</span>
+        </div>
+        <div className="role-management-list">
+          {roleManagedMembers.map((member) => (
+            <form action={roleAction} className="role-management-row" key={member.id}>
+              <input name="id" type="hidden" value={member.id} />
+              <div className="person-block">
+                <strong>{member.name}</strong>
+                <span>
+                  {member.groupName} · {member.email || "이메일 없음"} · {member.authUserId ? "Google 연결" : "미연결"}
+                </span>
+              </div>
+              <select name="role" defaultValue={member.role} disabled={!canManageRoles}>
+                {Object.entries(roleLabels).map(([role, label]) => (
+                  <option key={role} value={role}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <button className="secondary-button" type="submit" disabled={!canManageRoles || isUpdatingRole}>
+                변경
+              </button>
+            </form>
+          ))}
+        </div>
+        <ActionMessage state={roleState} />
+      </section>
+
+      <section className="panel" id="permission-matrix">
         <div className="panel-heading">
           <h2>역할 기반 권한</h2>
           <span>로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한</span>
@@ -1045,7 +1350,8 @@ export function AuditLogPageContent({ user, auditLogs }: { user: AppUser; auditL
   return (
     <>
       <PageHeader eyebrow="운영 감사" title="감사 로그" user={user} />
-      <section className="panel">
+      <SectionNav items={[{ href: "#audit-list", label: "최근 변경 내역" }]} />
+      <section className="panel" id="audit-list">
         <div className="panel-heading">
           <h2>최근 변경 내역</h2>
           <span>{canReadAuditLogs ? `${auditLogs.length}건` : "관리자 권한 필요"}</span>
@@ -1129,7 +1435,7 @@ function PageHeader({
 
 function GroupSummaryPanel({ members, groups }: { members: Member[]; groups: Group[] }) {
   return (
-    <section className="panel">
+    <section className="panel" id="group-summary">
       <div className="panel-heading">
         <h2>소그룹 현황</h2>
         <span>인원과 최근 출석률</span>
@@ -1161,6 +1467,13 @@ const roleLabels: Record<Role, string> = {
   leader: "리더",
   staff: "스태프",
   member: "멤버",
+};
+
+const roleOrder: Record<Role, number> = {
+  admin: 0,
+  leader: 1,
+  staff: 2,
+  member: 3,
 };
 
 const statusLabels: Record<Member["status"], string> = {
@@ -1200,6 +1513,7 @@ const auditActionLabels: Record<string, string> = {
   "member.deactivate": "멤버 비활성화",
   "member.reactivate": "멤버 다시 활성화",
   "member.account_merge": "멤버 계정 연결",
+  "member.profile_merge": "멤버 프로필 병합",
   "member.custom_fields.update": "멤버 커스텀 필드 수정",
   "group.create": "소그룹 생성",
   "group.update": "소그룹 수정",

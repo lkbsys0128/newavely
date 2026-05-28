@@ -60,6 +60,21 @@ export type CareFollowup = {
   completedAt: string | null;
 };
 
+export type MemberLinkRequest = {
+  id: string;
+  requesterMemberId: string;
+  requesterName: string;
+  requesterEmail: string;
+  requesterStatus: "active" | "new" | "care" | "inactive" | null;
+  targetMemberId: string | null;
+  targetName: string;
+  targetEmail: string;
+  status: "pending" | "approved" | "rejected";
+  note: string;
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
 export type AuditLog = {
   id: string;
   action: string;

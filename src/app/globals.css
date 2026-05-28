@@ -21,6 +21,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   background:
@@ -30,6 +34,10 @@ body {
   font-family:
     Inter, Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+}
+
+[id] {
+  scroll-margin-top: 92px;
 }
 
 button,
@@ -256,8 +264,55 @@ a {
 }
 
 .main-content {
+  width: min(100%, 1480px);
   min-width: 0;
-  padding: 30px;
+  margin: 0 auto;
+  padding: 30px clamp(20px, 2.6vw, 38px);
+}
+
+.notification-bar {
+  margin-bottom: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #f7fcfd;
+  box-shadow: var(--shadow-soft);
+}
+
+.notification-bar summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 52px;
+  padding: 0 16px;
+  color: var(--ink);
+  font-weight: 850;
+  list-style: none;
+}
+
+.notification-bar summary::-webkit-details-marker {
+  display: none;
+}
+
+.notification-bar summary strong {
+  color: var(--accent-dark);
+}
+
+.notification-list {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding: 14px 16px 16px;
+}
+
+.notification-item {
+  display: grid;
+  gap: 3px;
+}
+
+.notification-item span {
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .topbar {
@@ -299,9 +354,48 @@ h2 {
   gap: 12px;
 }
 
+.section-nav {
+  position: sticky;
+  top: 14px;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -8px 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(12px);
+}
+
+.section-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 11px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.section-nav a:hover,
+.section-nav a:focus-visible {
+  border-color: var(--line);
+  background: var(--soft);
+  color: var(--accent-dark);
+  outline: none;
+}
+
 .search-field,
 .member-form label,
-.management-form label {
+.management-form label,
+.filter-grid label,
+.link-request-resolution label,
+.new-member-inline-fields label {
   display: grid;
   gap: 7px;
   color: var(--muted);
@@ -314,7 +408,11 @@ h2 {
 .member-form select,
 .management-form input,
 .management-form select,
-.management-form textarea {
+.management-form textarea,
+.filter-grid select,
+.link-request-resolution input,
+.link-request-resolution select,
+.role-management-row select {
   width: 100%;
   min-height: 42px;
   border: 1px solid var(--line);
@@ -335,6 +433,10 @@ h2 {
 .management-form input:focus,
 .management-form select:focus,
 .management-form textarea:focus,
+.filter-grid select:focus,
+.link-request-resolution input:focus,
+.link-request-resolution select:focus,
+.role-management-row select:focus,
 .reason-form input:focus,
 .reason-form textarea:focus {
   border-color: var(--accent);
@@ -466,7 +568,7 @@ h2 {
 .group-grid,
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 
@@ -678,6 +780,26 @@ tbody tr:hover {
   margin-bottom: 16px;
 }
 
+.filter-panel {
+  margin-bottom: 16px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.empty-table-state {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 24px 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
 .section-spacer {
   margin-top: 16px;
 }
@@ -695,6 +817,61 @@ tbody tr:hover {
 
 .group-create-form {
   grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
+}
+
+.account-link-form {
+  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr) auto;
+}
+
+.profile-merge-form,
+.merge-choice-list {
+  display: grid;
+  gap: 12px;
+}
+
+.merge-choice-row {
+  display: grid;
+  grid-template-columns: 150px repeat(2, minmax(0, 1fr)) auto;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfeff;
+}
+
+.merge-choice-row legend {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.merge-choice-row label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.merge-choice-row label span,
+.merge-choice-row label strong {
+  display: block;
+  min-width: 0;
+}
+
+.merge-choice-row label span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.merge-choice-row label strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .management-form {
@@ -729,6 +906,38 @@ tbody tr:hover {
   border-top: 1px solid var(--line);
 }
 
+.danger-zone-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  border: 1px solid rgba(198, 80, 80, 0.35);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(198, 80, 80, 0.06);
+}
+
+.danger-zone-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.danger-zone-form input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(198, 80, 80, 0.35);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.danger-zone-form button {
+  justify-self: end;
+}
+
 .compact-action-form {
   margin-top: 10px;
   padding-top: 10px;
@@ -755,6 +964,89 @@ tbody tr:hover {
   border-radius: 8px;
   padding: 14px;
   background: #fbfeff;
+}
+
+.onboarding-list,
+.onboarding-candidate-list,
+.role-management-list {
+  display: grid;
+  gap: 10px;
+}
+
+.onboarding-panel {
+  max-width: 920px;
+}
+
+.onboarding-search {
+  display: grid;
+  gap: 8px;
+}
+
+.onboarding-search input {
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+
+.onboarding-candidate {
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: center;
+}
+
+.link-request-resolution,
+.new-member-inline-fields {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.link-request-resolution {
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+}
+
+.new-member-inline-fields {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
+.empty-state,
+.onboarding-request-admin {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--surface-strong);
+  color: var(--muted);
+}
+
+.empty-state strong {
+  color: var(--ink);
+}
+
+.rejected-state {
+  border-color: rgba(198, 80, 80, 0.35);
+  background: rgba(198, 80, 80, 0.06);
+}
+
+.rejected-state strong {
+  color: var(--accent-2);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.role-management-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-strong);
 }
 
 .action-message {
@@ -1079,8 +1371,16 @@ tbody tr:hover {
   .member-form,
   .compact-form,
   .group-create-form,
-  .management-form {
+  .account-link-form,
+  .merge-choice-row,
+  .management-form,
+  .filter-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .link-request-resolution,
+  .new-member-inline-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .group-edit-form {
@@ -1101,6 +1401,10 @@ tbody tr:hover {
     flex-direction: column;
   }
 
+  .section-nav {
+    position: static;
+  }
+
   .nav-list,
   .metric-grid,
   .group-grid,
@@ -1111,7 +1415,12 @@ tbody tr:hover {
   .member-form,
   .compact-form,
   .group-create-form,
-  .management-form {
+  .account-link-form,
+  .management-form,
+  .filter-grid,
+  .link-request-resolution,
+  .new-member-inline-fields,
+  .role-management-row {
     grid-template-columns: 1fr;
   }
 

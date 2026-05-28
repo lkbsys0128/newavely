@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
+import { getRoleChangeBlockReason } from "@/lib/role-policy";
 
 const nullableUuid = z.preprocess((value) => {
   const normalized = String(value ?? "").trim();
@@ -32,9 +33,44 @@ const updateMemberSchema = memberSchema.extend({
   id: z.string().uuid(),
 });
 
-const mergeMemberAccountSchema = z.object({
-  targetMemberId: z.string().uuid(),
-  duplicateMemberId: z.string().uuid(),
+const mergeChoice = z.enum(["survivor", "source"]);
+
+const mergeMemberProfileSchema = z.object({
+  survivorMemberId: z.string().uuid(),
+  sourceMemberId: z.string().uuid(),
+  nameChoice: mergeChoice,
+  emailChoice: mergeChoice,
+  phoneChoice: mergeChoice,
+  groupChoice: mergeChoice,
+  statusChoice: mergeChoice,
+  addressChoice: mergeChoice,
+  baptismChoice: mergeChoice,
+  notesChoice: mergeChoice,
+});
+
+const updateMemberRoleSchema = z.object({
+  id: z.string().uuid(),
+  role: z.enum(["admin", "leader", "staff", "member"]),
+});
+
+const deleteMemberSchema = z.object({
+  id: z.string().uuid(),
+  confirmName: z.string().min(1, "삭제할 멤버 이름을 입력해주세요."),
+});
+
+const createMemberLinkRequestSchema = z.object({
+  targetMemberId: nullableUuid,
+  note: nullableText,
+});
+
+const memberLinkRequestDecisionSchema = z.object({
+  id: z.string().uuid(),
+  targetMemberId: nullableUuid.optional(),
+  createTargetMode: z.enum(["existing", "new"]).optional(),
+  newMemberName: nullableText.optional(),
+  newMemberEmail: nullableText.optional(),
+  newMemberPhone: nullableText.optional(),
+  newMemberGroupId: nullableUuid.optional(),
 });
 
 const groupSchema = z.object({
@@ -152,7 +188,7 @@ async function runAction(callback: () => Promise<string>): Promise<ActionState> 
 }
 
 async function getAuthorizedCurrentMember(
-  permission: "members:write" | "groups:write" | "attendance:write" | "roles:manage",
+  permission: "members:read" | "members:write" | "groups:write" | "attendance:write" | "roles:manage",
 ) {
   const supabase = await createClient();
   const {
@@ -184,6 +220,7 @@ function parseCustomFieldValue(value: FormDataEntryValue | null) {
 
 function revalidateAppData() {
   revalidatePath("/");
+  revalidatePath("/profile");
   revalidatePath("/members");
   revalidatePath("/groups");
   revalidatePath("/attendance");
@@ -235,6 +272,38 @@ function appendMergeNote(currentNote: unknown, targetName: unknown) {
   const base = typeof currentNote === "string" ? currentNote.trim() : "";
   const mergeNote = `중복 계정 병합됨: ${String(targetName ?? "기존 멤버")}에 Google 계정 연결`;
   return base ? `${base}\n${mergeNote}` : mergeNote;
+}
+
+function chooseMergeValue(choice: "survivor" | "source", survivorValue: unknown, sourceValue: unknown) {
+  if (survivorValue === sourceValue) return survivorValue;
+  return choice === "source" ? sourceValue : survivorValue;
+}
+
+function toRole(value: unknown) {
+  return String(value ?? "member") as "admin" | "leader" | "staff" | "member";
+}
+
+function mergeCustomFields(survivorMember: Record<string, unknown>, sourceMember: Record<string, unknown>) {
+  const survivorFields =
+    survivorMember.custom_fields && typeof survivorMember.custom_fields === "object"
+      ? (survivorMember.custom_fields as Record<string, unknown>)
+      : {};
+  const sourceFields =
+    sourceMember.custom_fields && typeof sourceMember.custom_fields === "object"
+      ? (sourceMember.custom_fields as Record<string, unknown>)
+      : {};
+
+  return {
+    ...sourceFields,
+    ...survivorFields,
+    google_account_name: survivorMember.name ?? null,
+    merged_source_member_id: sourceMember.id,
+    merged_source_member_name: sourceMember.name ?? null,
+  };
+}
+
+function makeMergedPlaceholderEmail(memberId: unknown) {
+  return `${String(memberId)}@merged.local`;
 }
 
 export async function createMember(_previousState: ActionState, formData: FormData) {
@@ -337,98 +406,418 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
   });
 }
 
-export async function mergeMemberAccount(_previousState: ActionState, formData: FormData) {
+export async function mergeMemberProfile(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("members:write");
-    const parsed = mergeMemberAccountSchema.parse({
-      targetMemberId: formData.get("targetMemberId"),
-      duplicateMemberId: formData.get("duplicateMemberId"),
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = mergeMemberProfileSchema.parse({
+      survivorMemberId: formData.get("survivorMemberId"),
+      sourceMemberId: formData.get("sourceMemberId"),
+      nameChoice: formData.get("nameChoice"),
+      emailChoice: formData.get("emailChoice"),
+      phoneChoice: formData.get("phoneChoice"),
+      groupChoice: formData.get("groupChoice"),
+      statusChoice: formData.get("statusChoice"),
+      addressChoice: formData.get("addressChoice"),
+      baptismChoice: formData.get("baptismChoice"),
+      notesChoice: formData.get("notesChoice"),
     });
 
-    if (parsed.targetMemberId === parsed.duplicateMemberId) {
+    if (parsed.survivorMemberId === parsed.sourceMemberId) {
       throw new Error("서로 다른 멤버를 선택해주세요.");
     }
 
     const { data: rows, error: rowsError } = await supabase
       .from("members")
       .select("*")
-      .in("id", [parsed.targetMemberId, parsed.duplicateMemberId]);
+      .in("id", [parsed.survivorMemberId, parsed.sourceMemberId]);
 
     if (rowsError) throw rowsError;
 
     const members = (rows ?? []) as Array<Record<string, unknown>>;
-    const targetMember = members.find((member) => member.id === parsed.targetMemberId);
-    const duplicateMember = members.find((member) => member.id === parsed.duplicateMemberId);
+    const survivorMember = members.find((member) => member.id === parsed.survivorMemberId);
+    const sourceMember = members.find((member) => member.id === parsed.sourceMemberId);
 
-    if (!targetMember || !duplicateMember) throw new Error("멤버 정보를 찾을 수 없습니다.");
-    if (targetMember.auth_user_id) throw new Error("기존 멤버에 이미 Google 계정이 연결되어 있습니다.");
-    if (!duplicateMember.auth_user_id) throw new Error("연결할 Google 계정이 있는 중복 멤버를 선택해주세요.");
+    if (!survivorMember || !sourceMember) throw new Error("멤버 정보를 찾을 수 없습니다.");
+    if (!survivorMember.auth_user_id) throw new Error("살아남을 멤버에는 Google 계정이 연결되어 있어야 합니다.");
+    if (sourceMember.auth_user_id) throw new Error("흡수할 교적 멤버에는 Google 계정이 연결되어 있지 않아야 합니다.");
 
     const now = new Date().toISOString();
-    const duplicateAuthUserId = String(duplicateMember.auth_user_id);
-    const targetRole = higherRole(
-      String(targetMember.role ?? "member") as "admin" | "leader" | "staff" | "member",
-      String(duplicateMember.role ?? "member") as "admin" | "leader" | "staff" | "member",
-    );
+    const selectedEmail = chooseMergeValue(parsed.emailChoice, survivorMember.email, sourceMember.email) ?? null;
+    const sourceEmailAfterMerge =
+      typeof sourceMember.email === "string" && sourceMember.email.length > 0
+        ? makeMergedPlaceholderEmail(sourceMember.id)
+        : null;
+    const survivorPayload = {
+      name: chooseMergeValue(parsed.nameChoice, survivorMember.name, sourceMember.name),
+      email: selectedEmail,
+      phone: chooseMergeValue(parsed.phoneChoice, survivorMember.phone, sourceMember.phone),
+      group_id: chooseMergeValue(parsed.groupChoice, survivorMember.group_id, sourceMember.group_id),
+      status: chooseMergeValue(parsed.statusChoice, survivorMember.status, sourceMember.status),
+      address: chooseMergeValue(parsed.addressChoice, survivorMember.address, sourceMember.address),
+      baptism_status: chooseMergeValue(parsed.baptismChoice, survivorMember.baptism_status, sourceMember.baptism_status),
+      care_notes: chooseMergeValue(parsed.notesChoice, survivorMember.care_notes, sourceMember.care_notes),
+      role: higherRole(toRole(survivorMember.role), toRole(sourceMember.role)),
+      custom_fields: mergeCustomFields(survivorMember, sourceMember),
+      updated_at: now,
+    };
 
-    const { data: deactivatedDuplicate, error: duplicateError } = await supabase
+    const { data: conflictingEmailOwner, error: conflictError } =
+      typeof selectedEmail === "string" && selectedEmail.length > 0
+        ? await supabase.from("members").select("id").eq("email", selectedEmail).neq("id", parsed.survivorMemberId).maybeSingle()
+        : { data: null, error: null };
+
+    if (conflictError) throw conflictError;
+
+    if (conflictingEmailOwner) {
+      const { error: releaseEmailError } = await supabase
+        .from("members")
+        .update({ email: makeMergedPlaceholderEmail(conflictingEmailOwner.id), updated_at: now })
+        .eq("id", conflictingEmailOwner.id);
+
+      if (releaseEmailError) throw releaseEmailError;
+    }
+
+    const { data: deactivatedSource, error: sourceError } = await supabase
       .from("members")
       .update({
         auth_user_id: null,
         status: "inactive",
-        care_notes: appendMergeNote(duplicateMember.care_notes, targetMember.name),
+        email: sourceEmailAfterMerge,
+        care_notes: appendMergeNote(sourceMember.care_notes, survivorPayload.name),
         updated_at: now,
       })
-      .eq("id", parsed.duplicateMemberId)
-      .select("*")
-      .single();
-
-    if (duplicateError) throw duplicateError;
-
-    const { data: updatedTarget, error: targetError } = await supabase
-      .from("members")
-      .update({
-        auth_user_id: duplicateAuthUserId,
-        role: targetRole,
-        updated_at: now,
-      })
-      .eq("id", parsed.targetMemberId)
+      .eq("id", parsed.sourceMemberId)
       .is("auth_user_id", null)
       .select("*")
       .single();
 
-    if (targetError) {
+    if (sourceError) throw sourceError;
+
+    const { data: updatedSurvivor, error: survivorError } = await supabase
+      .from("members")
+      .update(survivorPayload)
+      .eq("id", parsed.survivorMemberId)
+      .select("*")
+      .single();
+
+    if (survivorError) {
       await supabase
         .from("members")
         .update({
-          auth_user_id: duplicateAuthUserId,
-          status: duplicateMember.status,
-          care_notes: duplicateMember.care_notes,
+          status: sourceMember.status,
+          email: sourceMember.email,
+          care_notes: sourceMember.care_notes,
           updated_at: now,
         })
-        .eq("id", parsed.duplicateMemberId);
-      throw targetError;
+        .eq("id", parsed.sourceMemberId);
+      throw survivorError;
     }
 
     await writeAuditLog({
       supabase,
-      action: "member.account_merge",
+      action: "member.profile_merge",
       targetTable: "members",
-      targetId: parsed.targetMemberId,
+      targetId: parsed.survivorMemberId,
       beforeData: {
-        targetMember,
-        duplicateMember,
+        survivorMember,
+        sourceMember,
       },
       afterData: {
-        targetMember: updatedTarget as Record<string, unknown>,
-        duplicateMember: deactivatedDuplicate as Record<string, unknown>,
+        survivorMember: updatedSurvivor as Record<string, unknown>,
+        sourceMember: deactivatedSource as Record<string, unknown>,
       },
       metadata: {
-        duplicateMemberId: parsed.duplicateMemberId,
+        sourceMemberId: parsed.sourceMemberId,
+        choices: {
+          name: parsed.nameChoice,
+          email: parsed.emailChoice,
+          phone: parsed.phoneChoice,
+          group: parsed.groupChoice,
+          status: parsed.statusChoice,
+          address: parsed.addressChoice,
+          baptism: parsed.baptismChoice,
+          notes: parsed.notesChoice,
+        },
       },
     });
     revalidateAppData();
-    return "Google 계정을 기존 멤버에 연결하고 중복 멤버를 비활성화했습니다.";
+    return "Google 계정 멤버에 교적 정보를 병합했습니다.";
+  });
+}
+
+export async function createMemberLinkRequest(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:read");
+    const parsed = createMemberLinkRequestSchema.parse({
+      targetMemberId: formData.get("targetMemberId"),
+      note: formData.get("note"),
+    });
+
+    if (parsed.targetMemberId === currentMember.id) {
+      throw new Error("본인 프로필과 같은 멤버는 선택할 수 없습니다.");
+    }
+
+    const { data: existingRequests, error: existingRequestsError } = await supabase
+      .from("member_link_requests")
+      .select("id, status")
+      .eq("requester_member_id", currentMember.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (existingRequestsError) throw existingRequestsError;
+
+    const latestRequest = existingRequests?.[0];
+    if (latestRequest?.status === "pending") {
+      throw new Error("이미 교적 연결 요청을 보냈습니다. 관리자의 승인을 기다려주세요.");
+    }
+    if (latestRequest?.status === "rejected") {
+      throw new Error("교적 연결 요청이 거절되었습니다. Newave 운영 관리자에게 직접 연락해주세요.");
+    }
+
+    if (parsed.targetMemberId) {
+      const { data: targetMember, error: targetError } = await supabase
+        .from("members")
+        .select("id, auth_user_id, status")
+        .eq("id", parsed.targetMemberId)
+        .single();
+
+      if (targetError) throw targetError;
+      if (targetMember.auth_user_id) throw new Error("이미 Google 계정이 연결된 멤버입니다.");
+      if (targetMember.status === "inactive") throw new Error("비활성화된 멤버에는 연결 요청을 만들 수 없습니다.");
+    }
+
+    const { data: inserted, error } = await supabase
+      .from("member_link_requests")
+      .insert({
+        requester_member_id: currentMember.id,
+        target_member_id: parsed.targetMemberId,
+        note: parsed.note,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member_link_request.create",
+      targetTable: "member_link_requests",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "교적 연결 요청을 보냈습니다. 관리자가 확인하면 내 프로필에 반영됩니다.";
+  });
+}
+
+export async function approveMemberLinkRequest(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = memberLinkRequestDecisionSchema.parse({
+      id: formData.get("id"),
+      targetMemberId: formData.get("targetMemberId"),
+      createTargetMode: formData.get("createTargetMode") || "existing",
+      newMemberName: formData.get("newMemberName"),
+      newMemberEmail: formData.get("newMemberEmail"),
+      newMemberPhone: formData.get("newMemberPhone"),
+      newMemberGroupId: formData.get("newMemberGroupId"),
+    });
+
+    const { data: request, error: requestError } = await supabase
+      .from("member_link_requests")
+      .select("*")
+      .eq("id", parsed.id)
+      .eq("status", "pending")
+      .single();
+
+    if (requestError) throw requestError;
+    let targetMemberId = (request.target_member_id as string | null) ?? null;
+
+    if (!targetMemberId && parsed.createTargetMode === "new") {
+      if (!parsed.newMemberName) throw new Error("새 교적 이름을 입력해주세요.");
+
+      const { data: newMember, error: newMemberError } = await supabase
+        .from("members")
+        .insert({
+          name: parsed.newMemberName,
+          email: parsed.newMemberEmail,
+          phone: parsed.newMemberPhone,
+          group_id: parsed.newMemberGroupId,
+          role: "member",
+          status: "active",
+        })
+        .select("id")
+        .single();
+
+      if (newMemberError) throw newMemberError;
+      targetMemberId = newMember.id as string;
+
+      await writeAuditLog({
+        supabase,
+        action: "member.create_for_link_request",
+        targetTable: "members",
+        targetId: targetMemberId,
+        afterData: newMember as Record<string, unknown>,
+        metadata: { linkRequestId: parsed.id },
+      });
+    }
+
+    if (!targetMemberId) {
+      targetMemberId = parsed.targetMemberId ?? null;
+    }
+
+    if (!targetMemberId) {
+      throw new Error("연결할 교적 멤버를 선택해주세요.");
+    }
+
+    const mergeFormData = new FormData();
+    mergeFormData.set("survivorMemberId", request.requester_member_id as string);
+    mergeFormData.set("sourceMemberId", targetMemberId);
+    mergeFormData.set("nameChoice", "source");
+    mergeFormData.set("emailChoice", "survivor");
+    mergeFormData.set("phoneChoice", "source");
+    mergeFormData.set("groupChoice", "source");
+    mergeFormData.set("statusChoice", "source");
+    mergeFormData.set("addressChoice", "source");
+    mergeFormData.set("baptismChoice", "source");
+    mergeFormData.set("notesChoice", "source");
+
+    const mergeResult = await mergeMemberProfile(_previousState, mergeFormData);
+    if (!mergeResult.ok) throw new Error(mergeResult.message);
+
+    const { error: roleResetError } = await supabase
+      .from("members")
+      .update({ role: "member", updated_at: new Date().toISOString() })
+      .eq("id", request.requester_member_id as string);
+
+    if (roleResetError) throw roleResetError;
+
+    const approvedAt = new Date().toISOString();
+    const approvedPayload = {
+      status: "approved",
+      resolved_at: approvedAt,
+      resolved_by_member_id: currentMember.id,
+    };
+    const { count: approvedCount, error: updateError } = await supabase
+      .from("member_link_requests")
+      .update(approvedPayload, { count: "exact" })
+      .eq("id", parsed.id)
+      .eq("status", "pending");
+
+    if (updateError) throw updateError;
+    if (approvedCount === 0) throw new Error("이미 처리되었거나 찾을 수 없는 요청입니다.");
+    await writeAuditLog({
+      supabase,
+      action: "member_link_request.approve",
+      targetTable: "member_link_requests",
+      targetId: parsed.id,
+      afterData: {
+        id: parsed.id,
+        ...approvedPayload,
+      },
+    });
+    revalidateAppData();
+    return "교적 연결 요청을 승인했습니다.";
+  });
+}
+
+export async function rejectMemberLinkRequest(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = memberLinkRequestDecisionSchema.parse({ id: formData.get("id") });
+
+    const { data: existingRequest, error: existingRequestError } = await supabase
+      .from("member_link_requests")
+      .select("*")
+      .eq("id", parsed.id)
+      .maybeSingle();
+
+    if (existingRequestError) throw existingRequestError;
+
+    const rejectedAt = new Date().toISOString();
+    const rejectedPayload = {
+      status: "rejected",
+      resolved_at: rejectedAt,
+      resolved_by_member_id: currentMember.id,
+    };
+    const { count: rejectedCount, error } = await supabase
+      .from("member_link_requests")
+      .update(rejectedPayload, { count: "exact" })
+      .eq("id", parsed.id);
+
+    if (error) throw error;
+    if (rejectedCount === 0) {
+      revalidateAppData();
+      return "요청이 이미 정리되었습니다.";
+    }
+    await writeAuditLog({
+      supabase,
+      action: "member_link_request.reject",
+      targetTable: "member_link_requests",
+      targetId: parsed.id,
+      beforeData: (existingRequest as Record<string, unknown> | null) ?? null,
+      afterData: {
+        id: parsed.id,
+        ...rejectedPayload,
+      },
+    });
+    revalidateAppData();
+    return "교적 연결 요청을 거절했습니다.";
+  });
+}
+
+export async function updateMemberRole(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = updateMemberRoleSchema.parse({
+      id: formData.get("id"),
+      role: formData.get("role"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("members")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { count: activeAdminCount, error: countError } = await supabase
+      .from("members")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin")
+      .neq("status", "inactive");
+
+    if (countError) throw countError;
+
+    const blockReason = getRoleChangeBlockReason({
+      targetCurrentRole: beforeData.role,
+      nextRole: parsed.role,
+      activeAdminCount: activeAdminCount ?? 0,
+    });
+
+    if (blockReason) throw new Error(blockReason);
+
+    const { data: afterData, error } = await supabase
+      .from("members")
+      .update({
+        role: parsed.role,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "member.role.update",
+      targetTable: "members",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "멤버 역할을 변경했습니다.";
   });
 }
 
@@ -666,6 +1055,83 @@ export async function reactivateMember(_previousState: ActionState, formData: Fo
     });
     revalidateAppData();
     return "멤버를 다시 활성화했습니다.";
+  });
+}
+
+export async function deleteMemberPermanently(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = deleteMemberSchema.parse({
+      id: formData.get("id"),
+      confirmName: formData.get("confirmName"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase.from("members").select("*").eq("id", parsed.id).single();
+    if (beforeError) throw beforeError;
+
+    const member = beforeData as Record<string, unknown>;
+    const memberName = String(member.name ?? "");
+    if (parsed.confirmName.trim() !== memberName) {
+      throw new Error("삭제 확인 이름이 멤버 이름과 일치하지 않습니다.");
+    }
+
+    const [{ count: attendanceCount, error: attendanceError }, { count: careCount, error: careError }, { count: linkCount, error: linkError }] =
+      await Promise.all([
+        supabase.from("attendance_records").select("id", { count: "exact", head: true }).eq("member_id", parsed.id),
+        supabase.from("care_followups").select("id", { count: "exact", head: true }).eq("member_id", parsed.id),
+        supabase
+          .from("member_link_requests")
+          .select("id", { count: "exact", head: true })
+          .or(`requester_member_id.eq.${parsed.id},target_member_id.eq.${parsed.id}`),
+      ]);
+
+    if (attendanceError) throw attendanceError;
+    if (careError) throw careError;
+    if (linkError) throw linkError;
+
+    const closedAt = new Date().toISOString();
+    const { count: closedLinkRequestCount, error: closeLinkRequestsError } = await supabase
+      .from("member_link_requests")
+      .update(
+        {
+          status: "rejected",
+          resolved_at: closedAt,
+          resolved_by_member_id: null,
+        },
+        { count: "exact" },
+      )
+      .or(`requester_member_id.eq.${parsed.id},target_member_id.eq.${parsed.id}`)
+      .eq("status", "pending");
+
+    if (closeLinkRequestsError) throw closeLinkRequestsError;
+
+    await writeAuditLog({
+      supabase,
+      action: "member.permanent_delete",
+      targetTable: "members",
+      targetId: parsed.id,
+      beforeData: member,
+      metadata: {
+        deletedMemberName: memberName,
+        deletedMemberEmail: member.email ?? null,
+        deletedAuthUserId: member.auth_user_id ?? null,
+        cascadingRecords: {
+          attendanceRecords: attendanceCount ?? 0,
+          careFollowups: careCount ?? 0,
+          memberLinkRequests: linkCount ?? 0,
+          closedPendingLinkRequests: closedLinkRequestCount ?? 0,
+        },
+      },
+    });
+
+    const { count: deletedCount, error } = await supabase.from("members").delete({ count: "exact" }).eq("id", parsed.id);
+    if (error) throw error;
+    if (deletedCount !== 1) {
+      throw new Error("멤버 삭제 권한이 없거나 이미 삭제된 멤버입니다. 관리자 삭제 정책을 확인해주세요.");
+    }
+
+    revalidateAppData();
+    return "멤버를 완전히 삭제했습니다. 감사 로그에는 삭제 전 정보가 남아 있습니다.";
   });
 }
 

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { SectionNav } from "@/components/section-nav";
 import {
   createCareFollowup,
   createCustomFieldDefinition,
+  createMemberLinkRequest,
   deleteCustomFieldDefinition,
   updateCareFollowup,
   updateMember,
@@ -13,8 +15,9 @@ import {
   type ActionState,
 } from "@/app/actions";
 import { hasPermission } from "@/lib/rbac";
+import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import type { AppUser } from "@/lib/app-page-data";
-import type { CustomFieldDefinition, Group, Member } from "@/lib/types";
+import type { CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 
 const initialActionState: ActionState = { ok: false, message: "" };
 
@@ -24,17 +27,30 @@ export function MemberDetailPageContent({
   groups,
   members,
   customFieldDefinitions,
+  memberLinkRequests = [],
+  eyebrow = "멤버 상세",
+  backHref = "/members",
+  backLabel = "목록",
+  showLinkRequest = false,
 }: {
   user: AppUser;
   member: Member;
   groups: Group[];
   members: Member[];
   customFieldDefinitions: CustomFieldDefinition[];
+  memberLinkRequests?: MemberLinkRequest[];
+  eyebrow?: string;
+  backHref?: string;
+  backLabel?: string;
+  showLinkRequest?: boolean;
 }) {
   const canManageMembers = hasPermission(user.role, "members:write");
   const canManageDefinitions = hasPermission(user.role, "roles:manage");
   const assignableMembers = members.filter((item) => item.status !== "inactive");
-  const currentMemberId = assignableMembers.find((item) => item.email === user.email)?.id ?? "";
+  const currentMemberId =
+    assignableMembers.find((item) => item.authUserId === user.id)?.id ??
+    assignableMembers.find((item) => item.email === user.email)?.id ??
+    "";
   const [profileState, profileAction, isSavingProfile] = useActionState(updateMember, initialActionState);
   const [customFieldsState, customFieldsAction, isSavingCustomFields] = useActionState(
     updateMemberCustomFields,
@@ -56,30 +72,101 @@ export function MemberDetailPageContent({
     createCareFollowup,
     initialActionState,
   );
+  const [linkRequestState, linkRequestAction, isCreatingLinkRequest] = useActionState(
+    createMemberLinkRequest,
+    initialActionState,
+  );
   const [updateFollowupState, updateFollowupAction, isUpdatingFollowup] = useActionState(
     updateCareFollowup,
     initialActionState,
   );
+  const googleAccountName =
+    typeof member.customFields.google_account_name === "string" ? member.customFields.google_account_name : "";
+  const pendingLinkRequest = memberLinkRequests.find(isActionableLinkRequest);
+  const rejectedLinkRequest = memberLinkRequests.find((request) => request.status === "rejected");
+  const linkableMembers = members.filter((item) => item.id !== member.id && !item.authUserId && item.status !== "inactive");
+  const sectionItems = [
+    ...(showLinkRequest ? [{ href: "#account-link", label: "계정 연결" }] : []),
+    { href: "#basic-info", label: "기본 정보" },
+    { href: "#custom-fields", label: "추가 정보" },
+    { href: "#attendance-history", label: "출석 기록" },
+    { href: "#care-followups", label: "돌봄" },
+    ...(canManageDefinitions ? [{ href: "#custom-field-definitions", label: "정보 항목" }] : []),
+  ];
 
   return (
     <>
       <header className="topbar">
         <div>
-          <p className="eyebrow">멤버 상세</p>
+          <p className="eyebrow">{eyebrow}</p>
           <h1>{member.name}</h1>
           <p className="meta">
             {member.groupName} · {statusLabels[member.status]}
+            {googleAccountName ? ` · Google 이름 ${googleAccountName}` : ""}
           </p>
         </div>
         <div className="topbar-actions">
-          <Link className="secondary-button" href="/members">
-            목록
+          <Link className="secondary-button" href={backHref}>
+            {backLabel}
           </Link>
         </div>
       </header>
+      <SectionNav items={sectionItems} />
+
+      {showLinkRequest ? (
+        <section className="panel form-panel" id="account-link">
+          <div className="panel-heading">
+            <div>
+              <h2>기존 교적 멤버와 연결</h2>
+              <p className="meta">CSV로 이미 등록된 내 교적 정보가 있으면 관리자에게 연결을 요청하세요.</p>
+            </div>
+            <span>{pendingLinkRequest ? "승인 대기 중" : "첫 로그인 설정"}</span>
+          </div>
+          {pendingLinkRequest ? (
+            <article className="detail-row">
+              <div className="person-block">
+                <strong>{pendingLinkRequest.targetName}</strong>
+                <span>관리자 승인 후 이 프로필로 교적 정보가 병합됩니다.</span>
+              </div>
+              <span className="status-pill">대기</span>
+            </article>
+          ) : rejectedLinkRequest ? (
+            <article className="detail-row rejected-state">
+              <div className="person-block">
+                <strong>교적 연결 요청이 거절되었습니다</strong>
+                <span>계정 연결이 필요하면 Newave 운영 관리자에게 직접 연락해주세요.</span>
+              </div>
+              <span className="status-pill">거절</span>
+            </article>
+          ) : (
+            <form action={linkRequestAction} className="member-form account-link-form">
+              <label>
+                연결할 교적 멤버
+                <select name="targetMemberId" disabled={linkableMembers.length === 0}>
+                  {linkableMembers.map((candidate) => (
+                    <option key={candidate.id} value={candidate.id}>
+                      {candidate.name} · {candidate.groupName} · {candidate.email || "이메일 없음"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                메모
+                <input name="note" placeholder="예: 제가 이 멤버입니다" />
+              </label>
+              <div className="form-actions">
+                <ActionMessage state={linkRequestState} />
+                <button className="primary-button" type="submit" disabled={isCreatingLinkRequest || linkableMembers.length === 0}>
+                  연결 요청
+                </button>
+              </div>
+            </form>
+          )}
+        </section>
+      ) : null}
 
       <div className="detail-layout">
-        <section className="panel">
+        <section className="panel" id="basic-info">
           <div className="panel-heading">
             <h2>기본 정보</h2>
             <span>{canManageMembers ? "수정 가능" : "읽기 전용"}</span>
@@ -148,7 +235,7 @@ export function MemberDetailPageContent({
           </form>
         </section>
 
-        <section className="panel">
+        <section className="panel" id="custom-fields">
           <div className="panel-heading">
             <h2>추가 정보</h2>
             <span>{customFieldDefinitions.length}개 항목</span>
@@ -184,7 +271,7 @@ export function MemberDetailPageContent({
         </section>
       </div>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="attendance-history">
         <div className="panel-heading">
           <h2>최근 출석 기록</h2>
           <span>{member.attendanceHistory.length}건</span>
@@ -218,7 +305,7 @@ export function MemberDetailPageContent({
         </div>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="care-followups">
         <div className="panel-heading">
           <h2>돌봄 팔로업</h2>
           <span>{member.careFollowups.length}건</span>
@@ -328,7 +415,7 @@ export function MemberDetailPageContent({
 
       {canManageDefinitions ? (
         <>
-          <section className="panel form-panel">
+          <section className="panel form-panel" id="custom-field-definitions">
             <div className="panel-heading">
               <h2>정보 항목 관리</h2>
               <span>항목 이름, 입력 방식, 공개 범위 수정</span>
