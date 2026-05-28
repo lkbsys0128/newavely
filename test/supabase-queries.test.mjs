@@ -5,6 +5,7 @@ import test from "node:test";
 const dataSource = readFileSync(new URL("../src/lib/supabase/data.ts", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
 const staleLinkCleanupSource = readFileSync(new URL("../db/009_cleanup_stale_member_link_requests.sql", import.meta.url), "utf8");
+const memberDeletePolicySource = readFileSync(new URL("../db/010_admin_member_delete_policy.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
@@ -77,6 +78,9 @@ test("member permanent delete is admin-only and audited", () => {
   assert.match(actionsSource, /member\.permanent_delete/);
   assert.match(actionsSource, /cascadingRecords/);
   assert.match(actionsSource, /closedPendingLinkRequests/);
+  assert.match(actionsSource, /deletedCount !== 1/);
+  assert.match(schemaSource, /admins can delete members/);
+  assert.match(memberDeletePolicySource, /on members for delete/);
   assert.match(dashboardSource, /완전 삭제/);
 });
 

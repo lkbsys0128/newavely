@@ -1207,8 +1207,11 @@ export async function deleteMemberPermanently(_previousState: ActionState, formD
       },
     });
 
-    const { error } = await supabase.from("members").delete().eq("id", parsed.id);
+    const { count: deletedCount, error } = await supabase.from("members").delete({ count: "exact" }).eq("id", parsed.id);
     if (error) throw error;
+    if (deletedCount !== 1) {
+      throw new Error("멤버 삭제 권한이 없거나 이미 삭제된 멤버입니다. 관리자 삭제 정책을 확인해주세요.");
+    }
 
     revalidateAppData();
     return "멤버를 완전히 삭제했습니다. 감사 로그에는 삭제 전 정보가 남아 있습니다.";

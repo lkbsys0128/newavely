@@ -220,6 +220,11 @@ to authenticated
 using (can_manage_members())
 with check (can_manage_members());
 
+create policy "admins can delete members"
+on members for delete
+to authenticated
+using (current_member_role() = 'admin');
+
 create policy "authenticated users can read attendance events"
 on attendance_events for select
 to authenticated
