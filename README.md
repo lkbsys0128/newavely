@@ -38,6 +38,11 @@ db/
   004_audit_log_retention.sql 감사 로그 보관 정책 comment와 created_at index
   005_attendance_excuse_period.sql 출석 사유 기간 컬럼과 인덱스
   006_care_followups.sql 돌봄 팔로업 테이블, 인덱스, RLS policy
+  007_member_link_requests.sql 첫 로그인 교적 연결 요청 테이블
+  008_secure_first_login_onboarding.sql 첫 로그인 보안 정책 강화
+  009_cleanup_stale_member_link_requests.sql 오래된 연결 요청 정리
+  010_admin_member_delete_policy.sql 관리자 멤버 영구 삭제 정책
+  011_member_link_request_admin_policy.sql 연결 요청 관리자 처리 정책
 test/
   supabase-queries.test.mjs Supabase relationship embed 회귀 테스트
 ```
@@ -81,6 +86,11 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 4. `db/004_audit_log_retention.sql`
 5. `db/005_attendance_excuse_period.sql`
 6. `db/006_care_followups.sql`
+7. `db/007_member_link_requests.sql`
+8. `db/008_secure_first_login_onboarding.sql`
+9. `db/009_cleanup_stale_member_link_requests.sql`
+10. `db/010_admin_member_delete_policy.sql`
+11. `db/011_member_link_request_admin_policy.sql`
 
 주요 테이블:
 
@@ -89,6 +99,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 - `attendance_events`: 출석 이벤트 날짜와 제목
 - `attendance_records`: 이벤트별 멤버 출석 상태
 - `care_followups`: 멤버별 돌봄/연락 팔로업 기록
+- `member_link_requests`: 첫 로그인 계정과 기존 교적 멤버 연결 승인 요청
 - `member_custom_field_definitions`: 멤버별 커스텀 필드 정의
 - `audit_logs`: 멤버/소그룹/출석 변경에 대한 append-only 감사 로그
 
@@ -207,6 +218,17 @@ Vercel에 필요한 환경 변수:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 자세한 배포 설정은 `DEPLOYMENT.md`를 참고합니다.
+
+## 백업
+
+운영 DB는 GitHub Actions로 주 1회 암호화 백업을 생성합니다.
+
+- Workflow: `.github/workflows/database-backup.yml`
+- Schedule: 매주 월요일 11:00 UTC
+- Artifact: GPG로 암호화된 `schema.sql` + `full.dump`
+- Required GitHub Secrets: `SUPABASE_DB_URL`, `BACKUP_GPG_PASSPHRASE`
+
+자세한 설정, 수동 실행, 복구 테스트 방법은 `docs/database-backups.md`를 참고합니다.
 
 ## 협업 개발 규칙
 

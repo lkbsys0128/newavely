@@ -1,0 +1,90 @@
+name: Database Backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 11 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Weekly encrypted Supabase backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Validate required secrets
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+        run: |
+          test -n "$SUPABASE_DB_URL"
+          test -n "$BACKUP_GPG_PASSPHRASE"
+
+      - name: Create database dumps
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          BACKUP_DATE="$(date -u +'%Y-%m-%dT%H-%M-%SZ')"
+          BACKUP_DIR="newavely-db-backup-${BACKUP_DATE}"
+          mkdir "$BACKUP_DIR"
+
+          pg_dump \
+            --dbname "$SUPABASE_DB_URL" \
+            --schema-only \
+            --no-owner \
+            --no-acl \
+            --file "$BACKUP_DIR/schema.sql"
+
+          pg_dump \
+            --dbname "$SUPABASE_DB_URL" \
+            --format custom \
+            --compress=9 \
+            --no-owner \
+            --no-acl \
+            --file "$BACKUP_DIR/full.dump"
+
+          {
+            echo "project=newavely"
+            echo "created_at_utc=${BACKUP_DATE}"
+            echo "format=pg_dump custom + schema sql"
+            echo "restore_schema=psql --dbname \"\$DATABASE_URL\" --file schema.sql"
+            echo "restore_full=pg_restore --dbname \"\$DATABASE_URL\" --clean --if-exists --no-owner --no-acl full.dump"
+          } > "$BACKUP_DIR/manifest.txt"
+
+          tar -czf "${BACKUP_DIR}.tar.gz" "$BACKUP_DIR"
+          echo "BACKUP_DIR=$BACKUP_DIR" >> "$GITHUB_ENV"
+
+      - name: Encrypt backup archive
+        env:
+          BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          gpg \
+            --batch \
+            --yes \
+            --pinentry-mode loopback \
+            --symmetric \
+            --cipher-algo AES256 \
+            --passphrase "$BACKUP_GPG_PASSPHRASE" \
+            --output "${BACKUP_DIR}.tar.gz.gpg" \
+            "${BACKUP_DIR}.tar.gz"
+
+          shred -u "${BACKUP_DIR}.tar.gz"
+          rm -rf "$BACKUP_DIR"
+
+      - name: Upload encrypted backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_DIR }}-encrypted
+          path: ${{ env.BACKUP_DIR }}.tar.gz.gpg
+          retention-days: 30
+          if-no-files-found: error
