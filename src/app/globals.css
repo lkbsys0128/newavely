@@ -848,6 +848,16 @@ tbody tr:hover {
   max-width: 920px;
 }
 
+.onboarding-search {
+  display: grid;
+  gap: 8px;
+}
+
+.onboarding-search input {
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+
 .onboarding-candidate {
   grid-template-columns: minmax(220px, 1fr) auto;
   align-items: center;

@@ -133,6 +133,19 @@ as $$
   );
 $$;
 
+create or replace function current_member_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select id
+  from members
+  where auth_user_id = auth.uid()
+  limit 1;
+$$;
+
 create or replace function can_manage_members()
 returns boolean
 language sql
@@ -258,7 +271,7 @@ create policy "users can read their own link requests"
 on member_link_requests for select
 to authenticated
 using (
-  requester_member_id in (select id from members where auth_user_id = auth.uid())
+  requester_member_id = current_member_id()
   or current_member_role() = 'admin'
 );
 
@@ -266,7 +279,7 @@ create policy "users can create their own link requests"
 on member_link_requests for insert
 to authenticated
 with check (
-  requester_member_id in (select id from members where auth_user_id = auth.uid())
+  requester_member_id = current_member_id()
 );
 
 create policy "admins can update link requests"

@@ -23,17 +23,20 @@ export function OnboardingPanel({
   const [state, action, isSubmitting] = useActionState(createMemberLinkRequest, initialActionState);
   const pendingRequest = memberLinkRequests.find((request) => request.status === "pending");
   const normalizedQuery = query.trim().toLowerCase();
+  const canShowResults = normalizedQuery.length >= 2;
   const candidates = useMemo(
-    () =>
-      members
+    () => {
+      if (!canShowResults) return [];
+
+      return members
         .filter((member) => member.id !== currentMemberId)
         .filter((member) => !member.authUserId && member.status !== "inactive" && !isMergedPlaceholderMember(member))
-        .filter((member) => {
-          if (!normalizedQuery) return true;
-          return [member.name, member.email, member.phone, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery));
-        })
-        .slice(0, 30),
-    [currentMemberId, members, normalizedQuery],
+        .filter((member) =>
+          [member.name, member.email, member.phone, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery)),
+        )
+        .slice(0, 12);
+    },
+    [canShowResults, currentMemberId, members, normalizedQuery],
   );
 
   return (
@@ -61,40 +64,51 @@ export function OnboardingPanel({
           </div>
         ) : (
           <>
-            <div className="member-form compact-form">
+            <div className="onboarding-search">
               <label>
-                이름, 이메일, 전화번호, 소그룹으로 찾기
+                본인 이름, 이메일, 전화번호, 소그룹으로 검색
                 <input
+                  autoFocus
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="예: 임주환, 순장, 전화번호 일부"
+                  placeholder="두 글자 이상 입력해주세요"
                 />
               </label>
+              <p className="meta">검색 결과에서 본인 교적을 선택하면 관리자에게 연결 승인을 요청합니다.</p>
             </div>
 
-            <div className="onboarding-candidate-list">
-              {candidates.map((member) => (
-                <form action={action} className="definition-row onboarding-candidate" key={member.id}>
-                  <input name="targetMemberId" type="hidden" value={member.id} />
-                  <input
-                    name="note"
-                    type="hidden"
-                    value={`첫 로그인 계정 ${user.name} (${user.email || "이메일 없음"})의 교적 연결 요청`}
-                  />
-                  <div className="person-block">
-                    <strong>{member.name}</strong>
-                    <span>
-                      {member.groupName} · {member.email || "이메일 없음"} · {member.phone || "연락처 없음"}
-                    </span>
-                  </div>
-                  <button className="primary-button" type="submit" disabled={isSubmitting}>
-                    이 멤버로 요청
-                  </button>
-                </form>
-              ))}
-            </div>
+            {!canShowResults ? (
+              <div className="empty-state">
+                <strong>검색어를 입력하면 교적 후보가 표시됩니다</strong>
+                <span>전체 멤버 목록을 먼저 보여주지 않고, 입력한 조건에 맞는 후보만 보여줍니다.</span>
+              </div>
+            ) : null}
 
-            {candidates.length === 0 ? (
+            {canShowResults && candidates.length > 0 ? (
+              <div className="onboarding-candidate-list">
+                {candidates.map((member) => (
+                  <form action={action} className="definition-row onboarding-candidate" key={member.id}>
+                    <input name="targetMemberId" type="hidden" value={member.id} />
+                    <input
+                      name="note"
+                      type="hidden"
+                      value={`첫 로그인 계정 ${user.name} (${user.email || "이메일 없음"})의 교적 연결 요청`}
+                    />
+                    <div className="person-block">
+                      <strong>{member.name}</strong>
+                      <span>
+                        {member.groupName} · {member.email || "이메일 없음"} · {member.phone || "연락처 없음"}
+                      </span>
+                    </div>
+                    <button className="primary-button" type="submit" disabled={isSubmitting}>
+                      이 멤버로 요청
+                    </button>
+                  </form>
+                ))}
+              </div>
+            ) : null}
+
+            {canShowResults && candidates.length === 0 ? (
               <form action={action} className="empty-state onboarding-request-admin">
                 <strong>내 교적을 찾지 못했나요?</strong>
                 <span>관리자에게 확인 요청을 보내면, 관리자가 교적을 확인한 뒤 연결하거나 새 교적을 만들어줍니다.</span>

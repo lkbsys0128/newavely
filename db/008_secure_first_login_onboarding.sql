@@ -21,6 +21,19 @@ as $$
   );
 $$;
 
+create or replace function current_member_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select id
+  from members
+  where auth_user_id = auth.uid()
+  limit 1;
+$$;
+
 create or replace function can_read_members()
 returns boolean
 language sql
@@ -63,6 +76,23 @@ on members for update
 to authenticated
 using (can_manage_members())
 with check (can_manage_members());
+
+drop policy if exists "users can read their own link requests" on member_link_requests;
+create policy "users can read their own link requests"
+on member_link_requests for select
+to authenticated
+using (
+  requester_member_id = current_member_id()
+  or current_member_role() = 'admin'
+);
+
+drop policy if exists "users can create their own link requests" on member_link_requests;
+create policy "users can create their own link requests"
+on member_link_requests for insert
+to authenticated
+with check (
+  requester_member_id = current_member_id()
+);
 
 drop policy if exists "authenticated users can read attendance records" on attendance_records;
 drop policy if exists "authorized users can read attendance records" on attendance_records;

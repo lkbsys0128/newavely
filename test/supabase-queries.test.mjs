@@ -44,6 +44,7 @@ test("first-login onboarding does not auto-link or auto-admin new Google users",
 
 test("schema allows admin-routed link requests while tightening member reads", () => {
   assert.match(schemaSource, /target_member_id uuid references members/);
+  assert.match(schemaSource, /current_member_id\(\)/);
   assert.match(schemaSource, /current_member_status\(\) = 'new'/);
   assert.match(schemaSource, /auth_user_id is null/);
   assert.match(schemaSource, /users can create their own pending member profile/);
