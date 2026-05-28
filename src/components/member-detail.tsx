@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { SectionNav } from "@/components/section-nav";
 import {
   createCareFollowup,
   createCustomFieldDefinition,
@@ -14,6 +15,7 @@ import {
   type ActionState,
 } from "@/app/actions";
 import { hasPermission } from "@/lib/rbac";
+import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import type { AppUser } from "@/lib/app-page-data";
 import type { CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 
@@ -80,8 +82,17 @@ export function MemberDetailPageContent({
   );
   const googleAccountName =
     typeof member.customFields.google_account_name === "string" ? member.customFields.google_account_name : "";
-  const pendingLinkRequest = memberLinkRequests.find((request) => request.status === "pending");
+  const pendingLinkRequest = memberLinkRequests.find(isActionableLinkRequest);
+  const rejectedLinkRequest = memberLinkRequests.find((request) => request.status === "rejected");
   const linkableMembers = members.filter((item) => item.id !== member.id && !item.authUserId && item.status !== "inactive");
+  const sectionItems = [
+    ...(showLinkRequest ? [{ href: "#account-link", label: "계정 연결" }] : []),
+    { href: "#basic-info", label: "기본 정보" },
+    { href: "#custom-fields", label: "추가 정보" },
+    { href: "#attendance-history", label: "출석 기록" },
+    { href: "#care-followups", label: "돌봄" },
+    ...(canManageDefinitions ? [{ href: "#custom-field-definitions", label: "정보 항목" }] : []),
+  ];
 
   return (
     <>
@@ -100,9 +111,10 @@ export function MemberDetailPageContent({
           </Link>
         </div>
       </header>
+      <SectionNav items={sectionItems} />
 
       {showLinkRequest ? (
-        <section className="panel form-panel">
+        <section className="panel form-panel" id="account-link">
           <div className="panel-heading">
             <div>
               <h2>기존 교적 멤버와 연결</h2>
@@ -117,6 +129,14 @@ export function MemberDetailPageContent({
                 <span>관리자 승인 후 이 프로필로 교적 정보가 병합됩니다.</span>
               </div>
               <span className="status-pill">대기</span>
+            </article>
+          ) : rejectedLinkRequest ? (
+            <article className="detail-row rejected-state">
+              <div className="person-block">
+                <strong>교적 연결 요청이 거절되었습니다</strong>
+                <span>계정 연결이 필요하면 Newave 운영 관리자에게 직접 연락해주세요.</span>
+              </div>
+              <span className="status-pill">거절</span>
             </article>
           ) : (
             <form action={linkRequestAction} className="member-form account-link-form">
@@ -146,7 +166,7 @@ export function MemberDetailPageContent({
       ) : null}
 
       <div className="detail-layout">
-        <section className="panel">
+        <section className="panel" id="basic-info">
           <div className="panel-heading">
             <h2>기본 정보</h2>
             <span>{canManageMembers ? "수정 가능" : "읽기 전용"}</span>
@@ -215,7 +235,7 @@ export function MemberDetailPageContent({
           </form>
         </section>
 
-        <section className="panel">
+        <section className="panel" id="custom-fields">
           <div className="panel-heading">
             <h2>추가 정보</h2>
             <span>{customFieldDefinitions.length}개 항목</span>
@@ -251,7 +271,7 @@ export function MemberDetailPageContent({
         </section>
       </div>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="attendance-history">
         <div className="panel-heading">
           <h2>최근 출석 기록</h2>
           <span>{member.attendanceHistory.length}건</span>
@@ -285,7 +305,7 @@ export function MemberDetailPageContent({
         </div>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="care-followups">
         <div className="panel-heading">
           <h2>돌봄 팔로업</h2>
           <span>{member.careFollowups.length}건</span>
@@ -395,7 +415,7 @@ export function MemberDetailPageContent({
 
       {canManageDefinitions ? (
         <>
-          <section className="panel form-panel">
+          <section className="panel form-panel" id="custom-field-definitions">
             <div className="panel-heading">
               <h2>정보 항목 관리</h2>
               <span>항목 이름, 입력 방식, 공개 범위 수정</span>

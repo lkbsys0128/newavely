@@ -10,7 +10,9 @@ const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+const memberDetailSource = readFileSync(new URL("../src/components/member-detail.tsx", import.meta.url), "utf8");
 const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
+const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
   assert.match(dataSource, /id, auth_user_id, name/);
@@ -72,6 +74,7 @@ test("link request decisions support rejection and new member creation", () => {
   assert.match(actionsSource, /교적 연결 요청이 거절되었습니다/);
   assert.match(actionsSource, /member\.create_for_link_request/);
   assert.match(dashboardSource, /새 교적 생성 후 연결/);
+  assert.match(memberDetailSource, /rejectedLinkRequest/);
   assert.match(memberLinkAdminPolicySource, /admins can update link requests/);
 });
 
@@ -91,4 +94,19 @@ test("stale member link request cleanup closes orphaned pending requests", () =>
   assert.match(staleLinkCleanupSource, /update member_link_requests/);
   assert.match(staleLinkCleanupSource, /status = 'rejected'/);
   assert.match(staleLinkCleanupSource, /not exists/);
+});
+
+test("pages expose section navigation anchors for operator workflows", () => {
+  assert.match(sectionNavSource, /aria-label="페이지 섹션"/);
+  assert.match(dashboardSource, /#member-list/);
+  assert.match(dashboardSource, /#attendance-checklist/);
+  assert.match(dashboardSource, /#link-requests/);
+  assert.match(memberDetailSource, /#basic-info/);
+  assert.match(memberDetailSource, /#care-followups/);
+});
+
+test("legacy manual account merge entrypoint is not exposed", () => {
+  assert.doesNotMatch(actionsSource, /export async function mergeMemberAccount/);
+  assert.doesNotMatch(dashboardSource, /Google 계정 프로필 병합/);
+  assert.doesNotMatch(dashboardSource, /권한에서 프로필 병합/);
 });

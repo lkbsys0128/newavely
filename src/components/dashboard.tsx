@@ -29,6 +29,7 @@ import {
   type MemberFilters,
 } from "@/lib/member-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
+import { SectionNav } from "@/components/section-nav";
 
 type AppDataProps = {
   user: AppUser;
@@ -50,8 +51,15 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
   return (
     <>
       <PageHeader eyebrow="2026 공동체 관리 MVP" title="대시보드" user={user} />
+      <SectionNav
+        items={[
+          { href: "#overview-metrics", label: "요약" },
+          { href: "#care-today", label: "오늘 챙길 멤버" },
+          { href: "#group-summary", label: "소그룹 현황" },
+        ]}
+      />
 
-      <div className="metric-grid">
+      <div className="metric-grid" id="overview-metrics">
         <article className="metric-card">
           <span>전체 멤버</span>
           <strong>{activeMembers.length}</strong>
@@ -77,7 +85,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       </div>
 
       <div className="dashboard-layout">
-        <section className="panel">
+        <section className="panel" id="care-today">
           <div className="panel-heading">
             <h2>오늘 챙길 멤버</h2>
             <span>새가족, 돌봄 필요, 결석</span>
@@ -168,8 +176,17 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           비활성화 포함
         </label>
       </PageHeader>
+      <SectionNav
+        items={[
+          { href: "#member-filters", label: "필터" },
+          { href: "#member-list", label: "목록" },
+          { href: "#member-detail", label: "상세" },
+          { href: "#duplicate-candidates", label: "중복 후보" },
+          { href: "#member-create", label: "새 멤버" },
+        ]}
+      />
 
-      <section className="panel filter-panel">
+      <section className="panel filter-panel" id="member-filters">
         <div className="filter-grid">
           <label>
             소그룹
@@ -225,7 +242,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
       </section>
 
       <section className="content-grid">
-        <section className="panel wide">
+        <section className="panel wide" id="member-list">
           <div className="panel-heading">
             <h2>멤버 목록</h2>
             <span>{filteredMembers.length}명</span>
@@ -287,7 +304,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           </div>
         </section>
 
-        <aside className="panel">
+        <aside className="panel" id="member-detail">
           <div className="panel-heading">
             <h2>멤버 상세</h2>
             <span>{selectedMember ? statusLabels[selectedMember.status] : "선택 없음"}</span>
@@ -399,7 +416,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         </aside>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="duplicate-candidates">
         <div className="panel-heading">
           <h2>중복/계정 연결 확인</h2>
           <span>{duplicateMemberCandidates.length}건 후보</span>
@@ -439,8 +456,8 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 </div>
                 {linkedMember && unlinkedMembers.length > 0 ? (
                   <div className="merge-action-list">
-                    <Link className="primary-button table-action" href="/permissions">
-                      권한에서 프로필 병합
+                    <Link className="primary-button table-action" href="/permissions#link-requests">
+                      연결 요청 확인
                     </Link>
                   </div>
                 ) : (
@@ -460,7 +477,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         </div>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="member-create">
         <div className="panel-heading">
           <h2>멤버 추가</h2>
           <span>{canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}</span>
@@ -543,7 +560,15 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   return (
     <>
       <PageHeader eyebrow="소그룹 관리" title="소그룹" user={user} />
-      <div className="metric-grid">
+      <SectionNav
+        items={[
+          { href: "#group-metrics", label: "요약" },
+          { href: "#group-create", label: "소그룹 추가" },
+          { href: "#group-list", label: "소그룹 목록" },
+          { href: "#unassigned-members", label: "미배정" },
+        ]}
+      />
+      <div className="metric-grid" id="group-metrics">
         <article className="metric-card">
           <span>전체 활동 멤버</span>
           <strong>{activeMembers.length}</strong>
@@ -566,7 +591,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
         </article>
       </div>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="group-create">
         <div className="panel-heading">
           <h2>소그룹 추가</h2>
           <span>{canManageGroups ? "이름과 리더를 지정" : "관리자 권한 필요"}</span>
@@ -596,7 +621,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
         </form>
       </section>
 
-      <section className="group-grid">
+      <section className="group-grid" id="group-list">
         {groups.map((group) => {
           const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
           const present = groupMembers.filter((member) => member.present).length;
@@ -668,7 +693,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
         })}
       </section>
       {unassignedMembers.length > 0 ? (
-        <section className="panel section-spacer">
+        <section className="panel section-spacer" id="unassigned-members">
           <div className="panel-heading">
             <h2>미배정 멤버</h2>
             <span>{unassignedMembers.length}명</span>
@@ -767,7 +792,15 @@ export function AttendanceManager({
   return (
     <>
       <PageHeader eyebrow="출석 관리" title="출석" user={user} />
-      <section className="panel form-panel">
+      <SectionNav
+        items={[
+          { href: "#attendance-events", label: "이벤트" },
+          { href: "#attendance-create", label: "새 이벤트" },
+          { href: "#attendance-stats", label: "통계" },
+          { href: "#attendance-checklist", label: "출석 체크" },
+        ]}
+      />
+      <section className="panel form-panel" id="attendance-events">
         <div className="panel-heading">
           <h2>출석 이벤트 선택</h2>
           <span>{attendanceEvents.length}개 이벤트</span>
@@ -794,7 +827,7 @@ export function AttendanceManager({
         </div>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="attendance-create">
         <div className="panel-heading">
           <h2>새 출석 이벤트</h2>
           <span>{canManageAttendance ? "날짜와 이름을 입력" : "리더/관리자 권한 필요"}</span>
@@ -817,7 +850,7 @@ export function AttendanceManager({
         </form>
       </section>
 
-      <section className="stats-grid">
+      <section className="stats-grid" id="attendance-stats">
         <article className="metric-card">
           <span>선택 이벤트 출석률</span>
           <strong>{currentAttendanceRate}%</strong>
@@ -922,7 +955,7 @@ export function AttendanceManager({
         </article>
       </section>
 
-      <section className="panel">
+      <section className="panel" id="attendance-checklist">
         <div className="panel-heading">
           <div>
             <h2>{attendanceTitle}</h2>
@@ -1079,7 +1112,16 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
   return (
     <>
       <PageHeader eyebrow="권한 관리" title="권한" user={user} />
-      <div className="metric-grid">
+      <SectionNav
+        items={[
+          { href: "#permission-metrics", label: "요약" },
+          { href: "#admin-checks", label: "관리자 체크" },
+          { href: "#link-requests", label: "연결 요청" },
+          { href: "#role-management", label: "역할 변경" },
+          { href: "#permission-matrix", label: "권한표" },
+        ]}
+      />
+      <div className="metric-grid" id="permission-metrics">
         <article className="metric-card">
           <span>활성 관리자</span>
           <strong>{activeAdmins.length}</strong>
@@ -1102,7 +1144,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </article>
       </div>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="admin-checks">
         <div className="panel-heading">
           <h2>관리자 온보딩 체크</h2>
           <span>{canManageRoles ? "관리자만 역할을 변경할 수 있습니다" : "관리자 권한 필요"}</span>
@@ -1129,7 +1171,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </div>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="link-requests">
         <div className="panel-heading">
           <div>
             <h2>교적 연결 요청</h2>
@@ -1137,7 +1179,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           </div>
           <span>{pendingLinkRequests.length}건 대기</span>
         </div>
-        <div className="role-management-list" id="link-requests">
+        <div className="role-management-list">
           {pendingLinkRequests.map((request) => (
             <article className="definition-row" key={request.id}>
               <div className="detail-row">
@@ -1244,7 +1286,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         <ActionMessage state={rejectState} />
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel" id="role-management">
         <div className="panel-heading">
           <h2>멤버 역할 변경</h2>
           <span>{roleManagedMembers.length}명</span>
@@ -1275,7 +1317,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         <ActionMessage state={roleState} />
       </section>
 
-      <section className="panel">
+      <section className="panel" id="permission-matrix">
         <div className="panel-heading">
           <h2>역할 기반 권한</h2>
           <span>로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한</span>
@@ -1308,7 +1350,8 @@ export function AuditLogPageContent({ user, auditLogs }: { user: AppUser; auditL
   return (
     <>
       <PageHeader eyebrow="운영 감사" title="감사 로그" user={user} />
-      <section className="panel">
+      <SectionNav items={[{ href: "#audit-list", label: "최근 변경 내역" }]} />
+      <section className="panel" id="audit-list">
         <div className="panel-heading">
           <h2>최근 변경 내역</h2>
           <span>{canReadAuditLogs ? `${auditLogs.length}건` : "관리자 권한 필요"}</span>
@@ -1392,7 +1435,7 @@ function PageHeader({
 
 function GroupSummaryPanel({ members, groups }: { members: Member[]; groups: Group[] }) {
   return (
-    <section className="panel">
+    <section className="panel" id="group-summary">
       <div className="panel-heading">
         <h2>소그룹 현황</h2>
         <span>인원과 최근 출석률</span>
