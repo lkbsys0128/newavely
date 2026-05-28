@@ -4,6 +4,7 @@ import test from "node:test";
 
 const dataSource = readFileSync(new URL("../src/lib/supabase/data.ts", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
+const staleLinkCleanupSource = readFileSync(new URL("../db/009_cleanup_stale_member_link_requests.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
@@ -65,7 +66,7 @@ test("admins get a visible pending link request notification", () => {
 
 test("link request decisions support rejection and new member creation", () => {
   assert.match(actionsSource, /\.maybeSingle\(\)/);
-  assert.match(actionsSource, /이미 처리되었거나 찾을 수 없는 요청/);
+  assert.match(actionsSource, /요청이 이미 정리되었습니다/);
   assert.match(actionsSource, /member\.create_for_link_request/);
   assert.match(dashboardSource, /새 교적 생성 후 연결/);
 });
@@ -77,4 +78,10 @@ test("member permanent delete is admin-only and audited", () => {
   assert.match(actionsSource, /cascadingRecords/);
   assert.match(actionsSource, /closedPendingLinkRequests/);
   assert.match(dashboardSource, /완전 삭제/);
+});
+
+test("stale member link request cleanup closes orphaned pending requests", () => {
+  assert.match(staleLinkCleanupSource, /update member_link_requests/);
+  assert.match(staleLinkCleanupSource, /status = 'rejected'/);
+  assert.match(staleLinkCleanupSource, /not exists/);
 });

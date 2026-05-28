@@ -808,6 +808,14 @@ export async function rejectMemberLinkRequest(_previousState: ActionState, formD
     const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
     const parsed = memberLinkRequestDecisionSchema.parse({ id: formData.get("id") });
 
+    const { data: existingRequest, error: existingRequestError } = await supabase
+      .from("member_link_requests")
+      .select("*")
+      .eq("id", parsed.id)
+      .maybeSingle();
+
+    if (existingRequestError) throw existingRequestError;
+
     const rejectedAt = new Date().toISOString();
     const rejectedPayload = {
       status: "rejected",
@@ -817,16 +825,19 @@ export async function rejectMemberLinkRequest(_previousState: ActionState, formD
     const { count: rejectedCount, error } = await supabase
       .from("member_link_requests")
       .update(rejectedPayload, { count: "exact" })
-      .eq("id", parsed.id)
-      .eq("status", "pending");
+      .eq("id", parsed.id);
 
     if (error) throw error;
-    if (rejectedCount === 0) throw new Error("이미 처리되었거나 찾을 수 없는 요청입니다.");
+    if (rejectedCount === 0) {
+      revalidateAppData();
+      return "요청이 이미 정리되었습니다.";
+    }
     await writeAuditLog({
       supabase,
       action: "member_link_request.reject",
       targetTable: "member_link_requests",
       targetId: parsed.id,
+      beforeData: (existingRequest as Record<string, unknown> | null) ?? null,
       afterData: {
         id: parsed.id,
         ...rejectedPayload,
