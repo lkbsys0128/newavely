@@ -769,24 +769,29 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
 
     if (roleResetError) throw roleResetError;
 
-    const { data: updatedRequest, error: updateError } = await supabase
+    const approvedAt = new Date().toISOString();
+    const approvedPayload = {
+      status: "approved",
+      resolved_at: approvedAt,
+      resolved_by_member_id: currentMember.id,
+    };
+    const { count: approvedCount, error: updateError } = await supabase
       .from("member_link_requests")
-      .update({
-        status: "approved",
-        resolved_at: new Date().toISOString(),
-        resolved_by_member_id: currentMember.id,
-      })
+      .update(approvedPayload, { count: "exact" })
       .eq("id", parsed.id)
-      .select("*")
-      .single();
+      .eq("status", "pending");
 
     if (updateError) throw updateError;
+    if (approvedCount === 0) throw new Error("이미 처리되었거나 찾을 수 없는 요청입니다.");
     await writeAuditLog({
       supabase,
       action: "member_link_request.approve",
       targetTable: "member_link_requests",
       targetId: parsed.id,
-      afterData: updatedRequest as Record<string, unknown>,
+      afterData: {
+        id: parsed.id,
+        ...approvedPayload,
+      },
     });
     revalidateAppData();
     return "교적 연결 요청을 승인했습니다.";
@@ -798,26 +803,29 @@ export async function rejectMemberLinkRequest(_previousState: ActionState, formD
     const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
     const parsed = memberLinkRequestDecisionSchema.parse({ id: formData.get("id") });
 
-    const { data: updatedRequest, error } = await supabase
+    const rejectedAt = new Date().toISOString();
+    const rejectedPayload = {
+      status: "rejected",
+      resolved_at: rejectedAt,
+      resolved_by_member_id: currentMember.id,
+    };
+    const { count: rejectedCount, error } = await supabase
       .from("member_link_requests")
-      .update({
-        status: "rejected",
-        resolved_at: new Date().toISOString(),
-        resolved_by_member_id: currentMember.id,
-      })
+      .update(rejectedPayload, { count: "exact" })
       .eq("id", parsed.id)
-      .eq("status", "pending")
-      .select("*")
-      .maybeSingle();
+      .eq("status", "pending");
 
     if (error) throw error;
-    if (!updatedRequest) throw new Error("이미 처리되었거나 찾을 수 없는 요청입니다.");
+    if (rejectedCount === 0) throw new Error("이미 처리되었거나 찾을 수 없는 요청입니다.");
     await writeAuditLog({
       supabase,
       action: "member_link_request.reject",
       targetTable: "member_link_requests",
       targetId: parsed.id,
-      afterData: updatedRequest as Record<string, unknown>,
+      afterData: {
+        id: parsed.id,
+        ...rejectedPayload,
+      },
     });
     revalidateAppData();
     return "교적 연결 요청을 거절했습니다.";
