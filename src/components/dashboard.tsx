@@ -174,7 +174,6 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         items={[
           { href: "#member-filters", label: "필터" },
           { href: "#member-list", label: "목록" },
-          { href: "#member-detail", label: "상세" },
           { href: "#duplicate-candidates", label: "중복 후보" },
           { href: "#member-create", label: "새 멤버" },
         ]}
@@ -244,14 +243,14 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         </div>
       </section>
 
-      <section className="content-grid">
+      <section className="content-grid member-list-layout">
         <section className="panel wide" id="member-list">
           <div className="panel-heading">
             <h2>멤버 목록</h2>
           <span>{filteredMembers.length}명</span>
         </div>
         <div className="table-wrap">
-          <table>
+          <table className="member-list-table">
             <thead>
               <tr>
                 <th>이름</th>
@@ -265,7 +264,11 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </thead>
               <tbody>
                 {filteredMembers.map((member) => (
-                  <tr key={member.id} onClick={() => setSelectedMemberId(member.id)}>
+                  <tr
+                    className={selectedMemberId === member.id ? "selected-row" : ""}
+                    key={member.id}
+                    onClick={() => setSelectedMemberId(member.id)}
+                  >
                     <td>
                       <strong>{member.name}</strong>
                     </td>
@@ -291,9 +294,16 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                     ) : null}
                     {!isSoonjang ? <td>{member.phone}</td> : null}
                     <td>
-                      <Link className="secondary-button table-action" href={`/members/${member.id}`}>
-                        열기
-                      </Link>
+                      <button
+                        className="secondary-button table-action"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedMemberId(member.id);
+                        }}
+                        type="button"
+                      >
+                        상세
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -312,10 +322,20 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           </div>
         </section>
 
-        <aside className="panel" id="member-detail">
+        {selectedMember ? (
+          <button
+            aria-label="멤버 상세 닫기"
+            className="member-detail-backdrop"
+            onClick={() => setSelectedMemberId("")}
+            type="button"
+          />
+        ) : null}
+        <aside className={`panel member-detail-drawer ${selectedMember ? "open" : ""}`} id="member-detail">
           <div className="panel-heading">
             <h2>멤버 상세</h2>
-            <span>{selectedMember ? statusLabels[selectedMember.status] : "선택 없음"}</span>
+            <button className="secondary-button table-action" type="button" onClick={() => setSelectedMemberId("")}>
+              닫기
+            </button>
           </div>
           {selectedMember ? (
             <form action={updateMemberAction} className="management-form" key={selectedMember.id}>
@@ -374,7 +394,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 커스텀 메모
                 <textarea name="notes" defaultValue={selectedMember.notes} disabled={!canManageMembers} />
               </label>
-              <div className="form-actions full-width">
+              <div className="form-actions member-detail-actions full-width">
                 <ActionMessage state={updateMemberState} />
                 <button className="primary-button" type="submit" disabled={!canManageMembers || isUpdatingMember}>
                   저장
@@ -383,7 +403,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </form>
           ) : null}
           {selectedMember ? (
-            <form action={deactivateMemberAction} className="single-action-form">
+            <form action={deactivateMemberAction} className="single-action-form member-detail-actions">
               <input name="id" type="hidden" value={selectedMember.id} />
               <ActionMessage state={deactivateMemberState} />
               <button
@@ -394,11 +414,9 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 비활성화
               </button>
             </form>
-          ) : (
-            <EmptyMemberDetailPreview groups={groups} />
-          )}
+          ) : null}
           {selectedMember?.status === "inactive" ? (
-            <form action={reactivateMemberAction} className="single-action-form">
+            <form action={reactivateMemberAction} className="single-action-form member-detail-actions">
               <input name="id" type="hidden" value={selectedMember.id} />
               <ActionMessage state={reactivateMemberState} />
               <button className="primary-button" type="submit" disabled={!canManageMembers || isReactivatingMember}>
@@ -407,7 +425,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </form>
           ) : null}
           {selectedMember && canUseDeleteActions(user.role) ? (
-            <form action={deleteMemberAction} className="danger-zone-form">
+            <form action={deleteMemberAction} className="danger-zone-form member-delete-zone">
               <input name="id" type="hidden" value={selectedMember.id} />
               <div className="person-block">
                 <strong>완전 삭제</strong>
@@ -417,10 +435,12 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 확인을 위해 멤버 이름 입력
                 <input name="confirmName" placeholder="예: 홍길동" />
               </label>
-              <ActionMessage state={deleteMemberState} />
-              <button className="danger-button" type="submit" disabled={!canDeleteSelectedMember || isDeletingMember}>
-                완전히 삭제
-              </button>
+              <div className="member-delete-actions">
+                <ActionMessage state={deleteMemberState} />
+                <button className="danger-button" type="submit" disabled={!canDeleteSelectedMember || isDeletingMember}>
+                  완전히 삭제
+                </button>
+              </div>
             </form>
           ) : null}
         </aside>

@@ -124,6 +124,18 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(memberDetailSource, /#care-followups/);
 });
 
+test("member detail opens as a right side drawer from the roster", () => {
+  assert.match(dashboardSource, /member-list-layout/);
+  assert.match(dashboardSource, /member-list-table/);
+  assert.match(dashboardSource, /member-detail-backdrop/);
+  assert.match(dashboardSource, /member-detail-drawer/);
+  assert.match(dashboardSource, /member-detail-actions/);
+  assert.match(dashboardSource, /member-delete-zone/);
+  assert.match(dashboardSource, /member-delete-actions/);
+  assert.match(dashboardSource, /setSelectedMemberId\(""\)/);
+  assert.match(dashboardSource, /selected-row/);
+});
+
 test("attendance checklist uses roster members and exposes search filters", () => {
   assert.match(dashboardSource, /isAttendanceRosterMember/);
   assert.match(dashboardSource, /member\.status === "active" \|\| member\.status === "care"/);
