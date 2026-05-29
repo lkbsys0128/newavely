@@ -152,15 +152,6 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
   return (
     <>
       <PageHeader eyebrow="멤버 관리" title="멤버" user={user}>
-        <label className="search-field">
-          <span>검색</span>
-          <input
-            type="search"
-            placeholder="이름, 연락처, 순모임, 메모"
-            value={filters.query}
-            onChange={(event) => updateFilters({ query: event.target.value })}
-          />
-        </label>
         <label className="toggle-field">
           <input
             type="checkbox"
@@ -187,6 +178,15 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
       />
 
       <section className="panel filter-panel" id="member-filters">
+        <label className="search-field member-filter-search">
+          <span>검색</span>
+          <input
+            type="search"
+            placeholder="이름, 연락처, 순모임, 메모"
+            value={filters.query}
+            onChange={(event) => updateFilters({ query: event.target.value })}
+          />
+        </label>
         <div className="filter-grid">
           <label>
             순모임
