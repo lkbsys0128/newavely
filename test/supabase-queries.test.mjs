@@ -124,11 +124,12 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(memberDetailSource, /#care-followups/);
 });
 
-test("member detail opens as a right side drawer from the roster", () => {
+test("member detail opens as a centered modal from the roster", () => {
   assert.match(dashboardSource, /member-list-layout/);
   assert.match(dashboardSource, /member-list-table/);
   assert.match(dashboardSource, /member-detail-backdrop/);
-  assert.match(dashboardSource, /member-detail-drawer/);
+  assert.match(dashboardSource, /member-detail-modal/);
+  assert.match(dashboardSource, /role=\{selectedMember \? "dialog" : undefined\}/);
   assert.match(dashboardSource, /member-detail-actions/);
   assert.match(dashboardSource, /member-delete-zone/);
   assert.match(dashboardSource, /member-delete-actions/);
@@ -158,6 +159,8 @@ test("group management uses active member choices and supports audited delete", 
   assert.match(dashboardSource, /if \(deleteGroupState\.ok\)/);
   assert.match(dashboardSource, /setGroupPendingDelete\(null\)/);
   assert.match(dashboardSource, /정말 지우시겠습니까/);
+  assert.match(dashboardSource, /danger-text-button/);
+  assert.doesNotMatch(dashboardSource, /확인을 위해 순 이름을 입력/);
   assert.doesNotMatch(actionsSource, /const deleteGroupSchema[\s\S]{0,120}confirmName/);
   assert.match(memberDetailSource, /!isMergedPlaceholderMember\(item\)/);
 });
