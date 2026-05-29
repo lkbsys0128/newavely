@@ -1302,10 +1302,10 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
       <SectionNav
         items={[
           { href: "#permission-metrics", label: "요약" },
+          { href: "#permission-matrix", label: "권한표" },
           { href: "#admin-checks", label: "관리자/소유자 체크" },
           { href: "#link-requests", label: "연결 요청" },
           { href: "#role-management", label: "역할 변경" },
-          { href: "#permission-matrix", label: "권한표" },
         ]}
       />
       <div className="metric-grid" id="permission-metrics">
@@ -1330,6 +1330,26 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           <small>읽기 중심 접근</small>
         </article>
       </div>
+
+      <DisclosurePanel id="permission-matrix" title="역할 기반 권한" meta="로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한">
+        <div className="permission-matrix">
+          {Object.entries(permissionsByRole).map(([role, permissions]) => (
+            <article className="permission-row" key={role}>
+              <div className="person-block">
+                <strong>{roleLabels[role as Role]}</strong>
+                <span>{members.filter((member) => member.role === role).length}명 배정</span>
+              </div>
+              <div className="permission-list">
+                {permissions.map((permission) => (
+                  <span className="permission-chip" key={permission}>
+                    {permissionLabels[permission]}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </DisclosurePanel>
 
       <DisclosurePanel
         id="admin-checks"
@@ -1358,13 +1378,15 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </div>
       </DisclosurePanel>
 
-      <section className="panel form-panel" id="link-requests">
-        <div className="panel-heading">
+      <section className="panel form-panel link-request-section" id="link-requests">
+        <div className="panel-heading link-request-heading">
           <div>
             <h2>교적 연결 요청</h2>
             <p className="meta">첫 로그인 사용자가 기존 CSV 교적 멤버와 연결을 요청하면 여기서 승인합니다.</p>
           </div>
-          <span>{pendingLinkRequests.length}건 대기</span>
+          <span className={`request-count-pill ${pendingLinkRequests.length > 0 ? "active" : ""}`}>
+            {pendingLinkRequests.length}건 대기
+          </span>
         </div>
         <div className="role-management-list">
           {pendingLinkRequests.map((request) => (
@@ -1466,7 +1488,8 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
             </article>
           ))}
           {pendingLinkRequests.length === 0 ? (
-            <article className="care-item">
+            <article className="request-empty-state">
+              <span className="request-empty-mark" aria-hidden="true" />
               <div className="person-block">
                 <strong>대기 중인 요청이 없습니다</strong>
                 <span>새 사용자가 내 프로필에서 연결 요청을 만들면 이곳에 표시됩니다.</span>
@@ -1571,25 +1594,6 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         <ActionMessage state={roleState} />
       </section>
 
-      <DisclosurePanel id="permission-matrix" title="역할 기반 권한" meta="로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한">
-        <div className="permission-matrix">
-          {Object.entries(permissionsByRole).map(([role, permissions]) => (
-            <article className="permission-row" key={role}>
-              <div className="person-block">
-                <strong>{roleLabels[role as Role]}</strong>
-                <span>{members.filter((member) => member.role === role).length}명 배정</span>
-              </div>
-              <div className="permission-list">
-                {permissions.map((permission) => (
-                  <span className="permission-chip" key={permission}>
-                    {permissionLabels[permission]}
-                  </span>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </DisclosurePanel>
     </>
   );
 }

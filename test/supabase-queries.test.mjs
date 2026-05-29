@@ -154,6 +154,11 @@ test("permissions page exposes member search for role management", () => {
   assert.match(dashboardSource, /roleSearchQuery/);
   assert.match(dashboardSource, /멤버 검색/);
   assert.match(dashboardSource, /filteredRoleManagedMembers/);
+  assert.match(dashboardSource, /#permission-matrix[\s\S]*#admin-checks[\s\S]*#link-requests[\s\S]*#role-management/);
+  assert.match(dashboardSource, /id="permission-matrix"[\s\S]*id="admin-checks"[\s\S]*id="link-requests"[\s\S]*id="role-management"/);
+  assert.match(dashboardSource, /link-request-section/);
+  assert.match(dashboardSource, /request-count-pill/);
+  assert.match(dashboardSource, /request-empty-state/);
 });
 
 test("legacy manual account merge entrypoint is not exposed", () => {
