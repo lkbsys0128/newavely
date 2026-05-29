@@ -120,6 +120,12 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(memberDetailSource, /#care-followups/);
 });
 
+test("permissions page exposes member search for role management", () => {
+  assert.match(dashboardSource, /roleSearchQuery/);
+  assert.match(dashboardSource, /멤버 검색/);
+  assert.match(dashboardSource, /filteredRoleManagedMembers/);
+});
+
 test("legacy manual account merge entrypoint is not exposed", () => {
   assert.doesNotMatch(actionsSource, /export async function mergeMemberAccount/);
   assert.doesNotMatch(dashboardSource, /Google 계정 프로필 병합/);
