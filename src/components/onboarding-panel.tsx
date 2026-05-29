@@ -72,7 +72,7 @@ export function OnboardingPanel({
                 ? `${new Date(rejectedRequest.resolvedAt).toLocaleString("ko-KR")}에 관리자가 요청을 거절했습니다.`
                 : "관리자가 요청을 거절했습니다."}
             </span>
-            <span>계정 연결이 필요하면 Newave 운영 관리자에게 직접 연락해주세요.</span>
+            <span>계정 연결이 필요하면 Newave 운영 관리자에게 연락해주세요. 관리자가 다시 검토로 돌리면 승인 대기 상태로 바뀝니다.</span>
           </div>
         ) : (
           <>

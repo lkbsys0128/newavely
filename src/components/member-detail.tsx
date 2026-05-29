@@ -82,8 +82,9 @@ export function MemberDetailPageContent({
   );
   const googleAccountName =
     typeof member.customFields.google_account_name === "string" ? member.customFields.google_account_name : "";
-  const pendingLinkRequest = memberLinkRequests.find(isActionableLinkRequest);
-  const rejectedLinkRequest = memberLinkRequests.find((request) => request.status === "rejected");
+  const currentMemberLinkRequests = memberLinkRequests.filter((request) => request.requesterMemberId === member.id);
+  const pendingLinkRequest = currentMemberLinkRequests.find(isActionableLinkRequest);
+  const rejectedLinkRequest = currentMemberLinkRequests.find((request) => request.status === "rejected");
   const linkableMembers = members.filter((item) => item.id !== member.id && !item.authUserId && item.status !== "inactive");
   const sectionItems = [
     ...(showLinkRequest ? [{ href: "#account-link", label: "계정 연결" }] : []),

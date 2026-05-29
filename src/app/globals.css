@@ -347,11 +347,21 @@ h2 {
   font-size: 1.05rem;
 }
 
+h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+}
+
 .topbar-actions {
   display: flex;
   align-items: end;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.header-action-form {
+  margin: 0;
 }
 
 .section-nav {
@@ -388,6 +398,20 @@ h2 {
   background: var(--soft);
   color: var(--accent-dark);
   outline: none;
+}
+
+.compact-heading {
+  margin-top: 20px;
+}
+
+.review-queue {
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+}
+
+.rejected-review-row {
+  align-items: center;
 }
 
 .search-field,

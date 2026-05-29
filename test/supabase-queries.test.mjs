@@ -10,8 +10,10 @@ const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+const googleSheetsSource = readFileSync(new URL("../src/lib/google-sheets.ts", import.meta.url), "utf8");
 const memberDetailSource = readFileSync(new URL("../src/components/member-detail.tsx", import.meta.url), "utf8");
 const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
+const profilePageSource = readFileSync(new URL("../src/app/profile/page.tsx", import.meta.url), "utf8");
 const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
@@ -73,7 +75,10 @@ test("link request decisions support rejection and new member creation", () => {
   assert.match(actionsSource, /요청이 이미 정리되었습니다/);
   assert.match(actionsSource, /교적 연결 요청이 거절되었습니다/);
   assert.match(actionsSource, /member\.create_for_link_request/);
+  assert.match(actionsSource, /member_link_request\.reopen/);
   assert.match(dashboardSource, /새 교적 생성 후 연결/);
+  assert.match(dashboardSource, /거절된 요청 다시 검토/);
+  assert.match(dashboardSource, /reopenMemberLinkRequest/);
   assert.match(memberDetailSource, /rejectedLinkRequest/);
   assert.match(memberLinkAdminPolicySource, /admins can update link requests/);
 });
@@ -109,4 +114,22 @@ test("legacy manual account merge entrypoint is not exposed", () => {
   assert.doesNotMatch(actionsSource, /export async function mergeMemberAccount/);
   assert.doesNotMatch(dashboardSource, /Google 계정 프로필 병합/);
   assert.doesNotMatch(dashboardSource, /권한에서 프로필 병합/);
+});
+
+test("member roster can be exported to Google Sheets without internal fields", () => {
+  assert.match(actionsSource, /exportMembersToGoogleSheet/);
+  assert.match(actionsSource, /members\.export_google_sheet/);
+  assert.match(actionsSource, /internalCustomFieldKeys/);
+  assert.match(actionsSource, /is_sensitive/);
+  assert.match(dashboardSource, /Google Sheet로 내보내기/);
+  assert.match(googleSheetsSource, /GOOGLE_SERVICE_ACCOUNT_EMAIL/);
+  assert.match(googleSheetsSource, /GOOGLE_PRIVATE_KEY/);
+  assert.match(googleSheetsSource, /GOOGLE_SHEET_ID/);
+  assert.match(googleSheetsSource, /:clear/);
+});
+
+test("profile link request panel only appears for the current onboarding member", () => {
+  assert.match(profilePageSource, /showLinkRequest={member\.status === "new"}/);
+  assert.match(memberDetailSource, /request\.requesterMemberId === member\.id/);
+  assert.match(memberDetailSource, /currentMemberLinkRequests\.find\(isActionableLinkRequest\)/);
 });

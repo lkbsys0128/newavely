@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
 import { getRoleChangeBlockReason } from "@/lib/role-policy";
+import { replaceGoogleSheetValues } from "@/lib/google-sheets";
 
 const nullableUuid = z.preprocess((value) => {
   const normalized = String(value ?? "").trim();
@@ -139,6 +140,8 @@ const careFollowupSchema = z.object({
   note: z.string().min(1, "팔로업 메모를 입력해주세요."),
 });
 
+const internalCustomFieldKeys = new Set(["google_account_name", "google_account_email", "onboarding_status", "merged_source_member_id"]);
+
 const updateCareFollowupSchema = careFollowupSchema.extend({
   id: z.string().uuid(),
 });
@@ -218,6 +221,14 @@ function parseCustomFieldValue(value: FormDataEntryValue | null) {
   return normalized ? normalized : null;
 }
 
+function formatSheetValue(value: unknown) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") return value;
+  return JSON.stringify(value);
+}
+
 function revalidateAppData() {
   revalidatePath("/");
   revalidatePath("/profile");
@@ -240,7 +251,7 @@ async function writeAuditLog({
   supabase: Awaited<ReturnType<typeof createClient>>;
   action: string;
   targetTable: string;
-  targetId: string;
+  targetId?: string | null;
   beforeData?: Record<string, unknown> | null;
   afterData?: Record<string, unknown> | null;
   metadata?: Record<string, unknown>;
@@ -248,7 +259,7 @@ async function writeAuditLog({
   const { error } = await supabase.rpc("record_audit_log", {
     p_action: action,
     p_target_table: targetTable,
-    p_target_id: targetId,
+    p_target_id: targetId ?? null,
     p_before_data: beforeData ?? null,
     p_after_data: afterData ?? null,
     p_metadata: metadata ?? {},
@@ -403,6 +414,94 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     });
     revalidateAppData();
     return "멤버 정보를 저장했습니다.";
+  });
+}
+
+export async function exportMembersToGoogleSheet(_previousState: ActionState, _formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+
+    const { data: members, error: membersError } = await supabase
+      .from("members")
+      .select(
+        "id, name, email, phone, address, baptism_status, status, role, custom_fields, groups!members_group_id_fkey(name)",
+      )
+      .neq("status", "inactive")
+      .order("name");
+
+    if (membersError) throw membersError;
+
+    const { data: fieldDefinitions, error: fieldDefinitionsError } = await supabase
+      .from("member_custom_field_definitions")
+      .select("key, label, is_sensitive")
+      .order("label");
+
+    if (fieldDefinitionsError) throw fieldDefinitionsError;
+
+    const safeCustomFieldKeys = new Map<string, string>();
+    for (const member of members ?? []) {
+      const customFields = (member.custom_fields ?? {}) as Record<string, unknown>;
+      for (const key of Object.keys(customFields)) {
+        if (internalCustomFieldKeys.has(key)) continue;
+        safeCustomFieldKeys.set(key, key);
+      }
+    }
+
+    for (const field of fieldDefinitions ?? []) {
+      if (field.is_sensitive || internalCustomFieldKeys.has(field.key)) {
+        safeCustomFieldKeys.delete(field.key);
+      } else {
+        safeCustomFieldKeys.set(field.key, field.label);
+      }
+    }
+
+    const customFieldEntries = [...safeCustomFieldKeys.entries()].sort(([, aLabel], [, bLabel]) => aLabel.localeCompare(bLabel));
+    const headers = [
+      "이름",
+      "이메일",
+      "전화번호",
+      "소그룹",
+      "상태",
+      "역할",
+      "주소",
+      "세례/등록",
+      ...customFieldEntries.map(([, label]) => label),
+    ];
+
+    const rows = [
+      headers,
+      ...(members ?? []).map((member) => {
+        const group = Array.isArray(member.groups) ? member.groups[0] : member.groups;
+        const customFields = (member.custom_fields ?? {}) as Record<string, unknown>;
+        return [
+          member.name ?? "",
+          member.email ?? "",
+          member.phone ?? "",
+          group?.name ?? "",
+          member.status ?? "",
+          member.role ?? "",
+          member.address ?? "",
+          member.baptism_status ?? "",
+          ...customFieldEntries.map(([key]) => formatSheetValue(customFields[key])),
+        ];
+      }),
+    ];
+
+    const result = await replaceGoogleSheetValues(rows);
+
+    await writeAuditLog({
+      supabase,
+      action: "members.export_google_sheet",
+      targetTable: "members",
+      metadata: {
+        spreadsheetId: result.spreadsheetId,
+        sheetName: result.sheetName,
+        rowCount: Math.max(result.updatedRows - 1, 0),
+        columnCount: result.updatedColumns,
+      },
+    });
+
+    return `Google Sheet에 교적부 ${Math.max(result.updatedRows - 1, 0)}명을 내보냈습니다.`;
   });
 }
 
@@ -762,6 +861,65 @@ export async function rejectMemberLinkRequest(_previousState: ActionState, formD
     });
     revalidateAppData();
     return "교적 연결 요청을 거절했습니다.";
+  });
+}
+
+export async function reopenMemberLinkRequest(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = memberLinkRequestDecisionSchema.parse({ id: formData.get("id") });
+
+    const { data: existingRequest, error: existingRequestError } = await supabase
+      .from("member_link_requests")
+      .select("*")
+      .eq("id", parsed.id)
+      .maybeSingle();
+
+    if (existingRequestError) throw existingRequestError;
+    if (!existingRequest) throw new Error("찾을 수 없는 요청입니다.");
+    if (existingRequest.status === "pending") return "이미 다시 검토 중인 요청입니다.";
+    if (existingRequest.status === "approved") throw new Error("이미 승인된 요청은 다시 검토로 돌릴 수 없습니다.");
+
+    const { count: existingPendingCount, error: existingPendingError } = await supabase
+      .from("member_link_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("requester_member_id", existingRequest.requester_member_id)
+      .eq("status", "pending")
+      .neq("id", parsed.id);
+
+    if (existingPendingError) throw existingPendingError;
+    if ((existingPendingCount ?? 0) > 0) {
+      throw new Error("이 사용자는 이미 다른 교적 연결 요청이 대기 중입니다.");
+    }
+
+    const reopenedPayload = {
+      status: "pending",
+      resolved_at: null,
+      resolved_by_member_id: null,
+    };
+    const { count: reopenedCount, error } = await supabase
+      .from("member_link_requests")
+      .update(reopenedPayload, { count: "exact" })
+      .eq("id", parsed.id)
+      .eq("status", "rejected");
+
+    if (error) throw error;
+    if (reopenedCount === 0) throw new Error("이미 처리되었거나 찾을 수 없는 요청입니다.");
+
+    await writeAuditLog({
+      supabase,
+      action: "member_link_request.reopen",
+      targetTable: "member_link_requests",
+      targetId: parsed.id,
+      beforeData: existingRequest as Record<string, unknown>,
+      afterData: {
+        id: parsed.id,
+        ...reopenedPayload,
+        reopened_by_member_id: currentMember.id,
+      },
+    });
+    revalidateAppData();
+    return "거절된 교적 연결 요청을 다시 검토 상태로 돌렸습니다.";
   });
 }
 
