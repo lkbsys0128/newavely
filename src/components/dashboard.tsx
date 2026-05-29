@@ -1113,6 +1113,7 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
 }
 
 export function PermissionsPageContent({ user, members, groups, memberLinkRequests = [] }: AppDataProps) {
+  const [roleSearchQuery, setRoleSearchQuery] = useState("");
   const [roleState, roleAction, isUpdatingRole] = useActionState(updateMemberRole, initialActionState);
   const [approveState, approveAction, isApprovingRequest] = useActionState(approveMemberLinkRequest, initialActionState);
   const [rejectState, rejectAction, isRejectingRequest] = useActionState(rejectMemberLinkRequest, initialActionState);
@@ -1134,6 +1135,18 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
   const roleManagedMembers = [...members]
     .filter((member) => member.status !== "inactive")
     .sort((a, b) => roleOrder[a.role] - roleOrder[b.role] || a.name.localeCompare(b.name));
+  const normalizedRoleSearchQuery = roleSearchQuery.trim().toLowerCase();
+  const filteredRoleManagedMembers = roleManagedMembers.filter((member) => {
+    if (!normalizedRoleSearchQuery) return true;
+
+    return [
+      member.name,
+      member.email,
+      member.groupName,
+      roleLabels[member.role],
+      member.authUserId ? "google 연결" : "미연결",
+    ].some((value) => (value ?? "").toLowerCase().includes(normalizedRoleSearchQuery));
+  });
 
   return (
     <>
@@ -1207,18 +1220,23 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </div>
         <div className="role-management-list">
           {pendingLinkRequests.map((request) => (
-            <article className="definition-row" key={request.id}>
-              <div className="detail-row">
-                <div className="person-block">
+            <article className="link-request-card" key={request.id}>
+              <div className="link-request-layout">
+                <div className="link-request-summary">
+                  <span className="status-pill">요청자</span>
                   <strong>{request.requesterName}</strong>
-                  <span>
-                    요청자 · {request.requesterEmail || "이메일 없음"} · {new Date(request.createdAt).toLocaleString("ko-KR")}
-                  </span>
-                  {request.note ? <span>메모: {request.note}</span> : null}
+                  <span>{request.requesterEmail || "이메일 없음"}</span>
+                  <time dateTime={request.createdAt}>{new Date(request.createdAt).toLocaleString("ko-KR")}</time>
+                  {request.note ? <p>메모: {request.note}</p> : null}
                 </div>
-                <div className="person-block">
-                  <strong>{request.targetName}</strong>
-                  <span>연결 대상 · {request.targetEmail || (request.targetMemberId ? "이메일 없음" : "관리자가 선택 필요")}</span>
+                <div className="link-request-workspace">
+                  <div className="link-request-target">
+                    <div className="person-block">
+                      <strong>관리자 확인 필요</strong>
+                      <span>연결 대상 · {request.targetEmail || (request.targetMemberId ? "이메일 없음" : "관리자가 선택 필요")}</span>
+                    </div>
+                    <strong>{request.targetName}</strong>
+                  </div>
                   {!request.targetMemberId ? (
                     <div className="link-request-resolution">
                       <label>
@@ -1281,21 +1299,21 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                       </div>
                     </div>
                   ) : null}
+                  <div className="request-actions">
+                    <form action={approveAction} id={`approve-link-request-${request.id}`}>
+                      <input name="id" type="hidden" value={request.id} />
+                      <button className="primary-button" type="submit" disabled={!canManageRoles || isApprovingRequest}>
+                        승인
+                      </button>
+                    </form>
+                    <form action={rejectAction}>
+                      <input name="id" type="hidden" value={request.id} />
+                      <button className="danger-button" type="submit" disabled={!canManageRoles || isRejectingRequest}>
+                        거절
+                      </button>
+                    </form>
+                  </div>
                 </div>
-              </div>
-              <div className="row-actions request-actions">
-                <form action={approveAction} id={`approve-link-request-${request.id}`}>
-                  <input name="id" type="hidden" value={request.id} />
-                  <button className="primary-button" type="submit" disabled={!canManageRoles || isApprovingRequest}>
-                    승인
-                  </button>
-                </form>
-                <form action={rejectAction}>
-                  <input name="id" type="hidden" value={request.id} />
-                  <button className="danger-button" type="submit" disabled={!canManageRoles || isRejectingRequest}>
-                    거절
-                  </button>
-                </form>
               </div>
             </article>
           ))}
@@ -1350,10 +1368,31 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
       <section className="panel form-panel" id="role-management">
         <div className="panel-heading">
           <h2>멤버 역할 변경</h2>
-          <span>{roleManagedMembers.length}명</span>
+          <span>
+            {filteredRoleManagedMembers.length} / {roleManagedMembers.length}명
+          </span>
+        </div>
+        <div className="role-management-toolbar">
+          <label className="search-field">
+            멤버 검색
+            <input
+              type="search"
+              value={roleSearchQuery}
+              onChange={(event) => setRoleSearchQuery(event.target.value)}
+              placeholder="이름, 이메일, 순, 역할"
+            />
+          </label>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={!roleSearchQuery}
+            onClick={() => setRoleSearchQuery("")}
+          >
+            초기화
+          </button>
         </div>
         <div className="role-management-list">
-          {roleManagedMembers.map((member) => (
+          {filteredRoleManagedMembers.map((member) => (
             <form action={roleAction} className="role-management-row" key={member.id}>
               <input name="id" type="hidden" value={member.id} />
               <div className="person-block">
@@ -1374,6 +1413,12 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
               </button>
             </form>
           ))}
+          {filteredRoleManagedMembers.length === 0 ? (
+            <article className="empty-state">
+              <strong>검색 결과가 없습니다</strong>
+              <span>이름, 이메일, 순 이름, 역할을 다시 확인해주세요.</span>
+            </article>
+          ) : null}
         </div>
         <ActionMessage state={roleState} />
       </section>
