@@ -1196,8 +1196,7 @@ tbody tr:hover {
   grid-template-columns: repeat(4, minmax(150px, 1fr));
 }
 
-.empty-state,
-.onboarding-request-admin {
+.empty-state {
   display: grid;
   gap: 10px;
   border: 1px solid var(--line);
@@ -1212,12 +1211,41 @@ tbody tr:hover {
 }
 
 .onboarding-request-admin {
+  display: grid;
+  gap: 14px;
   margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  color: var(--muted);
 }
 
-.onboarding-request-admin > div {
+.onboarding-request-copy {
   display: grid;
   gap: 6px;
+}
+
+.onboarding-request-copy strong {
+  color: var(--ink);
+}
+
+.onboarding-note-field {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.onboarding-note-field textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.onboarding-request-admin button {
+  justify-self: end;
+  min-width: 180px;
 }
 
 .rejected-state {
@@ -1618,6 +1646,10 @@ tbody tr:hover {
   .onboarding-status-pill {
     align-self: flex-start;
     margin-top: 0;
+  }
+
+  .onboarding-request-admin button {
+    justify-self: stretch;
   }
 
   .section-nav {

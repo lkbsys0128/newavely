@@ -123,15 +123,15 @@ export function OnboardingPanel({
             ) : null}
 
             {canShowResults && candidates.length === 0 ? (
-              <form action={action} className="empty-state onboarding-request-admin">
-                <div>
+              <form action={action} className="onboarding-request-admin">
+                <div className="onboarding-request-copy">
                   <strong>내 교적을 찾지 못했나요?</strong>
                   <span>관리자에게 확인 요청을 보내면, 관리자가 교적을 확인한 뒤 연결하거나 새 교적을 만들어줍니다.</span>
                 </div>
                 <input name="targetMemberId" type="hidden" value="" />
-                <label>
-                  관리자에게 남길 메모
-                  <textarea name="note" placeholder="예: 이름은 임주환이고, 청년부 소속입니다." />
+                <label className="onboarding-note-field">
+                  <span>관리자에게 남길 메모</span>
+                  <textarea name="note" placeholder="예: 이름은 홍길동이고, 청년부 소속입니다." />
                 </label>
                 <button className="secondary-button" type="submit" disabled={isSubmitting}>
                   관리자에게 요청
