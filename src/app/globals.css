@@ -1289,13 +1289,87 @@ tbody tr:hover {
   margin-top: 10px;
 }
 
+.link-request-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-strong);
+}
+
+.link-request-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.link-request-summary {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfeff;
+}
+
+.link-request-summary strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.link-request-summary span,
+.link-request-summary time,
+.link-request-summary p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.link-request-workspace {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.link-request-target {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.link-request-target > strong {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
 .link-request-resolution {
   grid-template-columns: repeat(2, minmax(180px, 1fr));
+  margin-top: 0;
 }
 
 .new-member-inline-fields {
   grid-column: 1 / -1;
   grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
+.request-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.request-actions form {
+  display: inline-flex;
+}
+
+.request-actions button {
+  min-width: 82px;
 }
 
 .empty-state {
@@ -1722,6 +1796,10 @@ tbody tr:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .link-request-layout {
+    grid-template-columns: 1fr;
+  }
+
   .group-edit-form {
     grid-template-columns: 1fr;
   }
@@ -1797,6 +1875,17 @@ tbody tr:hover {
 
   .row-actions {
     justify-content: flex-start;
+  }
+
+  .link-request-target,
+  .request-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .request-actions form,
+  .request-actions button {
+    width: 100%;
   }
 
   .attendance-actions,
