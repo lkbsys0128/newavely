@@ -61,7 +61,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       <SectionNav
         items={[
           { href: "#overview-metrics", label: "요약" },
-          { href: "#group-summary", label: "소그룹 현황" },
+          { href: "#group-summary", label: "순모임 현황" },
         ]}
       />
 
@@ -89,7 +89,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
           </small>
         </article>
         <article className="metric-card">
-          <span>소그룹</span>
+          <span>순모임</span>
           <strong>{groups.length}</strong>
           <small>리더 배정 완료</small>
         </article>
@@ -156,7 +156,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           <span>검색</span>
           <input
             type="search"
-            placeholder="이름, 연락처, 소그룹, 메모"
+            placeholder="이름, 연락처, 순모임, 메모"
             value={filters.query}
             onChange={(event) => updateFilters({ query: event.target.value })}
           />
@@ -189,9 +189,9 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
       <section className="panel filter-panel" id="member-filters">
         <div className="filter-grid">
           <label>
-            소그룹
+            순모임
             <select value={filters.groupId} onChange={(event) => updateFilters({ groupId: event.target.value })}>
-              <option value="all">전체 소그룹</option>
+              <option value="all">전체 순모임</option>
               <option value="unassigned">미배정</option>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
@@ -252,7 +252,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <thead>
               <tr>
                 <th>이름</th>
-                <th>소그룹</th>
+                <th>순모임</th>
                 {!isSoonjang ? <th>역할</th> : null}
                 {!isSoonjang ? <th>상태</th> : null}
                 {!isSoonjang ? <th>계정</th> : null}
@@ -330,7 +330,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 <input name="phone" required defaultValue={selectedMember.phone} disabled={!canManageMembers} />
               </label>
               <label>
-                소그룹
+                순모임
                 <select name="groupId" defaultValue={selectedMember.groupId ?? ""} disabled={!canManageMembers}>
                   <option value="">미배정</option>
                   {groups.map((group) => (
@@ -499,7 +499,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <input name="email" type="email" placeholder="name@example.com" disabled={!canManageMembers} />
           </label>
           <label>
-            소그룹
+            순모임
             <select name="groupId" disabled={!canManageMembers}>
               <option value="">미배정</option>
               {groups.map((group) => (
@@ -565,12 +565,12 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
 
   return (
     <>
-      <PageHeader eyebrow="소그룹 관리" title="소그룹" user={user} />
+      <PageHeader eyebrow="순모임 관리" title="순모임" user={user} />
       <SectionNav
         items={[
           { href: "#group-metrics", label: "요약" },
-          { href: "#group-create", label: "소그룹 추가" },
-          { href: "#group-list", label: "소그룹 목록" },
+          { href: "#group-create", label: "순모임 추가" },
+          { href: "#group-list", label: "순모임 목록" },
           { href: "#unassigned-members", label: "미배정" },
         ]}
       />
@@ -581,14 +581,14 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
           <small>비활성 멤버 제외</small>
         </article>
         <article className="metric-card">
-          <span>소그룹</span>
+          <span>순모임</span>
           <strong>{groups.length}</strong>
           <small>현재 등록된 순</small>
         </article>
         <article className="metric-card">
           <span>미배정</span>
           <strong>{unassignedMembers.length}</strong>
-          <small>소그룹 배정 필요</small>
+          <small>순모임 배정 필요</small>
         </article>
         <article className="metric-card">
           <span>최근 출석률</span>
@@ -599,12 +599,12 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
 
       <DisclosurePanel
         id="group-create"
-        title="소그룹 추가"
+        title="순모임 추가"
         meta={canManageGroups ? "이름과 리더를 지정" : "관리자 권한 필요"}
       >
         <form action={createGroupAction} className="member-form group-create-form">
           <label>
-            소그룹 이름
+            순모임 이름
             <input name="name" required placeholder="예: 은미 순" disabled={!canManageGroups} />
           </label>
           <label>
@@ -696,8 +696,8 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
               </form>
               <div className="danger-zone-form group-delete-form">
                 <div className="person-block">
-                  <strong>소그룹 삭제</strong>
-                  <span>삭제하면 이 소그룹의 멤버들은 미배정으로 이동됩니다.</span>
+                  <strong>순모임 삭제</strong>
+                  <span>삭제하면 이 순모임의 멤버들은 미배정으로 이동됩니다.</span>
                 </div>
                 <button
                   className="danger-button"
@@ -730,7 +730,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
               <span className="status-pill inactive">삭제 확인</span>
               <h2 id="group-delete-title">정말 지우시겠습니까?</h2>
               <p>
-                <strong>{groupPendingDelete.name}</strong> 소그룹을 삭제하면, 해당 소그룹의 멤버들은 미배정으로 이동됩니다.
+                <strong>{groupPendingDelete.name}</strong> 순모임을 삭제하면, 해당 순모임의 멤버들은 미배정으로 이동됩니다.
               </p>
             </div>
             <div className="confirm-modal-actions">
@@ -915,7 +915,7 @@ export function AttendanceManager({
           </article>
           <article className="panel stats-card">
             <div className="panel-heading">
-              <h2>소그룹별 출석률</h2>
+              <h2>순모임별 출석률</h2>
               <span>{attendanceTitle}</span>
             </div>
             <div className="stats-list">
@@ -1321,7 +1321,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                           />
                         </label>
                         <label>
-                          소그룹
+                          순모임
                           <select name="newMemberGroupId" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
                             <option value="">미배정</option>
                             {groups.map((group) => (
@@ -1414,7 +1414,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
               type="search"
               value={roleSearchQuery}
               onChange={(event) => setRoleSearchQuery(event.target.value)}
-              placeholder="이름, 이메일, 순, 역할"
+              placeholder="이름, 이메일, 순모임, 역할"
             />
           </label>
           <button
@@ -1451,7 +1451,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           {filteredRoleManagedMembers.length === 0 ? (
             <article className="empty-state">
               <strong>검색 결과가 없습니다</strong>
-              <span>이름, 이메일, 순 이름, 역할을 다시 확인해주세요.</span>
+              <span>이름, 이메일, 순모임 이름, 역할을 다시 확인해주세요.</span>
             </article>
           ) : null}
         </div>
@@ -1517,7 +1517,7 @@ export function AuditLogPageContent({ user, auditLogs }: { user: AppUser; auditL
               <article className="care-item">
                 <div className="person-block">
                   <strong>아직 기록이 없습니다</strong>
-                  <span>멤버/소그룹/출석 변경이 발생하면 이곳에 기록됩니다.</span>
+                  <span>멤버/순모임/출석 변경이 발생하면 이곳에 기록됩니다.</span>
                 </div>
               </article>
             ) : null}
@@ -1576,7 +1576,7 @@ function EmptyMemberDetailPreview({ groups }: { groups: Group[] }) {
         <input placeholder="미입력" disabled />
       </label>
       <label>
-        소그룹
+        순모임
         <select defaultValue="" disabled>
           <option value="">미배정</option>
           {groups.map((group) => (
@@ -1655,7 +1655,7 @@ function GroupSummaryPanel({ members, groups }: { members: Member[]; groups: Gro
   return (
     <section className="panel" id="group-summary">
       <div className="panel-heading">
-        <h2>소그룹 현황</h2>
+        <h2>순모임 현황</h2>
         <span>인원과 최근 출석률</span>
       </div>
       <div className="group-summary">
@@ -1725,8 +1725,8 @@ const permissionLabels = {
   "members:write": "멤버 수정",
   "attendance:read": "출석 보기",
   "attendance:write": "출석 체크",
-  "groups:read": "소그룹 보기",
-  "groups:write": "소그룹 수정",
+  "groups:read": "순모임 보기",
+  "groups:write": "순모임 수정",
   "roles:manage": "권한 관리",
   "owner:manage": "최고 관리자 관리",
   "sensitive:read": "민감 정보 열람",
@@ -1740,9 +1740,9 @@ const auditActionLabels: Record<string, string> = {
   "member.account_merge": "멤버 계정 연결",
   "member.profile_merge": "멤버 프로필 병합",
   "member.custom_fields.update": "멤버 커스텀 필드 수정",
-  "group.create": "소그룹 생성",
-  "group.update": "소그룹 수정",
-  "group.delete": "소그룹 삭제",
+  "group.create": "순모임 생성",
+  "group.update": "순모임 수정",
+  "group.delete": "순모임 삭제",
   "attendance_event.create": "출석 이벤트 생성",
   "attendance.toggle": "출석 변경",
   "attendance.reason.update": "출석 사유 수정",

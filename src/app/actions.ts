@@ -526,7 +526,7 @@ export async function exportMembersToGoogleSheet(_previousState: ActionState, _f
       "이름",
       "이메일",
       "전화번호",
-      "소그룹",
+      "순모임",
       "상태",
       "역할",
       "주소",
@@ -1384,6 +1384,13 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
       .single();
 
     if (error) throw error;
+    if (parsed.leaderMemberId) {
+      await assignLeaderToGroup({
+        supabase,
+        leaderMemberId: parsed.leaderMemberId,
+        groupId: inserted.id as string,
+      });
+    }
     await writeAuditLog({
       supabase,
       action: "group.create",
@@ -1392,7 +1399,7 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
       afterData: inserted as Record<string, unknown>,
     });
     revalidateAppData();
-    return "소그룹을 추가했습니다.";
+    return "순모임을 추가했습니다.";
   });
 }
 
@@ -1425,6 +1432,13 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
       .single();
 
     if (error) throw error;
+    if (parsed.leaderMemberId) {
+      await assignLeaderToGroup({
+        supabase,
+        leaderMemberId: parsed.leaderMemberId,
+        groupId: parsed.id,
+      });
+    }
     await writeAuditLog({
       supabase,
       action: "group.update",
@@ -1434,7 +1448,46 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
       afterData: afterData as Record<string, unknown>,
     });
     revalidateAppData();
-    return "소그룹을 저장했습니다.";
+    return "순모임을 저장했습니다.";
+  });
+}
+
+async function assignLeaderToGroup({
+  supabase,
+  leaderMemberId,
+  groupId,
+}: {
+  supabase: Awaited<ReturnType<typeof getAuthorizedCurrentMember>>["supabase"];
+  leaderMemberId: string;
+  groupId: string;
+}) {
+  const { data: beforeLeader, error: beforeLeaderError } = await supabase
+    .from("members")
+    .select("*")
+    .eq("id", leaderMemberId)
+    .single();
+
+  if (beforeLeaderError) throw beforeLeaderError;
+  if (beforeLeader.group_id === groupId) return;
+
+  const { data: afterLeader, error: leaderUpdateError } = await supabase
+    .from("members")
+    .update({
+      group_id: groupId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", leaderMemberId)
+    .select("*")
+    .single();
+
+  if (leaderUpdateError) throw leaderUpdateError;
+  await writeAuditLog({
+    supabase,
+    action: "member.update",
+    targetTable: "members",
+    targetId: leaderMemberId,
+    beforeData: beforeLeader as Record<string, unknown>,
+    afterData: afterLeader as Record<string, unknown>,
   });
 }
 
@@ -1464,7 +1517,7 @@ export async function deleteGroup(_previousState: ActionState, formData: FormDat
       beforeData: beforeData as Record<string, unknown>,
     });
     revalidateAppData();
-    return "소그룹을 삭제했습니다. 배정된 멤버는 미배정으로 이동됩니다.";
+    return "순모임을 삭제했습니다. 배정된 멤버는 미배정으로 이동됩니다.";
   });
 }
 

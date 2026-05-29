@@ -62,7 +62,7 @@ export function AppPageGate({
               <strong>{data.user.email || "이메일 없음"}</strong>
             </div>
             <div className="detail-row">
-              <span>소그룹</span>
+              <span>순모임</span>
               <strong>{member?.groupName ?? "미배정"}</strong>
             </div>
             <div className="detail-row">
