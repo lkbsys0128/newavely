@@ -48,7 +48,9 @@ type AttendanceStatus = "present" | "absent" | "excused";
 const initialActionState: ActionState = { ok: false, message: "" };
 
 export function DashboardOverview({ user, members, groups }: AppDataProps) {
-  const activeMembers = members.filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member));
+  const dashboardMembers = members.filter((member) => !isMergedPlaceholderMember(member));
+  const activeMembers = dashboardMembers.filter((member) => member.status !== "inactive");
+  const inactiveMembers = dashboardMembers.filter((member) => member.status === "inactive");
   const presentCount = activeMembers.filter((member) => member.present).length;
   const attendanceRate = activeMembers.length ? Math.round((presentCount / activeMembers.length) * 100) : 0;
 
@@ -58,7 +60,6 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       <SectionNav
         items={[
           { href: "#overview-metrics", label: "요약" },
-          { href: "#care-today", label: "오늘 챙길 멤버" },
           { href: "#group-summary", label: "소그룹 현황" },
         ]}
       />
@@ -66,14 +67,24 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       <div className="metric-grid" id="overview-metrics">
         <article className="metric-card">
           <span>전체 멤버</span>
+          <strong>{dashboardMembers.length}</strong>
+          <small>비활성 멤버 포함</small>
+        </article>
+        <article className="metric-card">
+          <span>활동 멤버</span>
           <strong>{activeMembers.length}</strong>
-          <small>비활성 멤버 제외</small>
+          <small>출석/돌봄 기준 인원</small>
+        </article>
+        <article className="metric-card">
+          <span>비활성화</span>
+          <strong>{inactiveMembers.length}</strong>
+          <small>기록 보존 중</small>
         </article>
         <article className="metric-card">
           <span>이번 주 출석</span>
           <strong>{attendanceRate}%</strong>
           <small>
-            {presentCount}/{activeMembers.length}명 출석
+            활동 {presentCount}/{activeMembers.length}명 출석
           </small>
         </article>
         <article className="metric-card">
@@ -81,39 +92,10 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
           <strong>{groups.length}</strong>
           <small>리더 배정 완료</small>
         </article>
-        <article className="metric-card">
-          <span>관리 역할</span>
-          <strong>{Object.keys(permissionsByRole).length}</strong>
-          <small>권한 단계</small>
-        </article>
       </div>
 
-      <div className="dashboard-layout">
-        <section className="panel" id="care-today">
-          <div className="panel-heading">
-            <h2>오늘 챙길 멤버</h2>
-            <span>새가족, 돌봄 필요, 결석</span>
-          </div>
-          <div className="care-list">
-            {activeMembers
-              .filter((member) => member.status !== "active" || !member.present)
-              .map((member) => (
-                <article className="care-item" key={member.id}>
-                  <div className="person-block">
-                    <strong>{member.name}</strong>
-                    <span>
-                      {member.groupName} · {member.notes}
-                    </span>
-                  </div>
-                  <span className={`status-pill ${member.status === "active" ? "active" : ""}`}>
-                    {statusLabels[member.status]}
-                  </span>
-                </article>
-              ))}
-          </div>
-        </section>
-
-        <GroupSummaryPanel members={activeMembers} groups={groups} />
+      <div className="dashboard-layout single-panel-layout">
+        <GroupSummaryPanel members={dashboardMembers} groups={groups} />
       </div>
     </>
   );
