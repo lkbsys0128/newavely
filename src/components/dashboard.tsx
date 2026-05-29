@@ -31,6 +31,7 @@ import {
   type MemberFilters,
 } from "@/lib/member-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
+import { baptismStatusOptions, normalizeBaptismStatus } from "@/lib/member-field-options";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
 
@@ -373,7 +374,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               </label>
               <label>
                 세례/등록
-                <input name="baptismStatus" defaultValue={selectedMember.baptismStatus} disabled={!canManageMembers} />
+                <BaptismStatusSelect value={selectedMember.baptismStatus} disabled={!canManageMembers} />
               </label>
               <label className="full-width">
                 커스텀 메모
@@ -521,7 +522,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           </label>
           <label>
             세례/등록
-            <input name="baptismStatus" placeholder="등록교인, 세례 등" disabled={!canManageMembers} />
+            <BaptismStatusSelect value="" disabled={!canManageMembers} />
           </label>
           <label>
             메모
@@ -1447,6 +1448,21 @@ function ActionMessage({ state }: { state: ActionState }) {
     <p className={`action-message ${state.ok ? "success" : "error"}`} role="status">
       {state.message}
     </p>
+  );
+}
+
+function BaptismStatusSelect({ value, disabled }: { value: unknown; disabled: boolean }) {
+  const normalizedValue = normalizeBaptismStatus(value);
+
+  return (
+    <select name="baptismStatus" defaultValue={normalizedValue} disabled={disabled}>
+      <option value="">미입력</option>
+      {baptismStatusOptions.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
   );
 }
 
