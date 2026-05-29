@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission, type Role } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
-import { getRoleChangeBlockReason } from "@/lib/role-policy";
+import { canDeleteMemberRole, getRoleChangeBlockReason } from "@/lib/role-policy";
 import { replaceGoogleSheetValues } from "@/lib/google-sheets";
 import {
   calculateKoreanAge,
@@ -1291,7 +1291,7 @@ export async function reactivateMember(_previousState: ActionState, formData: Fo
 
 export async function deleteMemberPermanently(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("owner:manage");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
     const parsed = deleteMemberSchema.parse({
       id: formData.get("id"),
       confirmName: formData.get("confirmName"),
@@ -1302,6 +1302,10 @@ export async function deleteMemberPermanently(_previousState: ActionState, formD
 
     const member = beforeData as Record<string, unknown>;
     const memberName = String(member.name ?? "");
+    const targetRole = member.role as Role;
+    if (!canDeleteMemberRole({ actorRole: currentMember.role, targetRole })) {
+      throw new Error("자신보다 낮은 권한의 멤버만 삭제할 수 있습니다.");
+    }
     if (parsed.confirmName.trim() !== memberName) {
       throw new Error("삭제 확인 이름이 멤버 이름과 일치하지 않습니다.");
     }
@@ -1493,7 +1497,7 @@ async function assignLeaderToGroup({
 
 export async function deleteGroup(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("groups:write");
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
     const parsed = deleteGroupSchema.parse({
       id: formData.get("id"),
     });

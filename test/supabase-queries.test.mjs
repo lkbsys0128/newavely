@@ -9,6 +9,7 @@ const memberDeletePolicySource = readFileSync(new URL("../db/010_admin_member_de
 const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_request_admin_policy.sql", import.meta.url), "utf8");
 const ownerRoleMigrationSource = readFileSync(new URL("../db/012_owner_role.sql", import.meta.url), "utf8");
 const ownerRolePoliciesSource = readFileSync(new URL("../db/013_owner_role_policies.sql", import.meta.url), "utf8");
+const deleteRolePoliciesSource = readFileSync(new URL("../db/014_delete_role_policies.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
@@ -85,15 +86,18 @@ test("link request decisions support rejection and new member creation", () => {
   assert.match(memberLinkAdminPolicySource, /owners and admins can update link requests/);
 });
 
-test("member permanent delete is owner-only and audited", () => {
+test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(actionsSource, /deleteMemberPermanently/);
-  assert.match(actionsSource, /getAuthorizedCurrentMember\("owner:manage"\)/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("members:write"\)/);
+  assert.match(actionsSource, /canDeleteMemberRole/);
   assert.match(actionsSource, /member\.permanent_delete/);
   assert.match(actionsSource, /cascadingRecords/);
   assert.match(actionsSource, /closedPendingLinkRequests/);
   assert.match(actionsSource, /deletedCount !== 1/);
-  assert.match(schemaSource, /owners can delete members/);
-  assert.match(memberDeletePolicySource, /on members for delete/);
+  assert.match(schemaSource, /authorized users can delete lower role members/);
+  assert.match(deleteRolePoliciesSource, /authorized users can delete lower role members/);
+  assert.match(deleteRolePoliciesSource, /leaders can delete groups/);
+  assert.match(memberDeletePolicySource, /owners can delete members/);
   assert.match(dashboardSource, /완전 삭제/);
 });
 
