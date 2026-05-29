@@ -1,5 +1,21 @@
 import type { Role } from "@/lib/rbac";
 
+const roleRank: Record<Role, number> = {
+  owner: 5,
+  admin: 4,
+  leader: 3,
+  staff: 2,
+  member: 1,
+};
+
+export function canUseDeleteActions(role: Role) {
+  return roleRank[role] >= roleRank.leader;
+}
+
+export function canDeleteMemberRole({ actorRole, targetRole }: { actorRole: Role; targetRole: Role }) {
+  return canUseDeleteActions(actorRole) && roleRank[actorRole] > roleRank[targetRole];
+}
+
 export function canChangeMemberRole({
   actorRole,
   targetCurrentRole,

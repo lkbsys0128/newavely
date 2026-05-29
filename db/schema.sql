@@ -228,10 +228,34 @@ with check (
   or (current_member_role() = 'leader' and role = 'member')
 );
 
-create policy "owners can delete members"
+create policy "authorized users can delete lower role members"
 on members for delete
 to authenticated
-using (current_member_role() = 'owner');
+using (
+  current_member_role() in ('owner', 'admin', 'leader')
+  and
+  case current_member_role()
+    when 'owner' then 5
+    when 'admin' then 4
+    when 'leader' then 3
+    when 'staff' then 2
+    when 'member' then 1
+    else 0
+  end >
+  case role
+    when 'owner' then 5
+    when 'admin' then 4
+    when 'leader' then 3
+    when 'staff' then 2
+    when 'member' then 1
+    else 0
+  end
+);
+
+create policy "leaders can delete groups"
+on groups for delete
+to authenticated
+using (current_member_role() in ('owner', 'admin', 'leader'));
 
 create policy "authenticated users can read attendance events"
 on attendance_events for select

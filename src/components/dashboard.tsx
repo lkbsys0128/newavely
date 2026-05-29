@@ -22,6 +22,7 @@ import {
   type ActionState,
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
+import { canDeleteMemberRole, canUseDeleteActions } from "@/lib/role-policy";
 import type { AppUser } from "@/lib/app-page-data";
 import type { AttendanceEvent, AuditLog, Group, Member, MemberLinkRequest } from "@/lib/types";
 import {
@@ -123,7 +124,6 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
   );
   const canManageMembers = hasPermission(user.role, "members:write");
   const canManageRoles = hasPermission(user.role, "roles:manage");
-  const canDeleteMembers = hasPermission(user.role, "owner:manage");
   const canExportMembers = hasPermission(user.role, "roles:manage");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
   const isSoonjang = user.role === "staff";
@@ -135,6 +135,9 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     [members],
   );
   const selectedMember = visibleMembers.find((member) => member.id === selectedMemberId) ?? null;
+  const canDeleteSelectedMember = selectedMember
+    ? canDeleteMemberRole({ actorRole: user.role, targetRole: selectedMember.role })
+    : false;
   const filteredMembers = useMemo(() => {
     return filterMembers(visibleMembers, filters);
   }, [visibleMembers, filters]);
@@ -403,7 +406,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               </button>
             </form>
           ) : null}
-          {selectedMember && canDeleteMembers ? (
+          {selectedMember && canUseDeleteActions(user.role) ? (
             <form action={deleteMemberAction} className="danger-zone-form">
               <input name="id" type="hidden" value={selectedMember.id} />
               <div className="person-block">
@@ -415,7 +418,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 <input name="confirmName" placeholder="예: 홍길동" />
               </label>
               <ActionMessage state={deleteMemberState} />
-              <button className="danger-button" type="submit" disabled={isDeletingMember}>
+              <button className="danger-button" type="submit" disabled={!canDeleteSelectedMember || isDeletingMember}>
                 완전히 삭제
               </button>
             </form>
@@ -553,6 +556,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
 
 export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
+  const canDeleteGroups = canUseDeleteActions(user.role);
   const [groupPendingDelete, setGroupPendingDelete] = useState<Group | null>(null);
   const [lastUpdatedGroupId, setLastUpdatedGroupId] = useState<string | null>(null);
   const [lastDeletedGroupId, setLastDeletedGroupId] = useState<string | null>(null);
@@ -708,7 +712,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                 <button
                   className="danger-button"
                   type="button"
-                  disabled={!canManageGroups || isDeletingGroup}
+                  disabled={!canDeleteGroups || isDeletingGroup}
                   onClick={() => setGroupPendingDelete(group)}
                 >
                   삭제
@@ -751,7 +755,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                 }}
               >
                 <input name="id" type="hidden" value={groupPendingDelete.id} />
-                <button className="danger-button" type="submit" disabled={!canManageGroups || isDeletingGroup}>
+                <button className="danger-button" type="submit" disabled={!canDeleteGroups || isDeletingGroup}>
                   삭제
                 </button>
               </form>
