@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { SectionNav } from "@/components/section-nav";
+import { DisclosurePanel } from "@/components/disclosure-panel";
 import {
   createCareFollowup,
   createCustomFieldDefinition,
@@ -272,11 +273,7 @@ export function MemberDetailPageContent({
         </section>
       </div>
 
-      <section className="panel form-panel" id="attendance-history">
-        <div className="panel-heading">
-          <h2>최근 출석 기록</h2>
-          <span>{member.attendanceHistory.length}건</span>
-        </div>
+      <DisclosurePanel id="attendance-history" title="최근 출석 기록" meta={`${member.attendanceHistory.length}건`}>
         <div className="attendance-history">
           {member.attendanceHistory.slice(0, 8).map((record) => (
             <article className="history-row" key={record.eventId}>
@@ -304,7 +301,7 @@ export function MemberDetailPageContent({
             </article>
           ) : null}
         </div>
-      </section>
+      </DisclosurePanel>
 
       <section className="panel form-panel" id="care-followups">
         <div className="panel-heading">
@@ -373,11 +370,7 @@ export function MemberDetailPageContent({
         </div>
       </section>
 
-      <section className="panel form-panel">
-        <div className="panel-heading">
-          <h2>새 팔로업 추가</h2>
-          <span>{canManageMembers ? "담당자와 상태를 기록" : "읽기 전용"}</span>
-        </div>
+      <DisclosurePanel title="새 팔로업 추가" meta={canManageMembers ? "담당자와 상태를 기록" : "읽기 전용"}>
         <form action={createFollowupAction} className="management-form">
           <input name="memberId" type="hidden" value={member.id} />
           <label>
@@ -412,15 +405,11 @@ export function MemberDetailPageContent({
             </button>
           </div>
         </form>
-      </section>
+      </DisclosurePanel>
 
       {canManageDefinitions ? (
         <>
-          <section className="panel form-panel" id="custom-field-definitions">
-            <div className="panel-heading">
-              <h2>정보 항목 관리</h2>
-              <span>항목 이름, 입력 방식, 공개 범위 수정</span>
-            </div>
+          <DisclosurePanel id="custom-field-definitions" title="정보 항목 관리" meta="항목 이름, 입력 방식, 공개 범위 수정">
             <div className="definition-list">
               {customFieldDefinitions.map((field) => (
                 <article className="definition-row" key={field.id}>
@@ -468,13 +457,9 @@ export function MemberDetailPageContent({
                 </article>
               ) : null}
             </div>
-          </section>
+          </DisclosurePanel>
 
-          <section className="panel form-panel">
-            <div className="panel-heading">
-              <h2>새 정보 항목 만들기</h2>
-              <span>모든 멤버 상세 페이지에 추가됩니다</span>
-            </div>
+          <DisclosurePanel title="새 정보 항목 만들기" meta="모든 멤버 상세 페이지에 추가됩니다">
             <form action={definitionAction} className="member-form compact-form">
               <label>
                 항목 이름
@@ -503,11 +488,11 @@ export function MemberDetailPageContent({
               <div className="form-actions full-width">
                 <ActionMessage state={definitionState} />
                 <button className="primary-button" type="submit" disabled={isCreatingDefinition}>
-                  항목 만들기
-                </button>
-              </div>
-            </form>
-          </section>
+                항목 만들기
+              </button>
+            </div>
+          </form>
+          </DisclosurePanel>
         </>
       ) : null}
     </>

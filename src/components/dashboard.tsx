@@ -32,6 +32,7 @@ import {
 } from "@/lib/member-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import { SectionNav } from "@/components/section-nav";
+import { DisclosurePanel } from "@/components/disclosure-panel";
 
 type AppDataProps = {
   user: AppUser;
@@ -429,11 +430,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         </aside>
       </section>
 
-      <section className="panel form-panel" id="duplicate-candidates">
-        <div className="panel-heading">
-          <h2>중복/계정 연결 확인</h2>
-          <span>{duplicateMemberCandidates.length}건 후보</span>
-        </div>
+      <DisclosurePanel id="duplicate-candidates" title="중복/계정 연결 확인" meta={`${duplicateMemberCandidates.length}건 후보`}>
         <div className="duplicate-list">
           {duplicateMemberCandidates.map((candidate) => {
             const linkedMember = candidate.members.find((member) => member.authUserId);
@@ -488,13 +485,13 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </article>
           ) : null}
         </div>
-      </section>
+      </DisclosurePanel>
 
-      <section className="panel form-panel" id="member-create">
-        <div className="panel-heading">
-          <h2>멤버 추가</h2>
-          <span>{canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}</span>
-        </div>
+      <DisclosurePanel
+        id="member-create"
+        title="멤버 추가"
+        meta={canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}
+      >
         <form action={createMemberAction} className="member-form">
           <label>
             이름
@@ -556,7 +553,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </button>
           </div>
         </form>
-      </section>
+      </DisclosurePanel>
     </>
   );
 }
@@ -604,11 +601,11 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
         </article>
       </div>
 
-      <section className="panel form-panel" id="group-create">
-        <div className="panel-heading">
-          <h2>소그룹 추가</h2>
-          <span>{canManageGroups ? "이름과 리더를 지정" : "관리자 권한 필요"}</span>
-        </div>
+      <DisclosurePanel
+        id="group-create"
+        title="소그룹 추가"
+        meta={canManageGroups ? "이름과 리더를 지정" : "관리자 권한 필요"}
+      >
         <form action={createGroupAction} className="member-form group-create-form">
           <label>
             소그룹 이름
@@ -632,7 +629,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
             </button>
           </div>
         </form>
-      </section>
+      </DisclosurePanel>
 
       <section className="group-grid" id="group-list">
         {groups.map((group) => {
@@ -706,11 +703,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
         })}
       </section>
       {unassignedMembers.length > 0 ? (
-        <section className="panel section-spacer" id="unassigned-members">
-          <div className="panel-heading">
-            <h2>미배정 멤버</h2>
-            <span>{unassignedMembers.length}명</span>
-          </div>
+        <DisclosurePanel id="unassigned-members" title="미배정 멤버" meta={`${unassignedMembers.length}명`}>
           <div className="group-member-list">
             {unassignedMembers.map((member) => (
               <Link className="member-chip" href={`/members/${member.id}`} key={member.id}>
@@ -718,7 +711,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
               </Link>
             ))}
           </div>
-        </section>
+        </DisclosurePanel>
       ) : null}
     </>
   );
@@ -840,11 +833,11 @@ export function AttendanceManager({
         </div>
       </section>
 
-      <section className="panel form-panel" id="attendance-create">
-        <div className="panel-heading">
-          <h2>새 출석 이벤트</h2>
-          <span>{canManageAttendance ? "날짜와 이름을 입력" : "리더/관리자 권한 필요"}</span>
-        </div>
+      <DisclosurePanel
+        id="attendance-create"
+        title="새 출석 이벤트"
+        meta={canManageAttendance ? "날짜와 이름을 입력" : "리더/관리자 권한 필요"}
+      >
         <form action={createEventAction} className="member-form compact-form">
           <label>
             날짜
@@ -861,112 +854,114 @@ export function AttendanceManager({
             </button>
           </div>
         </form>
-      </section>
+      </DisclosurePanel>
 
-      <section className="stats-grid" id="attendance-stats">
-        <article className="metric-card">
-          <span>선택 이벤트 출석률</span>
-          <strong>{currentAttendanceRate}%</strong>
-          <small>
-            {currentPresentCount}명 출석 · {currentAbsentCount}명 미확인 · {currentExcusedCount}명 사유 있음
-          </small>
-          <div className="progress">
-            <span style={{ width: `${currentAttendanceRate}%` }} />
-          </div>
-        </article>
-        <article className="panel stats-card">
-          <div className="panel-heading">
-            <h2>소그룹별 출석률</h2>
-            <span>{attendanceTitle}</span>
-          </div>
-          <div className="stats-list">
-            {groupAttendanceStats.map((group) => (
-              <div className="stat-row" key={group.id}>
-                <div className="person-block">
-                  <strong>{group.name}</strong>
-                  <span>
-                    {group.presentCount}/{group.totalCount}명
-                  </span>
-                </div>
-                <div className="stat-meter">
-                  <div className="progress">
-                    <span style={{ width: `${group.rate}%` }} />
+      <DisclosurePanel id="attendance-stats" title="출석 통계" meta={`${attendanceTitle} · 출석률 ${currentAttendanceRate}%`}>
+        <section className="stats-grid">
+          <article className="metric-card">
+            <span>선택 이벤트 출석률</span>
+            <strong>{currentAttendanceRate}%</strong>
+            <small>
+              {currentPresentCount}명 출석 · {currentAbsentCount}명 미확인 · {currentExcusedCount}명 사유 있음
+            </small>
+            <div className="progress">
+              <span style={{ width: `${currentAttendanceRate}%` }} />
+            </div>
+          </article>
+          <article className="panel stats-card">
+            <div className="panel-heading">
+              <h2>소그룹별 출석률</h2>
+              <span>{attendanceTitle}</span>
+            </div>
+            <div className="stats-list">
+              {groupAttendanceStats.map((group) => (
+                <div className="stat-row" key={group.id}>
+                  <div className="person-block">
+                    <strong>{group.name}</strong>
+                    <span>
+                      {group.presentCount}/{group.totalCount}명
+                    </span>
                   </div>
-                  <strong>{group.rate}%</strong>
-                </div>
-              </div>
-            ))}
-            {unassignedMembers.length > 0 ? (
-              <div className="stat-row">
-                <div className="person-block">
-                  <strong>미배정</strong>
-                  <span>
-                    {unassignedPresentCount}/{unassignedMembers.length}명
-                  </span>
-                </div>
-                <div className="stat-meter">
-                  <div className="progress">
-                    <span style={{ width: `${unassignedAttendanceRate}%` }} />
+                  <div className="stat-meter">
+                    <div className="progress">
+                      <span style={{ width: `${group.rate}%` }} />
+                    </div>
+                    <strong>{group.rate}%</strong>
                   </div>
-                  <strong>{unassignedAttendanceRate}%</strong>
                 </div>
-              </div>
-            ) : null}
-          </div>
-        </article>
-        <article className="panel stats-card">
-          <div className="panel-heading">
-            <h2>최근 이벤트 추이</h2>
-            <span>최근 {eventTrend.length}개</span>
-          </div>
-          <div className="stats-list">
-            {eventTrend.slice(0, 6).map((event) => (
-              <div className="stat-row" key={event.id}>
-                <div className="person-block">
-                  <strong>{event.title}</strong>
-                  <span>{event.eventDate}</span>
-                </div>
-                <div className="stat-meter">
-                  <div className="progress">
-                    <span style={{ width: `${event.rate}%` }} />
+              ))}
+              {unassignedMembers.length > 0 ? (
+                <div className="stat-row">
+                  <div className="person-block">
+                    <strong>미배정</strong>
+                    <span>
+                      {unassignedPresentCount}/{unassignedMembers.length}명
+                    </span>
                   </div>
-                  <strong>{event.rate}%</strong>
+                  <div className="stat-meter">
+                    <div className="progress">
+                      <span style={{ width: `${unassignedAttendanceRate}%` }} />
+                    </div>
+                    <strong>{unassignedAttendanceRate}%</strong>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </article>
-        <article className="panel stats-card">
-          <div className="panel-heading">
-            <h2>미확인 연속 결석</h2>
-            <span>사유 있음 제외</span>
-          </div>
-          <div className="stats-list">
-            {absenceWatchList.map(({ member, streak }) => (
-              <div className="stat-row" key={member.id}>
-                <div className="person-block">
-                  <strong>{member.name}</strong>
-                  <span>{member.groupName}</span>
+              ) : null}
+            </div>
+          </article>
+          <article className="panel stats-card">
+            <div className="panel-heading">
+              <h2>최근 이벤트 추이</h2>
+              <span>최근 {eventTrend.length}개</span>
+            </div>
+            <div className="stats-list">
+              {eventTrend.slice(0, 6).map((event) => (
+                <div className="stat-row" key={event.id}>
+                  <div className="person-block">
+                    <strong>{event.title}</strong>
+                    <span>{event.eventDate}</span>
+                  </div>
+                  <div className="stat-meter">
+                    <div className="progress">
+                      <span style={{ width: `${event.rate}%` }} />
+                    </div>
+                    <strong>{event.rate}%</strong>
+                  </div>
                 </div>
-                <div className="row-actions">
-                  <span className="status-pill">{streak}회 연속</span>
-                  <Link className="secondary-button table-action" href={`/members/${member.id}`}>
-                    팔로업
-                  </Link>
+              ))}
+            </div>
+          </article>
+          <article className="panel stats-card">
+            <div className="panel-heading">
+              <h2>미확인 연속 결석</h2>
+              <span>사유 있음 제외</span>
+            </div>
+            <div className="stats-list">
+              {absenceWatchList.map(({ member, streak }) => (
+                <div className="stat-row" key={member.id}>
+                  <div className="person-block">
+                    <strong>{member.name}</strong>
+                    <span>{member.groupName}</span>
+                  </div>
+                  <div className="row-actions">
+                    <span className="status-pill">{streak}회 연속</span>
+                    <Link className="secondary-button table-action" href={`/members/${member.id}`}>
+                      팔로업
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {absenceWatchList.length === 0 ? (
-              <article className="care-item">
-                <div className="person-block">
-                  <strong>3회 이상 미확인 결석자가 없습니다</strong>
-                  <span>사유가 저장된 결석은 이 목록에서 제외됩니다.</span>
-                </div>
-              </article>
-            ) : null}
-          </div>
-        </article>
-      </section>
+              ))}
+              {absenceWatchList.length === 0 ? (
+                <article className="care-item">
+                  <div className="person-block">
+                    <strong>3회 이상 미확인 결석자가 없습니다</strong>
+                    <span>사유가 저장된 결석은 이 목록에서 제외됩니다.</span>
+                  </div>
+                </article>
+              ) : null}
+            </div>
+          </article>
+        </section>
+      </DisclosurePanel>
 
       <section className="panel" id="attendance-checklist">
         <div className="panel-heading">
@@ -1161,11 +1156,11 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </article>
       </div>
 
-      <section className="panel form-panel" id="admin-checks">
-        <div className="panel-heading">
-          <h2>관리자 온보딩 체크</h2>
-          <span>{canManageRoles ? "관리자만 역할을 변경할 수 있습니다" : "관리자 권한 필요"}</span>
-        </div>
+      <DisclosurePanel
+        id="admin-checks"
+        title="관리자 온보딩 체크"
+        meta={canManageRoles ? "관리자만 역할을 변경할 수 있습니다" : "관리자 권한 필요"}
+      >
         <div className="onboarding-list">
           <article className="detail-row">
             <div className="person-block">
@@ -1186,7 +1181,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
             </span>
           </article>
         </div>
-      </section>
+      </DisclosurePanel>
 
       <section className="panel form-panel" id="link-requests">
         <div className="panel-heading">
@@ -1369,11 +1364,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         <ActionMessage state={roleState} />
       </section>
 
-      <section className="panel" id="permission-matrix">
-        <div className="panel-heading">
-          <h2>역할 기반 권한</h2>
-          <span>로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한</span>
-        </div>
+      <DisclosurePanel id="permission-matrix" title="역할 기반 권한" meta="로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한">
         <div className="permission-matrix">
           {Object.entries(permissionsByRole).map(([role, permissions]) => (
             <article className="permission-row" key={role}>
@@ -1391,7 +1382,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
             </article>
           ))}
         </div>
-      </section>
+      </DisclosurePanel>
     </>
   );
 }
