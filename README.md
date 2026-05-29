@@ -92,6 +92,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 10. `db/010_admin_member_delete_policy.sql`
 11. `db/011_member_link_request_admin_policy.sql`
 12. `db/012_owner_role.sql`
+13. `db/013_owner_role_policies.sql`
 
 주요 테이블:
 

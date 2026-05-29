@@ -8,6 +8,7 @@ const staleLinkCleanupSource = readFileSync(new URL("../db/009_cleanup_stale_mem
 const memberDeletePolicySource = readFileSync(new URL("../db/010_admin_member_delete_policy.sql", import.meta.url), "utf8");
 const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_request_admin_policy.sql", import.meta.url), "utf8");
 const ownerRoleMigrationSource = readFileSync(new URL("../db/012_owner_role.sql", import.meta.url), "utf8");
+const ownerRolePoliciesSource = readFileSync(new URL("../db/013_owner_role_policies.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
@@ -101,7 +102,7 @@ test("schema supports owner role above admin", () => {
   assert.match(actionsSource, /owner:manage/);
   assert.match(dashboardSource, /최고 관리자/);
   assert.match(ownerRoleMigrationSource, /alter type member_role add value if not exists 'owner'/);
-  assert.match(ownerRoleMigrationSource, /set role = 'owner'/);
+  assert.match(ownerRolePoliciesSource, /set role = 'owner'/);
 });
 
 test("stale member link request cleanup closes orphaned pending requests", () => {
