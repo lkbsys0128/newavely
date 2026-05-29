@@ -34,7 +34,7 @@ export function OnboardingPanel({
         .filter((member) => member.id !== currentMemberId)
         .filter((member) => !member.authUserId && member.status !== "inactive" && !isMergedPlaceholderMember(member))
         .filter((member) =>
-          [member.name, member.email, member.phone, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery)),
+          [member.name, member.email, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery)),
         )
         .slice(0, 12);
     },
@@ -79,7 +79,7 @@ export function OnboardingPanel({
             <div className="onboarding-search">
               <div>
                 <h2>교적 검색</h2>
-                <p className="meta">본인 이름, 이메일, 전화번호, 소그룹 중 기억나는 정보로 검색해주세요.</p>
+                <p className="meta">본인 이름, 이메일, 순 이름 중 기억나는 정보로 검색해주세요.</p>
               </div>
               <label className="onboarding-search-field">
                 <span>검색어</span>
@@ -87,7 +87,7 @@ export function OnboardingPanel({
                   autoFocus
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="예: 임주환, 주환 순, 425"
+                  placeholder="예: 임주환, 주환 순, joohwan@gmail.com"
                 />
               </label>
               <p className="onboarding-help">검색 결과에서 본인 교적을 선택하면 관리자에게 연결 승인을 요청합니다.</p>
