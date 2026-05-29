@@ -1,6 +1,6 @@
 # Newavely
 
-Newavely는 교회 공동체 운영을 위한 웹앱입니다. 현재 목표는 순모임/멤버 관리, 출석 체크, 멤버별 정보 관리, 역할 기반 권한 관리, Google 소셜 로그인을 안정적으로 제공하는 것입니다.
+Newavely는 교회 공동체 운영을 위한 웹앱입니다. 현재 목표는 순/멤버 관리, 출석 체크, 멤버별 정보 관리, 역할 기반 권한 관리, Google 소셜 로그인을 안정적으로 제공하는 것입니다.
 
 ## 기술 스택
 
@@ -18,7 +18,7 @@ src/
     page.tsx              대시보드 overview
     members/page.tsx      멤버 목록, 상세, 멤버 추가
     members/[id]/page.tsx 멤버 상세, 커스텀 필드 값 관리
-    groups/page.tsx       순모임 현황
+    groups/page.tsx       순 현황
     attendance/page.tsx   출석 체크
     permissions/page.tsx  역할/권한 매트릭스
     auth/callback/        Supabase OAuth callback route
@@ -96,14 +96,14 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 
 주요 테이블:
 
-- `groups`: 순모임과 리더
-- `members`: 멤버 프로필, Supabase Auth 연결, 역할, 상태, 순모임, 커스텀 정보
+- `groups`: 순과 리더
+- `members`: 멤버 프로필, Supabase Auth 연결, 역할, 상태, 순, 커스텀 정보
 - `attendance_events`: 출석 이벤트 날짜와 제목
 - `attendance_records`: 이벤트별 멤버 출석 상태
 - `care_followups`: 멤버별 돌봄/연락 팔로업 기록
 - `member_link_requests`: 첫 로그인 계정과 기존 교적 멤버 연결 승인 요청
 - `member_custom_field_definitions`: 멤버별 커스텀 필드 정의
-- `audit_logs`: 멤버/순모임/출석 변경에 대한 append-only 감사 로그
+- `audit_logs`: 멤버/순/출석 변경에 대한 append-only 감사 로그
 
 중요한 관계:
 
@@ -130,7 +130,7 @@ attendance_records!attendance_records_member_id_fkey(status)
 앱 역할은 `src/lib/rbac.ts`에 정의되어 있습니다.
 
 - `owner`: 최고 관리자. 관리자 지정/회수, 영구 삭제 같은 최상위 작업 권한
-- `admin`: 운영 관리자. 멤버/순모임/출석/권한/감사 관리 권한
+- `admin`: 운영 관리자. 멤버/순/출석/권한/감사 관리 권한
 - `leader`: 멤버/출석 관리 권한
 - `staff`: 순장. 본인이 리드하는 순 멤버는 상세 열람, 다른 순은 이름 중심 열람
 - `member`: 기본 접근 권한
@@ -148,7 +148,7 @@ attendance_records!attendance_records_member_id_fkey(status)
 
 상세 페이지에서 관리하는 정보:
 
-- 기본 정보: 이름, 이메일, 연락처, 순모임, 역할, 상태, 주소, 세례/등록, 돌봄 메모
+- 기본 정보: 이름, 이메일, 연락처, 순, 역할, 상태, 주소, 세례/등록, 돌봄 메모
 - 커스텀 필드 값: `members.custom_fields` JSONB에 저장
 - 커스텀 필드 정의: `member_custom_field_definitions`에 저장
 
@@ -176,7 +176,7 @@ attendance_records!attendance_records_member_id_fkey(status)
 기록 대상:
 
 - 멤버 생성/수정/비활성화/다시 활성화
-- 순모임 생성/수정
+- 순 생성/수정
 - 출석 상태 변경
 
 감사 로그는 append-only 방식으로 운영합니다.

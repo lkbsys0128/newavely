@@ -526,7 +526,7 @@ export async function exportMembersToGoogleSheet(_previousState: ActionState, _f
       "이름",
       "이메일",
       "전화번호",
-      "순모임",
+      "순",
       "상태",
       "역할",
       "주소",
@@ -1399,7 +1399,7 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
       afterData: inserted as Record<string, unknown>,
     });
     revalidateAppData();
-    return "순모임을 추가했습니다.";
+    return "순을 추가했습니다.";
   });
 }
 
@@ -1448,7 +1448,7 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
       afterData: afterData as Record<string, unknown>,
     });
     revalidateAppData();
-    return "순모임을 저장했습니다.";
+    return "순을 저장했습니다.";
   });
 }
 
@@ -1517,7 +1517,7 @@ export async function deleteGroup(_previousState: ActionState, formData: FormDat
       beforeData: beforeData as Record<string, unknown>,
     });
     revalidateAppData();
-    return "순모임을 삭제했습니다. 배정된 멤버는 미배정으로 이동됩니다.";
+    return "순을 삭제했습니다. 배정된 멤버는 미배정으로 이동됩니다.";
   });
 }
 
