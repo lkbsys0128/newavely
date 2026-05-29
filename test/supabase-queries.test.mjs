@@ -9,6 +9,7 @@ const memberDeletePolicySource = readFileSync(new URL("../db/010_admin_member_de
 const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_request_admin_policy.sql", import.meta.url), "utf8");
 const ownerRoleMigrationSource = readFileSync(new URL("../db/012_owner_role.sql", import.meta.url), "utf8");
 const ownerRolePoliciesSource = readFileSync(new URL("../db/013_owner_role_policies.sql", import.meta.url), "utf8");
+const deleteRolePoliciesSource = readFileSync(new URL("../db/014_delete_role_policies.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
@@ -85,15 +86,18 @@ test("link request decisions support rejection and new member creation", () => {
   assert.match(memberLinkAdminPolicySource, /owners and admins can update link requests/);
 });
 
-test("member permanent delete is owner-only and audited", () => {
+test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(actionsSource, /deleteMemberPermanently/);
-  assert.match(actionsSource, /getAuthorizedCurrentMember\("owner:manage"\)/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("members:write"\)/);
+  assert.match(actionsSource, /canDeleteMemberRole/);
   assert.match(actionsSource, /member\.permanent_delete/);
   assert.match(actionsSource, /cascadingRecords/);
   assert.match(actionsSource, /closedPendingLinkRequests/);
   assert.match(actionsSource, /deletedCount !== 1/);
-  assert.match(schemaSource, /owners can delete members/);
-  assert.match(memberDeletePolicySource, /on members for delete/);
+  assert.match(schemaSource, /authorized users can delete lower role members/);
+  assert.match(deleteRolePoliciesSource, /authorized users can delete lower role members/);
+  assert.match(deleteRolePoliciesSource, /leaders can delete groups/);
+  assert.match(memberDeletePolicySource, /owners can delete members/);
   assert.match(dashboardSource, /완전 삭제/);
 });
 
@@ -132,6 +136,17 @@ test("member detail opens as a right side drawer from the roster", () => {
   assert.match(dashboardSource, /selected-row/);
 });
 
+test("attendance checklist uses roster members and exposes search filters", () => {
+  assert.match(dashboardSource, /isAttendanceRosterMember/);
+  assert.match(dashboardSource, /member\.status === "active" \|\| member\.status === "care"/);
+  assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
+  assert.match(dashboardSource, /attendanceSearchQuery/);
+  assert.match(dashboardSource, /attendanceGroupId/);
+  assert.match(dashboardSource, /attendance-check-grid/);
+  assert.match(dashboardSource, /attendance-card/);
+  assert.doesNotMatch(dashboardSource, /member\.groupName} · {member\.phone/);
+});
+
 test("group management uses active member choices and supports audited delete", () => {
   assert.match(dashboardSource, /groupLeaderOptions/);
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
@@ -140,6 +155,8 @@ test("group management uses active member choices and supports audited delete", 
   assert.match(actionsSource, /assignLeaderToGroup/);
   assert.match(actionsSource, /group_id: groupId/);
   assert.match(dashboardSource, /groupPendingDelete/);
+  assert.match(dashboardSource, /if \(deleteGroupState\.ok\)/);
+  assert.match(dashboardSource, /setGroupPendingDelete\(null\)/);
   assert.match(dashboardSource, /정말 지우시겠습니까/);
   assert.doesNotMatch(actionsSource, /const deleteGroupSchema[\s\S]{0,120}confirmName/);
   assert.match(memberDetailSource, /!isMergedPlaceholderMember\(item\)/);
@@ -149,6 +166,11 @@ test("permissions page exposes member search for role management", () => {
   assert.match(dashboardSource, /roleSearchQuery/);
   assert.match(dashboardSource, /멤버 검색/);
   assert.match(dashboardSource, /filteredRoleManagedMembers/);
+  assert.match(dashboardSource, /#permission-matrix[\s\S]*#admin-checks[\s\S]*#link-requests[\s\S]*#role-management/);
+  assert.match(dashboardSource, /id="permission-matrix"[\s\S]*id="admin-checks"[\s\S]*id="link-requests"[\s\S]*id="role-management"/);
+  assert.match(dashboardSource, /link-request-section/);
+  assert.match(dashboardSource, /request-count-pill/);
+  assert.match(dashboardSource, /request-empty-state/);
 });
 
 test("legacy manual account merge entrypoint is not exposed", () => {

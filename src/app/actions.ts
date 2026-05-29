@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission, type Role } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
-import { getRoleChangeBlockReason } from "@/lib/role-policy";
+import { canDeleteMemberRole, getRoleChangeBlockReason } from "@/lib/role-policy";
 import { replaceGoogleSheetValues } from "@/lib/google-sheets";
 import {
   calculateKoreanAge,
@@ -526,7 +526,7 @@ export async function exportMembersToGoogleSheet(_previousState: ActionState, _f
       "이름",
       "이메일",
       "전화번호",
-      "순모임",
+      "순",
       "상태",
       "역할",
       "주소",
@@ -1291,7 +1291,7 @@ export async function reactivateMember(_previousState: ActionState, formData: Fo
 
 export async function deleteMemberPermanently(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("owner:manage");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
     const parsed = deleteMemberSchema.parse({
       id: formData.get("id"),
       confirmName: formData.get("confirmName"),
@@ -1302,6 +1302,10 @@ export async function deleteMemberPermanently(_previousState: ActionState, formD
 
     const member = beforeData as Record<string, unknown>;
     const memberName = String(member.name ?? "");
+    const targetRole = member.role as Role;
+    if (!canDeleteMemberRole({ actorRole: currentMember.role, targetRole })) {
+      throw new Error("자신보다 낮은 권한의 멤버만 삭제할 수 있습니다.");
+    }
     if (parsed.confirmName.trim() !== memberName) {
       throw new Error("삭제 확인 이름이 멤버 이름과 일치하지 않습니다.");
     }
@@ -1399,7 +1403,7 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
       afterData: inserted as Record<string, unknown>,
     });
     revalidateAppData();
-    return "순모임을 추가했습니다.";
+    return "순을 추가했습니다.";
   });
 }
 
@@ -1448,7 +1452,7 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
       afterData: afterData as Record<string, unknown>,
     });
     revalidateAppData();
-    return "순모임을 저장했습니다.";
+    return "순을 저장했습니다.";
   });
 }
 
@@ -1493,7 +1497,7 @@ async function assignLeaderToGroup({
 
 export async function deleteGroup(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("groups:write");
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
     const parsed = deleteGroupSchema.parse({
       id: formData.get("id"),
     });
@@ -1517,7 +1521,7 @@ export async function deleteGroup(_previousState: ActionState, formData: FormDat
       beforeData: beforeData as Record<string, unknown>,
     });
     revalidateAppData();
-    return "순모임을 삭제했습니다. 배정된 멤버는 미배정으로 이동됩니다.";
+    return "순을 삭제했습니다. 배정된 멤버는 미배정으로 이동됩니다.";
   });
 }
 

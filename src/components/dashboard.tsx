@@ -22,6 +22,7 @@ import {
   type ActionState,
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
+import { canDeleteMemberRole, canUseDeleteActions } from "@/lib/role-policy";
 import type { AppUser } from "@/lib/app-page-data";
 import type { AttendanceEvent, AuditLog, Group, Member, MemberLinkRequest } from "@/lib/types";
 import {
@@ -61,7 +62,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       <SectionNav
         items={[
           { href: "#overview-metrics", label: "요약" },
-          { href: "#group-summary", label: "순모임 현황" },
+          { href: "#group-summary", label: "순 현황" },
         ]}
       />
 
@@ -89,7 +90,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
           </small>
         </article>
         <article className="metric-card">
-          <span>순모임</span>
+          <span>순</span>
           <strong>{groups.length}</strong>
           <small>리더 배정 완료</small>
         </article>
@@ -123,7 +124,6 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
   );
   const canManageMembers = hasPermission(user.role, "members:write");
   const canManageRoles = hasPermission(user.role, "roles:manage");
-  const canDeleteMembers = hasPermission(user.role, "owner:manage");
   const canExportMembers = hasPermission(user.role, "roles:manage");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
   const isSoonjang = user.role === "staff";
@@ -135,6 +135,9 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     [members],
   );
   const selectedMember = visibleMembers.find((member) => member.id === selectedMemberId) ?? null;
+  const canDeleteSelectedMember = selectedMember
+    ? canDeleteMemberRole({ actorRole: user.role, targetRole: selectedMember.role })
+    : false;
   const filteredMembers = useMemo(() => {
     return filterMembers(visibleMembers, filters);
   }, [visibleMembers, filters]);
@@ -152,15 +155,6 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
   return (
     <>
       <PageHeader eyebrow="멤버 관리" title="멤버" user={user}>
-        <label className="search-field">
-          <span>검색</span>
-          <input
-            type="search"
-            placeholder="이름, 연락처, 순모임, 메모"
-            value={filters.query}
-            onChange={(event) => updateFilters({ query: event.target.value })}
-          />
-        </label>
         <label className="toggle-field">
           <input
             type="checkbox"
@@ -186,11 +180,20 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
       />
 
       <section className="panel filter-panel" id="member-filters">
+        <label className="search-field member-filter-search">
+          <span>검색</span>
+          <input
+            type="search"
+            placeholder="이름, 연락처, 순, 메모"
+            value={filters.query}
+            onChange={(event) => updateFilters({ query: event.target.value })}
+          />
+        </label>
         <div className="filter-grid">
           <label>
-            순모임
+            순
             <select value={filters.groupId} onChange={(event) => updateFilters({ groupId: event.target.value })}>
-              <option value="all">전체 순모임</option>
+              <option value="all">전체 순</option>
               <option value="unassigned">미배정</option>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
@@ -251,7 +254,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <thead>
               <tr>
                 <th>이름</th>
-                <th>순모임</th>
+                <th>순</th>
                 {!isSoonjang ? <th>역할</th> : null}
                 {!isSoonjang ? <th>상태</th> : null}
                 {!isSoonjang ? <th>계정</th> : null}
@@ -350,7 +353,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 <input name="phone" required defaultValue={selectedMember.phone} disabled={!canManageMembers} />
               </label>
               <label>
-                순모임
+                순
                 <select name="groupId" defaultValue={selectedMember.groupId ?? ""} disabled={!canManageMembers}>
                   <option value="">미배정</option>
                   {groups.map((group) => (
@@ -421,7 +424,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               </button>
             </form>
           ) : null}
-          {selectedMember && canDeleteMembers ? (
+          {selectedMember && canUseDeleteActions(user.role) ? (
             <form action={deleteMemberAction} className="danger-zone-form member-delete-zone">
               <input name="id" type="hidden" value={selectedMember.id} />
               <div className="person-block">
@@ -434,7 +437,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               </label>
               <div className="member-delete-actions">
                 <ActionMessage state={deleteMemberState} />
-                <button className="danger-button" type="submit" disabled={isDeletingMember}>
+                <button className="danger-button" type="submit" disabled={!canDeleteSelectedMember || isDeletingMember}>
                   완전히 삭제
                 </button>
               </div>
@@ -519,7 +522,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <input name="email" type="email" placeholder="name@example.com" disabled={!canManageMembers} />
           </label>
           <label>
-            순모임
+            순
             <select name="groupId" disabled={!canManageMembers}>
               <option value="">미배정</option>
               {groups.map((group) => (
@@ -573,7 +576,10 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
 
 export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
+  const canDeleteGroups = canUseDeleteActions(user.role);
   const [groupPendingDelete, setGroupPendingDelete] = useState<Group | null>(null);
+  const [lastUpdatedGroupId, setLastUpdatedGroupId] = useState<string | null>(null);
+  const [lastDeletedGroupId, setLastDeletedGroupId] = useState<string | null>(null);
   const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
   const [updateGroupState, updateGroupAction, isUpdatingGroup] = useActionState(updateGroup, initialActionState);
   const [deleteGroupState, deleteGroupAction, isDeletingGroup] = useActionState(deleteGroup, initialActionState);
@@ -583,14 +589,20 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const totalAttendanceRate = activeMembers.length ? Math.round((totalPresent / activeMembers.length) * 100) : 0;
   const groupLeaderOptions = [...activeMembers].sort((a, b) => a.name.localeCompare(b.name));
 
+  useEffect(() => {
+    if (deleteGroupState.ok) {
+      setGroupPendingDelete(null);
+    }
+  }, [deleteGroupState]);
+
   return (
     <>
-      <PageHeader eyebrow="순모임 관리" title="순모임" user={user} />
+      <PageHeader eyebrow="순 관리" title="순" user={user} />
       <SectionNav
         items={[
           { href: "#group-metrics", label: "요약" },
-          { href: "#group-create", label: "순모임 추가" },
-          { href: "#group-list", label: "순모임 목록" },
+          { href: "#group-create", label: "순 추가" },
+          { href: "#group-list", label: "순 목록" },
           { href: "#unassigned-members", label: "미배정" },
         ]}
       />
@@ -601,14 +613,14 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
           <small>비활성 멤버 제외</small>
         </article>
         <article className="metric-card">
-          <span>순모임</span>
+          <span>순</span>
           <strong>{groups.length}</strong>
           <small>현재 등록된 순</small>
         </article>
         <article className="metric-card">
           <span>미배정</span>
           <strong>{unassignedMembers.length}</strong>
-          <small>순모임 배정 필요</small>
+          <small>순 배정 필요</small>
         </article>
         <article className="metric-card">
           <span>최근 출석률</span>
@@ -619,12 +631,12 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
 
       <DisclosurePanel
         id="group-create"
-        title="순모임 추가"
+        title="순 추가"
         meta={canManageGroups ? "이름과 리더를 지정" : "관리자 권한 필요"}
       >
         <form action={createGroupAction} className="member-form group-create-form">
           <label>
-            순모임 이름
+            순 이름
             <input name="name" required placeholder="예: 은미 순" disabled={!canManageGroups} />
           </label>
           <label>
@@ -692,7 +704,11 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                 {groupMembers.length > 6 ? <span className="member-chip muted">+{groupMembers.length - 6}</span> : null}
                 {groupMembers.length === 0 ? <span className="meta">배정된 멤버가 없습니다</span> : null}
               </div>
-              <form action={updateGroupAction} className="management-form group-edit-form">
+              <form
+                action={updateGroupAction}
+                className="management-form group-edit-form"
+                onSubmit={() => setLastUpdatedGroupId(group.id)}
+              >
                 <input name="id" type="hidden" value={group.id} />
                 <label>
                   이름
@@ -709,26 +725,26 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                     ))}
                   </select>
                 </label>
-                <ActionMessage state={updateGroupState} />
+                {lastUpdatedGroupId === group.id ? <ActionMessage state={updateGroupState} /> : null}
                 <button className="secondary-button" type="submit" disabled={!canManageGroups || isUpdatingGroup}>
                   저장
                 </button>
               </form>
               <div className="danger-zone-form group-delete-form">
                 <div className="person-block">
-                  <strong>순모임 삭제</strong>
-                  <span>삭제하면 이 순모임의 멤버들은 미배정으로 이동됩니다.</span>
+                  <strong>순 삭제</strong>
+                  <span>삭제하면 이 순의 멤버들은 미배정으로 이동됩니다.</span>
                 </div>
                 <button
                   className="danger-button"
                   type="button"
-                  disabled={!canManageGroups || isDeletingGroup}
+                  disabled={!canDeleteGroups || isDeletingGroup}
                   onClick={() => setGroupPendingDelete(group)}
                 >
                   삭제
                 </button>
               </div>
-              <ActionMessage state={deleteGroupState} />
+              {lastDeletedGroupId === group.id ? <ActionMessage state={deleteGroupState} /> : null}
             </article>
           );
         })}
@@ -750,16 +766,22 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
               <span className="status-pill inactive">삭제 확인</span>
               <h2 id="group-delete-title">정말 지우시겠습니까?</h2>
               <p>
-                <strong>{groupPendingDelete.name}</strong> 순모임을 삭제하면, 해당 순모임의 멤버들은 미배정으로 이동됩니다.
+                <strong>{groupPendingDelete.name}</strong> 순을 삭제하면, 해당 순의 멤버들은 미배정으로 이동됩니다.
               </p>
             </div>
             <div className="confirm-modal-actions">
               <button className="secondary-button" type="button" onClick={() => setGroupPendingDelete(null)}>
                 취소
               </button>
-              <form action={deleteGroupAction}>
+              <form
+                action={deleteGroupAction}
+                onSubmit={() => {
+                  setLastDeletedGroupId(groupPendingDelete.id);
+                  setGroupPendingDelete(null);
+                }}
+              >
                 <input name="id" type="hidden" value={groupPendingDelete.id} />
-                <button className="danger-button" type="submit" disabled={!canManageGroups || isDeletingGroup}>
+                <button className="danger-button" type="submit" disabled={!canDeleteGroups || isDeletingGroup}>
                   삭제
                 </button>
               </form>
@@ -801,12 +823,14 @@ export function AttendanceManager({
   const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
+  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
+  const [attendanceGroupId, setAttendanceGroupId] = useState("all");
 
   useEffect(() => {
     setLocalMembers(members);
   }, [attendanceEventId, members]);
 
-  const activeMembers = localMembers.filter((member) => member.status !== "inactive");
+  const activeMembers = localMembers.filter(isAttendanceRosterMember);
   const activeMemberCount = activeMembers.length;
   const currentPresentCount = activeMembers.filter((member) => member.present).length;
   const currentExcusedCount = activeMembers.filter((member) => getMemberAttendanceStatus(member, attendanceEventId) === "excused").length;
@@ -852,12 +876,17 @@ export function AttendanceManager({
     .sort((a, b) => b.streak - a.streak)
     .slice(0, 8);
 
-  const attendanceMembers = localMembers.filter((member) => {
+  const attendanceMembers = activeMembers.filter((member) => {
     const status = getMemberAttendanceStatus(member, attendanceEventId);
-    if (attendanceFilter === "present") return member.present;
-    if (attendanceFilter === "absent") return status === "absent";
-    if (attendanceFilter === "excused") return status === "excused";
-    return true;
+    const normalizedQuery = attendanceSearchQuery.trim().toLowerCase();
+    const matchesQuery = normalizedQuery
+      ? [member.name, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery))
+      : true;
+    const matchesGroup = attendanceGroupId === "all" || member.groupId === attendanceGroupId;
+    if (attendanceFilter === "present") return matchesQuery && matchesGroup && member.present;
+    if (attendanceFilter === "absent") return matchesQuery && matchesGroup && status === "absent";
+    if (attendanceFilter === "excused") return matchesQuery && matchesGroup && status === "excused";
+    return matchesQuery && matchesGroup;
   });
 
   return (
@@ -935,7 +964,7 @@ export function AttendanceManager({
           </article>
           <article className="panel stats-card">
             <div className="panel-heading">
-              <h2>순모임별 출석률</h2>
+              <h2>순별 출석률</h2>
               <span>{attendanceTitle}</span>
             </div>
             <div className="stats-list">
@@ -1029,10 +1058,12 @@ export function AttendanceManager({
       </DisclosurePanel>
 
       <section className="panel" id="attendance-checklist">
-        <div className="panel-heading">
+        <div className="attendance-check-header">
           <div>
             <h2>{attendanceTitle}</h2>
-            <span>{attendanceDate}</span>
+            <span>
+              {attendanceDate} · {attendanceMembers.length}/{activeMemberCount}명 표시
+            </span>
           </div>
           <div className="segmented">
             {(["all", "present", "absent", "excused"] as const).map((filter) => (
@@ -1047,25 +1078,72 @@ export function AttendanceManager({
             ))}
           </div>
         </div>
-        <div className="attendance-list">
-          {attendanceMembers.map((member) => (
-            <AttendanceRow
-              canManageAttendance={canManageAttendance}
-              eventId={attendanceEventId}
-              isPending={isPending}
-              key={member.id}
-              member={member}
-              onToggle={() => {
-                if (!attendanceEventId) return;
-                setLocalMembers((current) =>
-                  current.map((item) => (item.id === member.id ? { ...item, present: !item.present } : item)),
-                );
-                startTransition(() => {
-                  void toggleAttendance(member.id, attendanceEventId, !member.present);
-                });
-              }}
+        <div className="attendance-toolbar">
+          <label>
+            검색
+            <input
+              onChange={(event) => setAttendanceSearchQuery(event.target.value)}
+              placeholder="이름 또는 순"
+              type="search"
+              value={attendanceSearchQuery}
             />
-          ))}
+          </label>
+          <label>
+            순
+            <select onChange={(event) => setAttendanceGroupId(event.target.value)} value={attendanceGroupId}>
+              <option value="all">전체 순</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="attendance-check-grid">
+          {attendanceMembers.map((member) => {
+            const status = getMemberAttendanceStatus(member, attendanceEventId);
+            return (
+              <AttendanceRow
+                canManageAttendance={canManageAttendance}
+                eventId={attendanceEventId}
+                isPending={isPending}
+                key={member.id}
+                member={member}
+                onToggle={() => {
+                  if (!attendanceEventId) return;
+                  const nextPresent = !member.present;
+                  setLocalMembers((current) =>
+                    current.map((item) =>
+                      item.id === member.id
+                        ? {
+                            ...item,
+                            present: nextPresent,
+                            attendanceHistory: updateLocalAttendanceHistory({
+                              attendanceDate,
+                              attendanceTitle,
+                              eventId: attendanceEventId,
+                              history: item.attendanceHistory,
+                              nextPresent,
+                            }),
+                          }
+                        : item,
+                    ),
+                  );
+                  startTransition(() => {
+                    void toggleAttendance(member.id, attendanceEventId, nextPresent);
+                  });
+                }}
+                status={status}
+              />
+            );
+          })}
+          {attendanceMembers.length === 0 ? (
+            <article className="empty-table-state attendance-empty-state">
+              <strong>표시할 멤버가 없습니다</strong>
+              <span>검색어나 순 필터를 조정해보세요.</span>
+            </article>
+          ) : null}
         </div>
       </section>
     </>
@@ -1078,24 +1156,23 @@ function AttendanceRow({
   canManageAttendance,
   isPending,
   onToggle,
+  status,
 }: {
   member: Member;
   eventId?: string;
   canManageAttendance: boolean;
   isPending: boolean;
   onToggle: () => void;
+  status: AttendanceStatus;
 }) {
   const [reasonState, reasonAction, isSavingReason] = useActionState(updateAttendanceReason, initialActionState);
   const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
-  const status = getMemberAttendanceStatus(member, eventId);
 
   return (
-    <article className="attendance-row">
+    <article className={`attendance-row attendance-card ${status}`}>
       <div className="person-block">
         <strong>{member.name}</strong>
-        <span>
-          {member.groupName} · {member.phone}
-        </span>
+        <span>{member.groupName}</span>
         {currentRecord?.note ? <span>사유: {currentRecord.note}</span> : null}
         {currentRecord?.excuseStartDate || currentRecord?.excuseEndDate ? (
           <span>
@@ -1114,7 +1191,7 @@ function AttendanceRow({
           {member.present ? "미출석 처리" : "출석 체크"}
         </button>
         <details className="reason-details">
-          <summary>사유/기간</summary>
+          <summary>사유</summary>
           <form action={reasonAction} className="reason-form">
             <input name="memberId" type="hidden" value={member.id} />
             <input name="eventId" type="hidden" value={eventId ?? ""} />
@@ -1167,6 +1244,42 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
   return "absent";
 }
 
+function isAttendanceRosterMember(member: Member) {
+  return (member.status === "active" || member.status === "care") && !isMergedPlaceholderMember(member);
+}
+
+function updateLocalAttendanceHistory({
+  attendanceDate,
+  attendanceTitle,
+  eventId,
+  history,
+  nextPresent,
+}: {
+  attendanceDate: string;
+  attendanceTitle: string;
+  eventId: string;
+  history: Member["attendanceHistory"];
+  nextPresent: boolean;
+}) {
+  const currentRecord = history.find((record) => record.eventId === eventId);
+  const nextStatus: AttendanceStatus = nextPresent
+    ? "present"
+    : currentRecord?.note || currentRecord?.excuseStartDate || currentRecord?.excuseEndDate
+      ? "excused"
+      : "absent";
+  const nextRecord = {
+    eventId,
+    eventDate: currentRecord?.eventDate || attendanceDate,
+    title: currentRecord?.title || attendanceTitle,
+    status: nextStatus,
+    note: currentRecord?.note ?? "",
+    excuseStartDate: currentRecord?.excuseStartDate ?? "",
+    excuseEndDate: currentRecord?.excuseEndDate ?? "",
+  };
+
+  return currentRecord ? history.map((record) => (record.eventId === eventId ? nextRecord : record)) : [nextRecord, ...history];
+}
+
 export function PermissionsPageContent({ user, members, groups, memberLinkRequests = [] }: AppDataProps) {
   const [roleSearchQuery, setRoleSearchQuery] = useState("");
   const [roleState, roleAction, isUpdatingRole] = useActionState(updateMemberRole, initialActionState);
@@ -1209,10 +1322,10 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
       <SectionNav
         items={[
           { href: "#permission-metrics", label: "요약" },
+          { href: "#permission-matrix", label: "권한표" },
           { href: "#admin-checks", label: "관리자/소유자 체크" },
           { href: "#link-requests", label: "연결 요청" },
           { href: "#role-management", label: "역할 변경" },
-          { href: "#permission-matrix", label: "권한표" },
         ]}
       />
       <div className="metric-grid" id="permission-metrics">
@@ -1237,6 +1350,26 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           <small>읽기 중심 접근</small>
         </article>
       </div>
+
+      <DisclosurePanel id="permission-matrix" title="역할 기반 권한" meta="로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한">
+        <div className="permission-matrix">
+          {Object.entries(permissionsByRole).map(([role, permissions]) => (
+            <article className="permission-row" key={role}>
+              <div className="person-block">
+                <strong>{roleLabels[role as Role]}</strong>
+                <span>{members.filter((member) => member.role === role).length}명 배정</span>
+              </div>
+              <div className="permission-list">
+                {permissions.map((permission) => (
+                  <span className="permission-chip" key={permission}>
+                    {permissionLabels[permission]}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </DisclosurePanel>
 
       <DisclosurePanel
         id="admin-checks"
@@ -1265,13 +1398,15 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </div>
       </DisclosurePanel>
 
-      <section className="panel form-panel" id="link-requests">
-        <div className="panel-heading">
+      <section className="panel form-panel link-request-section" id="link-requests">
+        <div className="panel-heading link-request-heading">
           <div>
             <h2>교적 연결 요청</h2>
             <p className="meta">첫 로그인 사용자가 기존 CSV 교적 멤버와 연결을 요청하면 여기서 승인합니다.</p>
           </div>
-          <span>{pendingLinkRequests.length}건 대기</span>
+          <span className={`request-count-pill ${pendingLinkRequests.length > 0 ? "active" : ""}`}>
+            {pendingLinkRequests.length}건 대기
+          </span>
         </div>
         <div className="role-management-list">
           {pendingLinkRequests.map((request) => (
@@ -1341,7 +1476,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                           />
                         </label>
                         <label>
-                          순모임
+                          순
                           <select name="newMemberGroupId" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
                             <option value="">미배정</option>
                             {groups.map((group) => (
@@ -1373,7 +1508,8 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
             </article>
           ))}
           {pendingLinkRequests.length === 0 ? (
-            <article className="care-item">
+            <article className="request-empty-state">
+              <span className="request-empty-mark" aria-hidden="true" />
               <div className="person-block">
                 <strong>대기 중인 요청이 없습니다</strong>
                 <span>새 사용자가 내 프로필에서 연결 요청을 만들면 이곳에 표시됩니다.</span>
@@ -1434,7 +1570,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
               type="search"
               value={roleSearchQuery}
               onChange={(event) => setRoleSearchQuery(event.target.value)}
-              placeholder="이름, 이메일, 순모임, 역할"
+              placeholder="이름, 이메일, 순, 역할"
             />
           </label>
           <button
@@ -1471,32 +1607,13 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           {filteredRoleManagedMembers.length === 0 ? (
             <article className="empty-state">
               <strong>검색 결과가 없습니다</strong>
-              <span>이름, 이메일, 순모임 이름, 역할을 다시 확인해주세요.</span>
+              <span>이름, 이메일, 순 이름, 역할을 다시 확인해주세요.</span>
             </article>
           ) : null}
         </div>
         <ActionMessage state={roleState} />
       </section>
 
-      <DisclosurePanel id="permission-matrix" title="역할 기반 권한" meta="로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한">
-        <div className="permission-matrix">
-          {Object.entries(permissionsByRole).map(([role, permissions]) => (
-            <article className="permission-row" key={role}>
-              <div className="person-block">
-                <strong>{roleLabels[role as Role]}</strong>
-                <span>{members.filter((member) => member.role === role).length}명 배정</span>
-              </div>
-              <div className="permission-list">
-                {permissions.map((permission) => (
-                  <span className="permission-chip" key={permission}>
-                    {permissionLabels[permission]}
-                  </span>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </DisclosurePanel>
     </>
   );
 }
@@ -1537,7 +1654,7 @@ export function AuditLogPageContent({ user, auditLogs }: { user: AppUser; auditL
               <article className="care-item">
                 <div className="person-block">
                   <strong>아직 기록이 없습니다</strong>
-                  <span>멤버/순모임/출석 변경이 발생하면 이곳에 기록됩니다.</span>
+                  <span>멤버/순/출석 변경이 발생하면 이곳에 기록됩니다.</span>
                 </div>
               </article>
             ) : null}
@@ -1596,7 +1713,7 @@ function EmptyMemberDetailPreview({ groups }: { groups: Group[] }) {
         <input placeholder="미입력" disabled />
       </label>
       <label>
-        순모임
+        순
         <select defaultValue="" disabled>
           <option value="">미배정</option>
           {groups.map((group) => (
@@ -1675,7 +1792,7 @@ function GroupSummaryPanel({ members, groups }: { members: Member[]; groups: Gro
   return (
     <section className="panel" id="group-summary">
       <div className="panel-heading">
-        <h2>순모임 현황</h2>
+        <h2>순 현황</h2>
         <span>인원과 최근 출석률</span>
       </div>
       <div className="group-summary">
@@ -1745,8 +1862,8 @@ const permissionLabels = {
   "members:write": "멤버 수정",
   "attendance:read": "출석 보기",
   "attendance:write": "출석 체크",
-  "groups:read": "순모임 보기",
-  "groups:write": "순모임 수정",
+  "groups:read": "순 보기",
+  "groups:write": "순 수정",
   "roles:manage": "권한 관리",
   "owner:manage": "최고 관리자 관리",
   "sensitive:read": "민감 정보 열람",
@@ -1760,9 +1877,9 @@ const auditActionLabels: Record<string, string> = {
   "member.account_merge": "멤버 계정 연결",
   "member.profile_merge": "멤버 프로필 병합",
   "member.custom_fields.update": "멤버 커스텀 필드 수정",
-  "group.create": "순모임 생성",
-  "group.update": "순모임 수정",
-  "group.delete": "순모임 삭제",
+  "group.create": "순 생성",
+  "group.update": "순 수정",
+  "group.delete": "순 삭제",
   "attendance_event.create": "출석 이벤트 생성",
   "attendance.toggle": "출석 변경",
   "attendance.reason.update": "출석 사유 수정",

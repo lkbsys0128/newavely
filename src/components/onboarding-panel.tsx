@@ -79,7 +79,7 @@ export function OnboardingPanel({
             <div className="onboarding-search">
               <div>
                 <h2>교적 검색</h2>
-                <p className="meta">본인 이름, 이메일, 순모임 이름 중 기억나는 정보로 검색해주세요.</p>
+                <p className="meta">본인 이름, 이메일, 순 이름 중 기억나는 정보로 검색해주세요.</p>
               </div>
               <label className="onboarding-search-field">
                 <span>검색어</span>
@@ -112,7 +112,7 @@ export function OnboardingPanel({
                     />
                     <div className="person-block">
                       <strong>{member.name}</strong>
-                      <span>{member.groupName || "순모임 미배정"}</span>
+                      <span>{member.groupName || "미배정"}</span>
                     </div>
                     <button className="primary-button" type="submit" disabled={isSubmitting}>
                       이 멤버로 요청

@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { loadTsModule } from "./load-ts-module.mjs";
 
-const { canChangeMemberRole, getRoleChangeBlockReason } = loadTsModule("../src/lib/role-policy.ts");
+const { canChangeMemberRole, canDeleteMemberRole, canUseDeleteActions, getRoleChangeBlockReason } = loadTsModule(
+  "../src/lib/role-policy.ts",
+);
 
 test("role policy blocks demoting the final active admin", () => {
   assert.equal(
@@ -91,4 +93,15 @@ test("role policy allows safe role changes", () => {
     }),
     true,
   );
+});
+
+test("delete policy allows only leader and above to delete lower roles", () => {
+  assert.equal(canUseDeleteActions("leader"), true);
+  assert.equal(canUseDeleteActions("staff"), false);
+  assert.equal(canDeleteMemberRole({ actorRole: "leader", targetRole: "member" }), true);
+  assert.equal(canDeleteMemberRole({ actorRole: "leader", targetRole: "staff" }), true);
+  assert.equal(canDeleteMemberRole({ actorRole: "leader", targetRole: "leader" }), false);
+  assert.equal(canDeleteMemberRole({ actorRole: "admin", targetRole: "leader" }), true);
+  assert.equal(canDeleteMemberRole({ actorRole: "admin", targetRole: "owner" }), false);
+  assert.equal(canDeleteMemberRole({ actorRole: "owner", targetRole: "admin" }), true);
 });
