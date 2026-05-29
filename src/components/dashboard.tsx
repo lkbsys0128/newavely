@@ -170,7 +170,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           <span>검색</span>
           <input
             type="search"
-            placeholder="이름, 이메일, 연락처, 메모"
+            placeholder="이름, 연락처, 소그룹, 메모"
             value={filters.query}
             onChange={(event) => updateFilters({ query: event.target.value })}
           />
@@ -279,7 +279,6 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   <tr key={member.id} onClick={() => setSelectedMemberId(member.id)}>
                     <td>
                       <strong>{member.name}</strong>
-                      <div className="meta">{member.email}</div>
                     </td>
                     <td>{member.groupName}</td>
                     <td>
@@ -419,7 +418,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               </div>
               <label>
                 확인을 위해 멤버 이름 입력
-                <input name="confirmName" placeholder={selectedMember.name} />
+                <input name="confirmName" placeholder="예: 홍길동" />
               </label>
               <ActionMessage state={deleteMemberState} />
               <button className="danger-button" type="submit" disabled={isDeletingMember}>
