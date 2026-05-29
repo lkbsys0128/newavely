@@ -1274,6 +1274,18 @@ tbody tr:hover {
   background: var(--surface-strong);
 }
 
+.role-management-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 420px) auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.role-management-toolbar button {
+  min-width: 92px;
+}
+
 .action-message {
   display: block;
   width: fit-content;
@@ -1671,6 +1683,7 @@ tbody tr:hover {
   .filter-grid,
   .link-request-resolution,
   .new-member-inline-fields,
+  .role-management-toolbar,
   .role-management-row {
     grid-template-columns: 1fr;
   }
