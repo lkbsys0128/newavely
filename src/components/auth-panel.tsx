@@ -26,11 +26,11 @@ export function AuthPanel() {
           <span>시애틀 형제교회 뉴웨이브 공동체 관리</span>
         </div>
         <p className="login-copy">
-          멤버, 순모임, 출석, 돌봄 팔로업을 한 곳에서 기록하고 공동체의 흐름을 선명하게 봅니다.
+          멤버, 순, 출석, 돌봄 팔로업을 한 곳에서 기록하고 공동체의 흐름을 선명하게 봅니다.
         </p>
         <div className="login-chips" aria-label="관리 기능">
           <span>멤버</span>
-          <span>순모임</span>
+          <span>순</span>
           <span>출석</span>
           <span>돌봄</span>
         </div>
