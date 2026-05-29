@@ -371,7 +371,7 @@ h3 {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin: -8px 0 18px;
+  margin: 0 0 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 8px;
@@ -1074,17 +1074,29 @@ tbody tr:hover {
 }
 
 .action-message {
-  margin: 0 auto 0 0;
-  align-self: center;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-soft);
   font-size: 0.82rem;
   font-weight: 800;
+  line-height: 1.35;
 }
 
 .action-message.success {
+  border-color: rgba(34, 120, 153, 0.24);
+  background: rgba(34, 120, 153, 0.08);
   color: var(--accent);
 }
 
 .action-message.error {
+  border-color: rgba(210, 83, 80, 0.24);
+  background: rgba(210, 83, 80, 0.08);
   color: var(--accent-2);
 }
 
