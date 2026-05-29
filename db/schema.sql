@@ -1,4 +1,4 @@
-create type member_role as enum ('admin', 'leader', 'staff', 'member');
+create type member_role as enum ('owner', 'admin', 'leader', 'staff', 'member');
 create type member_status as enum ('active', 'new', 'care', 'inactive');
 create type attendance_status as enum ('present', 'absent', 'excused');
 create type care_followup_status as enum ('needed', 'contacted', 'prayer', 'resolved');
@@ -153,7 +153,7 @@ stable
 security definer
 set search_path = public
 as $$
-  select current_member_role() in ('admin', 'leader');
+  select current_member_role() in ('owner', 'admin', 'leader');
 $$;
 
 create or replace function can_read_members()
@@ -163,7 +163,7 @@ stable
 security definer
 set search_path = public
 as $$
-  select current_member_role() in ('admin', 'leader', 'staff');
+  select current_member_role() in ('owner', 'admin', 'leader', 'staff');
 $$;
 
 create or replace function can_manage_attendance()
@@ -173,7 +173,7 @@ stable
 security definer
 set search_path = public
 as $$
-  select current_member_role() in ('admin', 'leader');
+  select current_member_role() in ('owner', 'admin', 'leader');
 $$;
 
 create policy "authenticated users can read groups"
@@ -181,11 +181,11 @@ on groups for select
 to authenticated
 using (true);
 
-create policy "admins can write groups"
+create policy "owners and admins can write groups"
 on groups for all
 to authenticated
-using (current_member_role() = 'admin')
-with check (current_member_role() = 'admin');
+using (current_member_role() in ('owner', 'admin'))
+with check (current_member_role() in ('owner', 'admin'));
 
 create policy "authenticated users can read allowed members"
 on members for select
@@ -212,18 +212,26 @@ with check (
 create policy "admins and leaders can insert members"
 on members for insert
 to authenticated
-with check (can_manage_members());
+with check (
+  current_member_role() = 'owner'
+  or (current_member_role() = 'admin' and role <> 'owner')
+  or (current_member_role() = 'leader' and role = 'member')
+);
 
 create policy "admins and leaders can update members"
 on members for update
 to authenticated
 using (can_manage_members())
-with check (can_manage_members());
+with check (
+  current_member_role() = 'owner'
+  or (current_member_role() = 'admin' and role <> 'owner')
+  or (current_member_role() = 'leader' and role = 'member')
+);
 
-create policy "admins can delete members"
+create policy "owners can delete members"
 on members for delete
 to authenticated
-using (current_member_role() = 'admin');
+using (current_member_role() = 'owner');
 
 create policy "authenticated users can read attendance events"
 on attendance_events for select
@@ -240,7 +248,7 @@ create policy "authorized users can read attendance records"
 on attendance_records for select
 to authenticated
 using (
-  current_member_role() in ('admin', 'leader', 'staff')
+  current_member_role() in ('owner', 'admin', 'leader', 'staff')
   or member_id in (select id from members where auth_user_id = auth.uid())
 );
 
@@ -250,16 +258,16 @@ to authenticated
 using (can_manage_attendance())
 with check (can_manage_attendance());
 
-create policy "admins can manage custom field definitions"
+create policy "owners and admins can manage custom field definitions"
 on member_custom_field_definitions for all
 to authenticated
-using (current_member_role() = 'admin')
-with check (current_member_role() = 'admin');
+using (current_member_role() in ('owner', 'admin'))
+with check (current_member_role() in ('owner', 'admin'));
 
 create policy "admins and leaders can read custom field definitions"
 on member_custom_field_definitions for select
 to authenticated
-using (current_member_role() in ('admin', 'leader'));
+using (current_member_role() in ('owner', 'admin', 'leader'));
 
 create policy "admins and leaders can read care followups"
 on care_followups for select
@@ -277,7 +285,7 @@ on member_link_requests for select
 to authenticated
 using (
   requester_member_id = current_member_id()
-  or current_member_role() = 'admin'
+  or current_member_role() in ('owner', 'admin')
 );
 
 create policy "users can create their own link requests"
@@ -287,8 +295,8 @@ with check (
   requester_member_id = current_member_id()
 );
 
-create policy "admins can update link requests"
+create policy "owners and admins can update link requests"
 on member_link_requests for update
 to authenticated
-using (current_member_role() = 'admin')
-with check (current_member_role() = 'admin');
+using (current_member_role() in ('owner', 'admin'))
+with check (current_member_role() in ('owner', 'admin'));

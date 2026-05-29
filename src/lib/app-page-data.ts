@@ -1,6 +1,7 @@
 import { hasPermission, type Role } from "@/lib/rbac";
 import type { AttendanceEvent, AuditLog, CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { scopeMembersForRole } from "@/lib/member-visibility";
 import { createClient } from "@/lib/supabase/server";
 import {
   ensureAttendanceEvent,
@@ -90,13 +91,24 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       };
     }
 
-    const allCustomFieldDefinitions =
-      currentMember.role === "admin" || currentMember.role === "leader" ? await getCustomFieldDefinitions(supabase) : [];
+    const allCustomFieldDefinitions = hasPermission(currentMember.role, "members:read")
+      ? await getCustomFieldDefinitions(supabase)
+      : [];
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
       ? allCustomFieldDefinitions
       : allCustomFieldDefinitions.filter((field) => !field.isSensitive);
-    const auditLogs = currentMember.role === "admin" ? await getAuditLogs(supabase) : undefined;
-    const memberLinkRequests = await getMemberLinkRequests(supabase, currentMember.id, currentMember.role === "admin");
+    const auditLogs = hasPermission(currentMember.role, "roles:manage") ? await getAuditLogs(supabase) : undefined;
+    const memberLinkRequests = await getMemberLinkRequests(
+      supabase,
+      currentMember.id,
+      hasPermission(currentMember.role, "roles:manage"),
+    );
+    const scopedMembers = scopeMembersForRole({
+      role: currentMember.role,
+      currentMemberId: currentMember.id,
+      groups: dashboardData.groups,
+      members: dashboardData.members,
+    });
 
     return {
       status: "ready",
@@ -105,7 +117,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       attendanceTitle: dashboardData.attendanceTitle,
       attendanceEventId: dashboardData.attendanceEventId,
       attendanceEvents: dashboardData.attendanceEvents,
-      members: dashboardData.members,
+      members: scopedMembers,
       groups: dashboardData.groups,
       memberLinkRequests,
       auditLogs,

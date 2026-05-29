@@ -16,6 +16,7 @@ import {
   type ActionState,
 } from "@/app/actions";
 import { hasPermission } from "@/lib/rbac";
+import type { Role } from "@/lib/rbac";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import {
   appendCurrentOption,
@@ -58,6 +59,8 @@ export function MemberDetailPageContent({
 }) {
   const canManageMembers = hasPermission(user.role, "members:write");
   const canManageDefinitions = hasPermission(user.role, "roles:manage");
+  const canManageRoles = hasPermission(user.role, "roles:manage");
+  const assignableRoleEntries = getAssignableRoleEntries(user.role);
   const assignableMembers = members.filter((item) => item.status !== "inactive");
   const currentMemberId =
     assignableMembers.find((item) => item.authUserId === user.id)?.id ??
@@ -211,11 +214,12 @@ export function MemberDetailPageContent({
             </label>
             <label>
               역할
-              <select name="role" defaultValue={member.role} disabled={!canManageMembers}>
-                <option value="admin">관리자</option>
-                <option value="leader">리더</option>
-                <option value="staff">스태프</option>
-                <option value="member">멤버</option>
+              <select name="role" defaultValue={member.role} disabled={!canManageRoles}>
+                {assignableRoleEntries.map(([role, label]) => (
+                  <option key={role} value={role}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             <label>
@@ -650,3 +654,15 @@ const careFollowupStatusLabels = {
   prayer: "기도 요청",
   resolved: "해결",
 };
+
+const roleLabels: Record<Role, string> = {
+  owner: "최고 관리자",
+  admin: "관리자",
+  leader: "리더",
+  staff: "순장",
+  member: "멤버",
+};
+
+function getAssignableRoleEntries(actorRole: Role): Array<[Role, string]> {
+  return (Object.entries(roleLabels) as Array<[Role, string]>).filter(([role]) => actorRole === "owner" || role !== "owner");
+}

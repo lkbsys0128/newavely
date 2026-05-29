@@ -12,4 +12,4 @@ with check (auth_user_id = auth.uid());
 create policy "admins and leaders can read custom field definitions"
 on member_custom_field_definitions for select
 to authenticated
-using (current_member_role() in ('admin', 'leader'));
+using (current_member_role() in ('owner', 'admin', 'leader'));

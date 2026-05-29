@@ -1,4 +1,4 @@
-export const roles = ["admin", "leader", "staff", "member"] as const;
+export const roles = ["owner", "admin", "leader", "staff", "member"] as const;
 
 export type Role = (typeof roles)[number];
 
@@ -10,13 +10,15 @@ export const permissions = [
   "groups:read",
   "groups:write",
   "roles:manage",
+  "owner:manage",
   "sensitive:read",
 ] as const;
 
 export type Permission = (typeof permissions)[number];
 
 export const permissionsByRole: Record<Role, Permission[]> = {
-  admin: [...permissions],
+  owner: [...permissions],
+  admin: permissions.filter((permission) => permission !== "owner:manage"),
   leader: ["members:read", "members:write", "attendance:read", "attendance:write", "groups:read"],
   staff: ["members:read", "attendance:read", "groups:read"],
   member: ["members:read", "groups:read"],
