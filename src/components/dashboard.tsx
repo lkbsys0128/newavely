@@ -554,6 +554,8 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
 export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
   const [groupPendingDelete, setGroupPendingDelete] = useState<Group | null>(null);
+  const [lastUpdatedGroupId, setLastUpdatedGroupId] = useState<string | null>(null);
+  const [lastDeletedGroupId, setLastDeletedGroupId] = useState<string | null>(null);
   const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
   const [updateGroupState, updateGroupAction, isUpdatingGroup] = useActionState(updateGroup, initialActionState);
   const [deleteGroupState, deleteGroupAction, isDeletingGroup] = useActionState(deleteGroup, initialActionState);
@@ -672,7 +674,11 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                 {groupMembers.length > 6 ? <span className="member-chip muted">+{groupMembers.length - 6}</span> : null}
                 {groupMembers.length === 0 ? <span className="meta">배정된 멤버가 없습니다</span> : null}
               </div>
-              <form action={updateGroupAction} className="management-form group-edit-form">
+              <form
+                action={updateGroupAction}
+                className="management-form group-edit-form"
+                onSubmit={() => setLastUpdatedGroupId(group.id)}
+              >
                 <input name="id" type="hidden" value={group.id} />
                 <label>
                   이름
@@ -689,7 +695,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                     ))}
                   </select>
                 </label>
-                <ActionMessage state={updateGroupState} />
+                {lastUpdatedGroupId === group.id ? <ActionMessage state={updateGroupState} /> : null}
                 <button className="secondary-button" type="submit" disabled={!canManageGroups || isUpdatingGroup}>
                   저장
                 </button>
@@ -708,7 +714,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                   삭제
                 </button>
               </div>
-              <ActionMessage state={deleteGroupState} />
+              {lastDeletedGroupId === group.id ? <ActionMessage state={deleteGroupState} /> : null}
             </article>
           );
         })}
@@ -737,7 +743,13 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
               <button className="secondary-button" type="button" onClick={() => setGroupPendingDelete(null)}>
                 취소
               </button>
-              <form action={deleteGroupAction}>
+              <form
+                action={deleteGroupAction}
+                onSubmit={() => {
+                  setLastDeletedGroupId(groupPendingDelete.id);
+                  setGroupPendingDelete(null);
+                }}
+              >
                 <input name="id" type="hidden" value={groupPendingDelete.id} />
                 <button className="danger-button" type="submit" disabled={!canManageGroups || isDeletingGroup}>
                   삭제
