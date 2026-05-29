@@ -1189,10 +1189,10 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
       <SectionNav
         items={[
           { href: "#permission-metrics", label: "요약" },
+          { href: "#permission-matrix", label: "권한표" },
           { href: "#admin-checks", label: "관리자/소유자 체크" },
           { href: "#link-requests", label: "연결 요청" },
           { href: "#role-management", label: "역할 변경" },
-          { href: "#permission-matrix", label: "권한표" },
         ]}
       />
       <div className="metric-grid" id="permission-metrics">
@@ -1217,6 +1217,26 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           <small>읽기 중심 접근</small>
         </article>
       </div>
+
+      <DisclosurePanel id="permission-matrix" title="역할 기반 권한" meta="로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한">
+        <div className="permission-matrix">
+          {Object.entries(permissionsByRole).map(([role, permissions]) => (
+            <article className="permission-row" key={role}>
+              <div className="person-block">
+                <strong>{roleLabels[role as Role]}</strong>
+                <span>{members.filter((member) => member.role === role).length}명 배정</span>
+              </div>
+              <div className="permission-list">
+                {permissions.map((permission) => (
+                  <span className="permission-chip" key={permission}>
+                    {permissionLabels[permission]}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </DisclosurePanel>
 
       <DisclosurePanel
         id="admin-checks"
@@ -1458,25 +1478,6 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         <ActionMessage state={roleState} />
       </section>
 
-      <DisclosurePanel id="permission-matrix" title="역할 기반 권한" meta="로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한">
-        <div className="permission-matrix">
-          {Object.entries(permissionsByRole).map(([role, permissions]) => (
-            <article className="permission-row" key={role}>
-              <div className="person-block">
-                <strong>{roleLabels[role as Role]}</strong>
-                <span>{members.filter((member) => member.role === role).length}명 배정</span>
-              </div>
-              <div className="permission-list">
-                {permissions.map((permission) => (
-                  <span className="permission-chip" key={permission}>
-                    {permissionLabels[permission]}
-                  </span>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </DisclosurePanel>
     </>
   );
 }
