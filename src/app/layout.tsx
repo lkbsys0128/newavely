@@ -36,11 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/audit">감사 로그</Link>
             </nav>
 
-            <div className="auth-card">
-              <div>
-                <strong>Google 계정</strong>
-                <span>Supabase Auth</span>
-              </div>
+            <div className="auth-card" aria-label="계정 메뉴">
               <SignOutButton enabled={authEnabled} />
             </div>
           </aside>

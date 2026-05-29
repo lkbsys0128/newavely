@@ -136,21 +136,7 @@ a {
 
 .auth-card {
   margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #f8fcfd;
-}
-
-.auth-card strong {
-  display: block;
-  margin-bottom: 2px;
-  color: var(--ink);
-  font-size: 0.86rem;
+  display: grid;
 }
 
 .google-button,
@@ -182,21 +168,20 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  min-height: 36px;
+  width: 100%;
+  min-height: 40px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 0 11px;
-  background: #ffffff;
-  color: var(--ink);
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #3f5960;
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
-  box-shadow: 0 4px 10px rgba(23, 51, 59, 0.035);
   transition:
     border-color 160ms ease,
     background 160ms ease,
-    box-shadow 160ms ease,
+    color 160ms ease,
     transform 160ms ease;
 }
 
@@ -205,23 +190,11 @@ a {
   background: var(--soft);
   color: var(--accent-dark);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-soft);
 }
 
 .sign-out-button:disabled {
   cursor: not-allowed;
   opacity: 0.58;
-}
-
-.sign-out-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  background: var(--soft);
-  color: var(--accent-dark);
-  font-weight: 900;
 }
 
 .google-dot {
