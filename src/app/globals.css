@@ -1125,21 +1125,86 @@ tbody tr:hover {
 
 .onboarding-panel {
   max-width: 920px;
+  padding: 28px;
 }
 
-.onboarding-search {
+.onboarding-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+
+.onboarding-hero-copy {
   display: grid;
   gap: 8px;
 }
 
+.onboarding-hero-copy h1 {
+  max-width: 680px;
+}
+
+.onboarding-status-pill {
+  flex: 0 0 auto;
+  margin-top: 18px;
+}
+
+.onboarding-search {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  background: #fbfeff;
+  box-shadow: var(--shadow-soft);
+}
+
+.onboarding-search h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.15rem;
+  letter-spacing: 0;
+}
+
+.onboarding-search-field {
+  display: grid;
+  gap: 7px;
+  max-width: 560px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .onboarding-search input {
+  width: 100%;
   min-height: 52px;
   font-size: 1.05rem;
 }
 
+.onboarding-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .onboarding-candidate {
+  display: grid;
   grid-template-columns: minmax(220px, 1fr) auto;
   align-items: center;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #ffffff;
+}
+
+.onboarding-candidate-list {
+  margin-top: 14px;
+}
+
+.onboarding-empty-state {
+  margin-top: 14px;
 }
 
 .link-request-resolution,
@@ -1171,6 +1236,15 @@ tbody tr:hover {
 
 .empty-state strong {
   color: var(--ink);
+}
+
+.onboarding-request-admin {
+  margin-top: 14px;
+}
+
+.onboarding-request-admin > div {
+  display: grid;
+  gap: 6px;
 }
 
 .rejected-state {
@@ -1558,9 +1632,19 @@ tbody tr:hover {
 
   .topbar,
   .topbar-actions,
-  .panel-heading {
+  .panel-heading,
+  .onboarding-hero {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .onboarding-panel {
+    padding: 20px;
+  }
+
+  .onboarding-status-pill {
+    align-self: flex-start;
+    margin-top: 0;
   }
 
   .section-nav {
@@ -1593,7 +1677,8 @@ tbody tr:hover {
   .history-row,
   .stat-row,
   .detail-row,
-  .audit-row {
+  .audit-row,
+  .onboarding-candidate {
     align-items: stretch;
     flex-direction: column;
     grid-template-columns: 1fr;

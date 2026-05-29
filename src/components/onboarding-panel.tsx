@@ -44,15 +44,15 @@ export function OnboardingPanel({
   return (
     <main className="main-content">
       <section className="panel onboarding-panel">
-        <div className="panel-heading">
-          <div>
+        <div className="onboarding-hero">
+          <div className="onboarding-hero-copy">
             <p className="eyebrow">첫 로그인 확인</p>
             <h1>본인 교적을 연결해주세요</h1>
             <p className="meta">
               {user.name} · {user.email || "이메일 없음"} 계정은 아직 Newavely 교적과 연결되지 않았습니다.
             </p>
           </div>
-          <span className="status-pill">승인 대기 전용</span>
+          <span className="status-pill onboarding-status-pill">승인 대기 전용</span>
         </div>
 
         {pendingRequest ? (
@@ -77,20 +77,24 @@ export function OnboardingPanel({
         ) : (
           <>
             <div className="onboarding-search">
-              <label>
-                본인 이름, 이메일, 전화번호, 소그룹으로 검색
+              <div>
+                <h2>교적 검색</h2>
+                <p className="meta">본인 이름, 이메일, 전화번호, 소그룹 중 기억나는 정보로 검색해주세요.</p>
+              </div>
+              <label className="onboarding-search-field">
+                <span>검색어</span>
                 <input
                   autoFocus
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="두 글자 이상 입력해주세요"
+                  placeholder="예: 임주환, 주환 순, 425"
                 />
               </label>
-              <p className="meta">검색 결과에서 본인 교적을 선택하면 관리자에게 연결 승인을 요청합니다.</p>
+              <p className="onboarding-help">검색 결과에서 본인 교적을 선택하면 관리자에게 연결 승인을 요청합니다.</p>
             </div>
 
             {!canShowResults ? (
-              <div className="empty-state">
+              <div className="empty-state onboarding-empty-state">
                 <strong>검색어를 입력하면 교적 후보가 표시됩니다</strong>
                 <span>전체 멤버 목록을 먼저 보여주지 않고, 입력한 조건에 맞는 후보만 보여줍니다.</span>
               </div>
@@ -99,7 +103,7 @@ export function OnboardingPanel({
             {canShowResults && candidates.length > 0 ? (
               <div className="onboarding-candidate-list">
                 {candidates.map((member) => (
-                  <form action={action} className="definition-row onboarding-candidate" key={member.id}>
+                  <form action={action} className="onboarding-candidate" key={member.id}>
                     <input name="targetMemberId" type="hidden" value={member.id} />
                     <input
                       name="note"
@@ -122,8 +126,10 @@ export function OnboardingPanel({
 
             {canShowResults && candidates.length === 0 ? (
               <form action={action} className="empty-state onboarding-request-admin">
-                <strong>내 교적을 찾지 못했나요?</strong>
-                <span>관리자에게 확인 요청을 보내면, 관리자가 교적을 확인한 뒤 연결하거나 새 교적을 만들어줍니다.</span>
+                <div>
+                  <strong>내 교적을 찾지 못했나요?</strong>
+                  <span>관리자에게 확인 요청을 보내면, 관리자가 교적을 확인한 뒤 연결하거나 새 교적을 만들어줍니다.</span>
+                </div>
                 <input name="targetMemberId" type="hidden" value="" />
                 <label>
                   관리자에게 남길 메모
