@@ -2275,3 +2275,86 @@ tbody tr:hover {
     text-align: left;
   }
 }
+
+/* Sharper UI pass: keep the app friendly, but make controls feel more precise. */
+.brand-mark,
+.nav-list a,
+.google-button,
+.primary-button,
+.secondary-button,
+.danger-button,
+.sign-out-button,
+.login-card,
+.login-card::before,
+.connection-badge,
+.section-nav,
+.section-nav a,
+.disclosure-panel,
+.disclosure-indicator,
+.search-field input,
+.member-form input,
+.member-form select,
+.management-form input,
+.management-form select,
+.management-form textarea,
+.filter-grid select,
+.link-request-resolution input,
+.link-request-resolution select,
+.role-management-row select,
+.metric-card,
+.panel,
+.group-card,
+.care-item,
+.summary-row,
+.attendance-row,
+.history-row,
+.permission-row,
+.detail-row,
+.audit-row,
+.danger-zone-form,
+.danger-zone-form input,
+.confirm-modal,
+.duplicate-card,
+.definition-row,
+.onboarding-panel,
+.onboarding-candidate,
+.onboarding-search input,
+.link-request-card,
+.link-request-summary,
+.request-empty-state,
+.empty-state,
+.role-management-row,
+.group-card-stats div,
+.segmented,
+.reason-details,
+.reason-form input,
+.reason-form textarea,
+.event-chip {
+  border-radius: 4px;
+}
+
+.status-pill,
+.role-pill,
+.attendance-pill,
+.account-pill,
+.request-count-pill,
+.onboarding-status-pill,
+.member-chip,
+.permission-chip,
+.progress,
+.progress span {
+  border-radius: 4px;
+}
+
+.toggle-field input,
+.request-empty-mark,
+.request-empty-mark::before,
+.request-empty-mark::after {
+  border-radius: 3px;
+}
+
+.metric-card,
+.panel,
+.group-card {
+  box-shadow: 0 8px 18px rgba(23, 51, 59, 0.045);
+}
