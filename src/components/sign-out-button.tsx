@@ -10,8 +10,11 @@ export function SignOutButton({ enabled }: { enabled: boolean }) {
   }
 
   return (
-    <button className="google-button" disabled={!enabled} onClick={signOut} type="button">
-      로그아웃
+    <button className="sign-out-button" disabled={!enabled} onClick={signOut} type="button">
+      <span className="sign-out-icon" aria-hidden="true">
+        →
+      </span>
+      <span>로그아웃</span>
     </button>
   );
 }
