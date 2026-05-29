@@ -216,8 +216,32 @@ Vercel에 필요한 환경 변수:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
+- `GOOGLE_SHEET_ID`
+- `GOOGLE_SHEET_NAME`
 
 자세한 배포 설정은 `DEPLOYMENT.md`를 참고합니다.
+
+### Google Sheet 교적부 내보내기
+
+관리자는 `/members`에서 `Google Sheet로 내보내기` 버튼을 눌러 현재 활성 교적부를 Google Spreadsheet에 덮어쓸 수 있습니다.
+
+설정 순서:
+
+1. Google Cloud에서 Google Sheets API를 활성화합니다.
+2. Service Account를 만들고 JSON key를 발급합니다.
+3. 대상 Google Spreadsheet를 service account 이메일에 `편집자`로 공유합니다.
+4. Vercel 환경 변수에 `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_NAME`을 추가합니다.
+
+내보내기 범위:
+
+- 비활성 멤버는 제외합니다.
+- 기본 교적 정보와 custom fields를 내보냅니다.
+- `google_account_email`, `onboarding_status` 같은 내부 필드는 제외합니다.
+- `member_custom_field_definitions.is_sensitive = true`로 표시된 custom field는 제외합니다.
+
+주의: 이 기능은 Google Sheet 내용을 현재 앱 데이터로 덮어씁니다. Sheet에서 직접 수정한 값은 다음 내보내기 때 사라질 수 있으므로 Newavely를 원본 데이터로 봅니다.
 
 ## 백업
 

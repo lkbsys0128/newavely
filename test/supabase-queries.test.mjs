@@ -10,6 +10,7 @@ const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+const googleSheetsSource = readFileSync(new URL("../src/lib/google-sheets.ts", import.meta.url), "utf8");
 const memberDetailSource = readFileSync(new URL("../src/components/member-detail.tsx", import.meta.url), "utf8");
 const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
 const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
@@ -112,4 +113,16 @@ test("legacy manual account merge entrypoint is not exposed", () => {
   assert.doesNotMatch(actionsSource, /export async function mergeMemberAccount/);
   assert.doesNotMatch(dashboardSource, /Google 계정 프로필 병합/);
   assert.doesNotMatch(dashboardSource, /권한에서 프로필 병합/);
+});
+
+test("member roster can be exported to Google Sheets without internal fields", () => {
+  assert.match(actionsSource, /exportMembersToGoogleSheet/);
+  assert.match(actionsSource, /members\.export_google_sheet/);
+  assert.match(actionsSource, /internalCustomFieldKeys/);
+  assert.match(actionsSource, /is_sensitive/);
+  assert.match(dashboardSource, /Google Sheet로 내보내기/);
+  assert.match(googleSheetsSource, /GOOGLE_SERVICE_ACCOUNT_EMAIL/);
+  assert.match(googleSheetsSource, /GOOGLE_PRIVATE_KEY/);
+  assert.match(googleSheetsSource, /GOOGLE_SHEET_ID/);
+  assert.match(googleSheetsSource, /:clear/);
 });

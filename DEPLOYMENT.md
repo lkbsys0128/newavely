@@ -15,7 +15,7 @@ Vercel Dashboard에서 GitHub 저장소를 Import합니다.
 - Build Command: 기본값
 - Output Directory: 기본값
 - Install Command: 기본값
-- Environment Variables: 아래 Supabase 값 추가
+- Environment Variables: 아래 Supabase, Google Sheets 값 추가
 
 ## 3. 자동 배포 흐름
 
@@ -33,6 +33,12 @@ GitHub Actions용 `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` secret은
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
+- `GOOGLE_SHEET_ID`
+- `GOOGLE_SHEET_NAME`
+
+Google Sheets 값은 `/members`의 `Google Sheet로 내보내기` 버튼에 필요합니다. `GOOGLE_PRIVATE_KEY`는 service account JSON key의 `private_key` 값을 그대로 넣되, Vercel에서는 줄바꿈이 `\n`으로 들어가도 앱에서 처리합니다.
 
 Supabase Dashboard에서 Google provider를 켜고, SQL Editor에서 아래 순서대로 실행하면 운영 데이터 저장을 시작할 수 있습니다.
 

@@ -360,6 +360,10 @@ h3 {
   gap: 12px;
 }
 
+.header-action-form {
+  margin: 0;
+}
+
 .section-nav {
   position: sticky;
   top: 14px;

@@ -8,6 +8,7 @@ import {
   createMember,
   deleteMemberPermanently,
   deactivateMember,
+  exportMembersToGoogleSheet,
   approveMemberLinkRequest,
   rejectMemberLinkRequest,
   reopenMemberLinkRequest,
@@ -131,8 +132,13 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     initialActionState,
   );
   const [deleteMemberState, deleteMemberAction, isDeletingMember] = useActionState(deleteMemberPermanently, initialActionState);
+  const [exportMembersState, exportMembersAction, isExportingMembers] = useActionState(
+    exportMembersToGoogleSheet,
+    initialActionState,
+  );
   const canManageMembers = hasPermission(user.role, "members:write");
   const canDeleteMembers = hasPermission(user.role, "roles:manage");
+  const canExportMembers = hasPermission(user.role, "roles:manage");
   const visibleMembers = (showInactive ? members : members.filter((member) => member.status !== "inactive")).filter(
     (member) => !isMergedPlaceholderMember(member),
   );
@@ -176,7 +182,13 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           />
           비활성화 포함
         </label>
+        <form action={exportMembersAction} className="header-action-form">
+          <button className="secondary-button" type="submit" disabled={!canExportMembers || isExportingMembers}>
+            Google Sheet로 내보내기
+          </button>
+        </form>
       </PageHeader>
+      <ActionMessage state={exportMembersState} />
       <SectionNav
         items={[
           { href: "#member-filters", label: "필터" },
