@@ -89,6 +89,11 @@ const updateGroupSchema = groupSchema.extend({
   id: z.string().uuid(),
 });
 
+const deleteGroupSchema = z.object({
+  id: z.string().uuid(),
+  confirmName: z.string().min(1),
+});
+
 const attendanceEventSchema = z.object({
   eventDate: z.string().min(1, "날짜를 선택해주세요."),
   title: z.string().min(1, "이벤트 이름을 입력해주세요."),
@@ -1431,6 +1436,40 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
     });
     revalidateAppData();
     return "소그룹을 저장했습니다.";
+  });
+}
+
+export async function deleteGroup(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("groups:write");
+    const parsed = deleteGroupSchema.parse({
+      id: formData.get("id"),
+      confirmName: formData.get("confirmName"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("groups")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+
+    if (beforeError) throw beforeError;
+    if ((beforeData.name as string) !== parsed.confirmName.trim()) {
+      throw new Error("삭제 확인 이름이 소그룹 이름과 일치하지 않습니다.");
+    }
+
+    const { error } = await supabase.from("groups").delete().eq("id", parsed.id);
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "group.delete",
+      targetTable: "groups",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "소그룹을 삭제했습니다. 배정된 멤버는 미배정으로 이동됩니다.";
   });
 }
 

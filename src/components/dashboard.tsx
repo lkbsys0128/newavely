@@ -6,6 +6,7 @@ import {
   createAttendanceEvent,
   createGroup,
   createMember,
+  deleteGroup,
   deleteMemberPermanently,
   deactivateMember,
   exportMembersToGoogleSheet,
@@ -554,10 +555,12 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
   const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
   const [updateGroupState, updateGroupAction, isUpdatingGroup] = useActionState(updateGroup, initialActionState);
-  const activeMembers = members.filter((member) => member.status !== "inactive");
+  const [deleteGroupState, deleteGroupAction, isDeletingGroup] = useActionState(deleteGroup, initialActionState);
+  const activeMembers = members.filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member));
   const unassignedMembers = activeMembers.filter((member) => !member.groupId);
   const totalPresent = activeMembers.filter((member) => member.present).length;
   const totalAttendanceRate = activeMembers.length ? Math.round((totalPresent / activeMembers.length) * 100) : 0;
+  const groupLeaderOptions = [...activeMembers].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <>
@@ -607,9 +610,9 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
             리더
             <select name="leaderMemberId" disabled={!canManageGroups}>
               <option value="">미배정</option>
-              {members.map((member) => (
+              {groupLeaderOptions.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.name}
+                  {member.name} · {member.groupName}
                 </option>
               ))}
             </select>
@@ -678,9 +681,9 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                   리더
                   <select name="leaderMemberId" defaultValue={group.leaderMemberId ?? ""} disabled={!canManageGroups}>
                     <option value="">미배정</option>
-                    {members.map((member) => (
+                    {groupLeaderOptions.map((member) => (
                       <option key={member.id} value={member.id}>
-                        {member.name}
+                        {member.name} · {member.groupName}
                       </option>
                     ))}
                   </select>
@@ -690,6 +693,21 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                   저장
                 </button>
               </form>
+              <form action={deleteGroupAction} className="danger-zone-form group-delete-form">
+                <input name="id" type="hidden" value={group.id} />
+                <div className="person-block">
+                  <strong>소그룹 삭제</strong>
+                  <span>삭제하면 이 소그룹의 멤버들은 미배정으로 이동됩니다.</span>
+                </div>
+                <label>
+                  확인을 위해 소그룹 이름 입력
+                  <input name="confirmName" placeholder={group.name} disabled={!canManageGroups} />
+                </label>
+                <button className="danger-button" type="submit" disabled={!canManageGroups || isDeletingGroup}>
+                  삭제
+                </button>
+              </form>
+              <ActionMessage state={deleteGroupState} />
             </article>
           );
         })}
@@ -1689,6 +1707,7 @@ const auditActionLabels: Record<string, string> = {
   "member.custom_fields.update": "멤버 커스텀 필드 수정",
   "group.create": "소그룹 생성",
   "group.update": "소그룹 수정",
+  "group.delete": "소그룹 삭제",
   "attendance_event.create": "출석 이벤트 생성",
   "attendance.toggle": "출석 변경",
   "attendance.reason.update": "출석 사유 수정",

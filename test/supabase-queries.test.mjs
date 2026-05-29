@@ -120,6 +120,14 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(memberDetailSource, /#care-followups/);
 });
 
+test("group management uses active member choices and supports audited delete", () => {
+  assert.match(dashboardSource, /groupLeaderOptions/);
+  assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
+  assert.match(actionsSource, /export async function deleteGroup/);
+  assert.match(actionsSource, /action: "group.delete"/);
+  assert.match(memberDetailSource, /!isMergedPlaceholderMember\(item\)/);
+});
+
 test("permissions page exposes member search for role management", () => {
   assert.match(dashboardSource, /roleSearchQuery/);
   assert.match(dashboardSource, /멤버 검색/);
