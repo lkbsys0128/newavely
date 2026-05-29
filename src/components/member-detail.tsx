@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
 import {
@@ -17,6 +17,17 @@ import {
 } from "@/app/actions";
 import { hasPermission } from "@/lib/rbac";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
+import {
+  appendCurrentOption,
+  baptismStatusOptions,
+  calculateKoreanAge,
+  genderOptions,
+  jobOptions,
+  ministryOptions,
+  normalizeBaptismStatus,
+  normalizeJobValue,
+  normalizeMinistryValue,
+} from "@/lib/member-field-options";
 import type { AppUser } from "@/lib/app-page-data";
 import type { CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 
@@ -222,7 +233,7 @@ export function MemberDetailPageContent({
             </label>
             <label>
               세례/등록
-              <input name="baptismStatus" defaultValue={member.baptismStatus} disabled={!canManageMembers} />
+              <BaptismStatusSelect value={member.baptismStatus} disabled={!canManageMembers} />
             </label>
             <label className="full-width">
               돌봄 메모
@@ -248,7 +259,12 @@ export function MemberDetailPageContent({
               <label key={field.id} className={field.fieldType === "boolean" ? "checkbox-label" : undefined}>
                 {field.label}
                 {field.isSensitive ? <span className="field-note">민감</span> : null}
-                <CustomFieldInput field={field} value={member.customFields[field.key]} disabled={!canManageMembers} />
+                <CustomFieldInput
+                  field={field}
+                  value={member.customFields[field.key]}
+                  customFields={member.customFields}
+                  disabled={!canManageMembers}
+                />
               </label>
             ))}
             {customFieldDefinitions.length === 0 ? (
@@ -409,24 +425,16 @@ export function MemberDetailPageContent({
 
       {canManageDefinitions ? (
         <>
-          <DisclosurePanel id="custom-field-definitions" title="정보 항목 관리" meta="항목 이름, 입력 방식, 공개 범위 수정">
+          <DisclosurePanel id="custom-field-definitions" title="정보 항목 관리" meta="항목 이름과 공개 범위 수정">
             <div className="definition-list">
               {customFieldDefinitions.map((field) => (
                 <article className="definition-row" key={field.id}>
                   <form action={updateDefinitionAction} className="management-form">
                     <input name="id" type="hidden" value={field.id} />
+                    <input name="fieldType" type="hidden" value={field.fieldType} />
                     <label>
                       항목 이름
                       <input name="label" required defaultValue={field.label} />
-                    </label>
-                    <label>
-                      입력 방식
-                      <select name="fieldType" defaultValue={field.fieldType}>
-                        <option value="text">짧은 글</option>
-                        <option value="number">숫자</option>
-                        <option value="date">날짜</option>
-                        <option value="boolean">예/아니오</option>
-                      </select>
                     </label>
                     <label className="toggle-field">
                       <input name="isSensitive" type="checkbox" defaultChecked={field.isSensitive} />
@@ -461,18 +469,10 @@ export function MemberDetailPageContent({
 
           <DisclosurePanel title="새 정보 항목 만들기" meta="모든 멤버 상세 페이지에 추가됩니다">
             <form action={definitionAction} className="member-form compact-form">
+              <input name="fieldType" type="hidden" value="text" />
               <label>
                 항목 이름
                 <input name="label" required placeholder="비상 연락처" />
-              </label>
-              <label>
-                입력 방식
-                <select name="fieldType" defaultValue="text">
-                  <option value="text">짧은 글</option>
-                  <option value="number">숫자</option>
-                  <option value="date">날짜</option>
-                  <option value="boolean">예/아니오</option>
-                </select>
               </label>
               <label className="toggle-field">
                 <input name="isSensitive" type="checkbox" />
@@ -502,13 +502,56 @@ export function MemberDetailPageContent({
 function CustomFieldInput({
   field,
   value,
+  customFields,
   disabled,
 }: {
   field: CustomFieldDefinition;
   value: unknown;
+  customFields: Record<string, unknown>;
   disabled: boolean;
 }) {
   const name = `custom_${field.key}`;
+
+  if (field.key === "age") {
+    const calculatedAge = calculateKoreanAge(customFields.birthdate);
+    return (
+      <>
+        <input name={name} type="hidden" value={calculatedAge} />
+        <input type="text" value={calculatedAge ? `만 ${calculatedAge}세` : "생년월일 저장 후 자동 계산"} disabled />
+      </>
+    );
+  }
+
+  if (field.key === "gender") {
+    return (
+      <select name={name} defaultValue={typeof value === "string" ? value : ""} disabled={disabled}>
+        <option value="">미입력</option>
+        {genderOptions.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (field.key === "job") {
+    return <JobFieldInput name={name} value={value} disabled={disabled} />;
+  }
+
+  if (field.key === "ministry_1" || field.key === "ministry_2") {
+    const normalizedValue = normalizeMinistryValue(value);
+    return (
+      <select name={name} defaultValue={normalizedValue} disabled={disabled}>
+        <option value="">미입력</option>
+        {appendCurrentOption(ministryOptions, normalizedValue).map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    );
+  }
 
   if (field.fieldType === "boolean") {
     return (
@@ -526,6 +569,55 @@ function CustomFieldInput({
       defaultValue={typeof value === "string" || typeof value === "number" ? String(value) : ""}
       disabled={disabled}
     />
+  );
+}
+
+function JobFieldInput({ name, value, disabled }: { name: string; value: unknown; disabled: boolean }) {
+  const normalizedValue = normalizeJobValue(value);
+  const initialChoice = normalizedValue
+    ? jobOptions.includes(normalizedValue as (typeof jobOptions)[number])
+      ? normalizedValue
+      : "기타"
+    : "";
+  const [choice, setChoice] = useState(initialChoice);
+  const [otherValue, setOtherValue] = useState(initialChoice === "기타" ? normalizedValue : "");
+  const submittedValue = choice === "기타" ? otherValue : choice;
+
+  return (
+    <>
+      <input name={name} type="hidden" value={submittedValue} />
+      <select value={choice} onChange={(event) => setChoice(event.target.value)} disabled={disabled}>
+        <option value="">미입력</option>
+        {jobOptions.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      {choice === "기타" ? (
+        <input
+          value={otherValue}
+          onChange={(event) => setOtherValue(event.target.value)}
+          placeholder="직업 직접 입력"
+          disabled={disabled}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function BaptismStatusSelect({ value, disabled }: { value: unknown; disabled: boolean }) {
+  const normalizedValue = normalizeBaptismStatus(value);
+
+  return (
+    <select name="baptismStatus" defaultValue={normalizedValue} disabled={disabled}>
+      <option value="">미입력</option>
+      {baptismStatusOptions.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
   );
 }
 

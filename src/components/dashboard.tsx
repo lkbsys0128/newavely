@@ -31,6 +31,7 @@ import {
   type MemberFilters,
 } from "@/lib/member-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
+import { baptismStatusOptions, normalizeBaptismStatus } from "@/lib/member-field-options";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
 
@@ -170,7 +171,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           <span>검색</span>
           <input
             type="search"
-            placeholder="이름, 이메일, 연락처, 메모"
+            placeholder="이름, 연락처, 소그룹, 메모"
             value={filters.query}
             onChange={(event) => updateFilters({ query: event.target.value })}
           />
@@ -279,7 +280,6 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   <tr key={member.id} onClick={() => setSelectedMemberId(member.id)}>
                     <td>
                       <strong>{member.name}</strong>
-                      <div className="meta">{member.email}</div>
                     </td>
                     <td>{member.groupName}</td>
                     <td>
@@ -374,7 +374,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               </label>
               <label>
                 세례/등록
-                <input name="baptismStatus" defaultValue={selectedMember.baptismStatus} disabled={!canManageMembers} />
+                <BaptismStatusSelect value={selectedMember.baptismStatus} disabled={!canManageMembers} />
               </label>
               <label className="full-width">
                 커스텀 메모
@@ -419,7 +419,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               </div>
               <label>
                 확인을 위해 멤버 이름 입력
-                <input name="confirmName" placeholder={selectedMember.name} />
+                <input name="confirmName" placeholder="예: 홍길동" />
               </label>
               <ActionMessage state={deleteMemberState} />
               <button className="danger-button" type="submit" disabled={isDeletingMember}>
@@ -522,7 +522,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           </label>
           <label>
             세례/등록
-            <input name="baptismStatus" placeholder="등록교인, 세례 등" disabled={!canManageMembers} />
+            <BaptismStatusSelect value="" disabled={!canManageMembers} />
           </label>
           <label>
             메모
@@ -1448,6 +1448,21 @@ function ActionMessage({ state }: { state: ActionState }) {
     <p className={`action-message ${state.ok ? "success" : "error"}`} role="status">
       {state.message}
     </p>
+  );
+}
+
+function BaptismStatusSelect({ value, disabled }: { value: unknown; disabled: boolean }) {
+  const normalizedValue = normalizeBaptismStatus(value);
+
+  return (
+    <select name="baptismStatus" defaultValue={normalizedValue} disabled={disabled}>
+      <option value="">미입력</option>
+      {baptismStatusOptions.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
   );
 }
 

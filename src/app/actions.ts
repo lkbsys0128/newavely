@@ -7,6 +7,12 @@ import { hasPermission } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
 import { getRoleChangeBlockReason } from "@/lib/role-policy";
 import { replaceGoogleSheetValues } from "@/lib/google-sheets";
+import {
+  calculateKoreanAge,
+  normalizeBaptismStatus,
+  normalizeJobValue,
+  normalizeMinistryValue,
+} from "@/lib/member-field-options";
 
 const nullableUuid = z.preprocess((value) => {
   const normalized = String(value ?? "").trim();
@@ -24,7 +30,7 @@ const memberSchema = z.object({
   groupId: nullableUuid,
   email: nullableText,
   address: nullableText,
-  baptismStatus: nullableText,
+  baptismStatus: z.preprocess(normalizeBaptismStatus, nullableText),
   notes: nullableText,
   role: z.enum(["admin", "leader", "staff", "member"]),
   status: z.enum(["active", "new", "care", "inactive"]),
@@ -219,6 +225,25 @@ function parseCustomFieldValue(value: FormDataEntryValue | null) {
   if (normalized === "true") return true;
   if (normalized === "false") return false;
   return normalized ? normalized : null;
+}
+
+function normalizeSubmittedCustomFields(customFields: Record<string, unknown>) {
+  const normalized = { ...customFields };
+
+  if ("job" in normalized) {
+    normalized.job = normalizeJobValue(normalized.job);
+  }
+  if ("ministry_1" in normalized) {
+    normalized.ministry_1 = normalizeMinistryValue(normalized.ministry_1);
+  }
+  if ("ministry_2" in normalized) {
+    normalized.ministry_2 = normalizeMinistryValue(normalized.ministry_2);
+  }
+  if ("birthdate" in normalized || "age" in normalized) {
+    normalized.age = calculateKoreanAge(normalized.birthdate);
+  }
+
+  return normalized;
 }
 
 function formatSheetValue(value: unknown) {
@@ -481,8 +506,10 @@ export async function exportMembersToGoogleSheet(_previousState: ActionState, _f
           member.status ?? "",
           member.role ?? "",
           member.address ?? "",
-          member.baptism_status ?? "",
-          ...customFieldEntries.map(([key]) => formatSheetValue(customFields[key])),
+          normalizeBaptismStatus(member.baptism_status),
+          ...customFieldEntries.map(([key]) =>
+            key === "age" ? formatSheetValue(calculateKoreanAge(customFields.birthdate)) : formatSheetValue(customFields[key]),
+          ),
         ];
       }),
     ];
@@ -996,7 +1023,7 @@ export async function updateMemberCustomFields(_previousState: ActionState, form
       beforeData && typeof beforeData === "object" && "custom_fields" in beforeData
         ? ((beforeData.custom_fields as Record<string, unknown> | null) ?? {})
         : {};
-    const mergedCustomFields = { ...existingCustomFields, ...customFields };
+    const mergedCustomFields = normalizeSubmittedCustomFields({ ...existingCustomFields, ...customFields });
 
     const { data: afterData, error } = await supabase
       .from("members")
