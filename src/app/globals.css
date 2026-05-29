@@ -835,6 +835,10 @@ h3 {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.member-list-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
@@ -998,6 +1002,47 @@ tbody tr {
 
 tbody tr:hover {
   background: #f8fcfd;
+}
+
+.member-list-table tbody tr {
+  cursor: pointer;
+}
+
+.member-list-table tbody tr.selected-row {
+  background: var(--soft);
+  box-shadow: inset 3px 0 0 var(--accent-dark);
+}
+
+.member-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  border: 0;
+  background: rgba(23, 51, 59, 0.18);
+  backdrop-filter: blur(2px);
+  cursor: default;
+}
+
+.member-detail-drawer {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 56;
+  width: min(460px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  transform: translateX(calc(100% + 32px));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 220ms ease;
+}
+
+.member-detail-drawer.open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .form-panel {

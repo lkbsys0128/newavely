@@ -120,6 +120,15 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(memberDetailSource, /#care-followups/);
 });
 
+test("member detail opens as a right side drawer from the roster", () => {
+  assert.match(dashboardSource, /member-list-layout/);
+  assert.match(dashboardSource, /member-list-table/);
+  assert.match(dashboardSource, /member-detail-backdrop/);
+  assert.match(dashboardSource, /member-detail-drawer/);
+  assert.match(dashboardSource, /setSelectedMemberId\(""\)/);
+  assert.match(dashboardSource, /selected-row/);
+});
+
 test("group management uses active member choices and supports audited delete", () => {
   assert.match(dashboardSource, /groupLeaderOptions/);
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
