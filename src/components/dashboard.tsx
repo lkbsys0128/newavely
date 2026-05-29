@@ -121,7 +121,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
 
 export function MembersManager({ user, members, groups }: AppDataProps) {
   const [filters, setFilters] = useState<MemberFilters>(defaultMemberFilters);
-  const [selectedMemberId, setSelectedMemberId] = useState(members[0]?.id ?? "");
+  const [selectedMemberId, setSelectedMemberId] = useState("");
   const [showInactive, setShowInactive] = useState(false);
   const [createMemberState, createMemberAction, isCreatingMember] = useActionState(createMember, initialActionState);
   const [updateMemberState, updateMemberAction, isUpdatingMember] = useActionState(updateMember, initialActionState);
@@ -148,8 +148,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     () => findPotentialDuplicateMembers(members.filter((member) => !isMergedPlaceholderMember(member))),
     [members],
   );
-  const selectedMember =
-    visibleMembers.find((member) => member.id === selectedMemberId) ?? visibleMembers[0] ?? members[0];
+  const selectedMember = visibleMembers.find((member) => member.id === selectedMemberId) ?? null;
   const filteredMembers = useMemo(() => {
     return filterMembers(visibleMembers, filters);
   }, [visibleMembers, filters]);
@@ -400,7 +399,9 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 비활성화
               </button>
             </form>
-          ) : null}
+          ) : (
+            <EmptyMemberDetailPreview groups={groups} />
+          )}
           {selectedMember?.status === "inactive" ? (
             <form action={reactivateMemberAction} className="single-action-form">
               <input name="id" type="hidden" value={selectedMember.id} />
@@ -1463,6 +1464,72 @@ function BaptismStatusSelect({ value, disabled }: { value: unknown; disabled: bo
         </option>
       ))}
     </select>
+  );
+}
+
+function EmptyMemberDetailPreview({ groups }: { groups: Group[] }) {
+  return (
+    <form className="management-form" aria-label="멤버 상세 미리보기">
+      <label>
+        이름
+        <input placeholder="예: 홍길동" disabled />
+      </label>
+      <label>
+        이메일
+        <input type="email" placeholder="미입력" disabled />
+      </label>
+      <label>
+        연락처
+        <input placeholder="미입력" disabled />
+      </label>
+      <label>
+        소그룹
+        <select defaultValue="" disabled>
+          <option value="">미배정</option>
+          {groups.map((group) => (
+            <option key={group.id} value={group.id}>
+              {group.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        역할
+        <select defaultValue="member" disabled>
+          {Object.entries(roleLabels).map(([role, label]) => (
+            <option key={role} value={role}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        상태
+        <select defaultValue="active" disabled>
+          <option value="active">활동</option>
+          <option value="new">새가족</option>
+          <option value="care">돌봄 필요</option>
+          <option value="inactive">비활성화</option>
+        </select>
+      </label>
+      <label>
+        주소
+        <input placeholder="미입력" disabled />
+      </label>
+      <label>
+        세례/등록
+        <BaptismStatusSelect value="" disabled />
+      </label>
+      <label className="full-width">
+        커스텀 메모
+        <textarea placeholder="미입력" disabled />
+      </label>
+      <div className="form-actions full-width">
+        <button className="primary-button" type="button" disabled>
+          저장
+        </button>
+      </div>
+    </form>
   );
 }
 
