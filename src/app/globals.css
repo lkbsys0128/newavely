@@ -13,8 +13,8 @@
   --accent-3: #0f7b70;
   --soft: #eaf6fa;
   --soft-strong: #d9f0f6;
-  --shadow: 0 14px 34px rgba(23, 51, 59, 0.08);
-  --shadow-soft: 0 6px 18px rgba(47, 145, 181, 0.12);
+  --shadow: 0 10px 24px rgba(23, 51, 59, 0.055);
+  --shadow-soft: 0 5px 14px rgba(47, 145, 181, 0.09);
 }
 
 * {
@@ -59,7 +59,7 @@ a {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 268px minmax(0, 1fr);
+  grid-template-columns: 232px minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -264,10 +264,10 @@ a {
 }
 
 .main-content {
-  width: min(100%, 1480px);
+  width: min(100%, 1240px);
   min-width: 0;
   margin: 0 auto;
-  padding: 30px clamp(20px, 2.6vw, 38px);
+  padding: 30px clamp(20px, 2.6vw, 34px);
 }
 
 .notification-bar {
@@ -412,6 +412,64 @@ h3 {
 
 .rejected-review-row {
   align-items: center;
+}
+
+.disclosure-panel {
+  margin-top: 14px;
+  margin-bottom: 14px;
+  padding: 0;
+}
+
+.disclosure-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 62px;
+  padding: 0 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-panel summary h2 {
+  margin: 0 0 3px;
+}
+
+.disclosure-panel summary span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.disclosure-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #fbfeff;
+  color: var(--accent-dark) !important;
+  font-size: 0.76rem !important;
+  font-weight: 850;
+}
+
+.when-open,
+.disclosure-panel[open] .when-closed {
+  display: none;
+}
+
+.disclosure-panel[open] .when-open {
+  display: inline;
+}
+
+.disclosure-body {
+  border-top: 1px solid var(--line);
+  padding: 16px;
 }
 
 .search-field,
@@ -592,7 +650,7 @@ h3 {
 .group-grid,
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 14px;
 }
 
@@ -624,13 +682,13 @@ h3 {
 
 .metric-card strong {
   color: var(--accent-dark);
-  font-size: 2rem;
+  font-size: 1.72rem;
 }
 
 .dashboard-layout,
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
   gap: 16px;
   margin-top: 16px;
 }
@@ -642,7 +700,7 @@ h3 {
 }
 
 .panel {
-  padding: 18px;
+  padding: 16px;
   background: rgba(255, 255, 255, 0.96);
 }
 
@@ -800,8 +858,8 @@ tbody tr:hover {
 }
 
 .form-panel {
-  margin-top: 16px;
-  margin-bottom: 16px;
+  margin-top: 14px;
+  margin-bottom: 14px;
 }
 
 .filter-panel {
@@ -1105,7 +1163,7 @@ tbody tr:hover {
 }
 
 .stats-grid {
-  grid-template-columns: minmax(220px, 0.75fr) repeat(3, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   margin-bottom: 16px;
 }
 
