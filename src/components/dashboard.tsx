@@ -781,12 +781,14 @@ export function AttendanceManager({
   const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
+  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
+  const [attendanceGroupId, setAttendanceGroupId] = useState("all");
 
   useEffect(() => {
     setLocalMembers(members);
   }, [attendanceEventId, members]);
 
-  const activeMembers = localMembers.filter((member) => member.status !== "inactive");
+  const activeMembers = localMembers.filter(isAttendanceRosterMember);
   const activeMemberCount = activeMembers.length;
   const currentPresentCount = activeMembers.filter((member) => member.present).length;
   const currentExcusedCount = activeMembers.filter((member) => getMemberAttendanceStatus(member, attendanceEventId) === "excused").length;
@@ -832,12 +834,17 @@ export function AttendanceManager({
     .sort((a, b) => b.streak - a.streak)
     .slice(0, 8);
 
-  const attendanceMembers = localMembers.filter((member) => {
+  const attendanceMembers = activeMembers.filter((member) => {
     const status = getMemberAttendanceStatus(member, attendanceEventId);
-    if (attendanceFilter === "present") return member.present;
-    if (attendanceFilter === "absent") return status === "absent";
-    if (attendanceFilter === "excused") return status === "excused";
-    return true;
+    const normalizedQuery = attendanceSearchQuery.trim().toLowerCase();
+    const matchesQuery = normalizedQuery
+      ? [member.name, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery))
+      : true;
+    const matchesGroup = attendanceGroupId === "all" || member.groupId === attendanceGroupId;
+    if (attendanceFilter === "present") return matchesQuery && matchesGroup && member.present;
+    if (attendanceFilter === "absent") return matchesQuery && matchesGroup && status === "absent";
+    if (attendanceFilter === "excused") return matchesQuery && matchesGroup && status === "excused";
+    return matchesQuery && matchesGroup;
   });
 
   return (
@@ -915,7 +922,7 @@ export function AttendanceManager({
           </article>
           <article className="panel stats-card">
             <div className="panel-heading">
-              <h2>순모임별 출석률</h2>
+              <h2>순별 출석률</h2>
               <span>{attendanceTitle}</span>
             </div>
             <div className="stats-list">
@@ -1009,10 +1016,12 @@ export function AttendanceManager({
       </DisclosurePanel>
 
       <section className="panel" id="attendance-checklist">
-        <div className="panel-heading">
+        <div className="attendance-check-header">
           <div>
             <h2>{attendanceTitle}</h2>
-            <span>{attendanceDate}</span>
+            <span>
+              {attendanceDate} · {attendanceMembers.length}/{activeMemberCount}명 표시
+            </span>
           </div>
           <div className="segmented">
             {(["all", "present", "absent", "excused"] as const).map((filter) => (
@@ -1027,25 +1036,72 @@ export function AttendanceManager({
             ))}
           </div>
         </div>
-        <div className="attendance-list">
-          {attendanceMembers.map((member) => (
-            <AttendanceRow
-              canManageAttendance={canManageAttendance}
-              eventId={attendanceEventId}
-              isPending={isPending}
-              key={member.id}
-              member={member}
-              onToggle={() => {
-                if (!attendanceEventId) return;
-                setLocalMembers((current) =>
-                  current.map((item) => (item.id === member.id ? { ...item, present: !item.present } : item)),
-                );
-                startTransition(() => {
-                  void toggleAttendance(member.id, attendanceEventId, !member.present);
-                });
-              }}
+        <div className="attendance-toolbar">
+          <label>
+            검색
+            <input
+              onChange={(event) => setAttendanceSearchQuery(event.target.value)}
+              placeholder="이름 또는 순"
+              type="search"
+              value={attendanceSearchQuery}
             />
-          ))}
+          </label>
+          <label>
+            순
+            <select onChange={(event) => setAttendanceGroupId(event.target.value)} value={attendanceGroupId}>
+              <option value="all">전체 순</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="attendance-check-grid">
+          {attendanceMembers.map((member) => {
+            const status = getMemberAttendanceStatus(member, attendanceEventId);
+            return (
+              <AttendanceRow
+                canManageAttendance={canManageAttendance}
+                eventId={attendanceEventId}
+                isPending={isPending}
+                key={member.id}
+                member={member}
+                onToggle={() => {
+                  if (!attendanceEventId) return;
+                  const nextPresent = !member.present;
+                  setLocalMembers((current) =>
+                    current.map((item) =>
+                      item.id === member.id
+                        ? {
+                            ...item,
+                            present: nextPresent,
+                            attendanceHistory: updateLocalAttendanceHistory({
+                              attendanceDate,
+                              attendanceTitle,
+                              eventId: attendanceEventId,
+                              history: item.attendanceHistory,
+                              nextPresent,
+                            }),
+                          }
+                        : item,
+                    ),
+                  );
+                  startTransition(() => {
+                    void toggleAttendance(member.id, attendanceEventId, nextPresent);
+                  });
+                }}
+                status={status}
+              />
+            );
+          })}
+          {attendanceMembers.length === 0 ? (
+            <article className="empty-table-state attendance-empty-state">
+              <strong>표시할 멤버가 없습니다</strong>
+              <span>검색어나 순 필터를 조정해보세요.</span>
+            </article>
+          ) : null}
         </div>
       </section>
     </>
@@ -1058,24 +1114,23 @@ function AttendanceRow({
   canManageAttendance,
   isPending,
   onToggle,
+  status,
 }: {
   member: Member;
   eventId?: string;
   canManageAttendance: boolean;
   isPending: boolean;
   onToggle: () => void;
+  status: AttendanceStatus;
 }) {
   const [reasonState, reasonAction, isSavingReason] = useActionState(updateAttendanceReason, initialActionState);
   const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
-  const status = getMemberAttendanceStatus(member, eventId);
 
   return (
-    <article className="attendance-row">
+    <article className={`attendance-row attendance-card ${status}`}>
       <div className="person-block">
         <strong>{member.name}</strong>
-        <span>
-          {member.groupName} · {member.phone}
-        </span>
+        <span>{member.groupName}</span>
         {currentRecord?.note ? <span>사유: {currentRecord.note}</span> : null}
         {currentRecord?.excuseStartDate || currentRecord?.excuseEndDate ? (
           <span>
@@ -1094,7 +1149,7 @@ function AttendanceRow({
           {member.present ? "미출석 처리" : "출석 체크"}
         </button>
         <details className="reason-details">
-          <summary>사유/기간</summary>
+          <summary>사유</summary>
           <form action={reasonAction} className="reason-form">
             <input name="memberId" type="hidden" value={member.id} />
             <input name="eventId" type="hidden" value={eventId ?? ""} />
@@ -1145,6 +1200,42 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
   if (currentRecord?.status === "excused") return "excused";
 
   return "absent";
+}
+
+function isAttendanceRosterMember(member: Member) {
+  return (member.status === "active" || member.status === "care") && !isMergedPlaceholderMember(member);
+}
+
+function updateLocalAttendanceHistory({
+  attendanceDate,
+  attendanceTitle,
+  eventId,
+  history,
+  nextPresent,
+}: {
+  attendanceDate: string;
+  attendanceTitle: string;
+  eventId: string;
+  history: Member["attendanceHistory"];
+  nextPresent: boolean;
+}) {
+  const currentRecord = history.find((record) => record.eventId === eventId);
+  const nextStatus: AttendanceStatus = nextPresent
+    ? "present"
+    : currentRecord?.note || currentRecord?.excuseStartDate || currentRecord?.excuseEndDate
+      ? "excused"
+      : "absent";
+  const nextRecord = {
+    eventId,
+    eventDate: currentRecord?.eventDate || attendanceDate,
+    title: currentRecord?.title || attendanceTitle,
+    status: nextStatus,
+    note: currentRecord?.note ?? "",
+    excuseStartDate: currentRecord?.excuseStartDate ?? "",
+    excuseEndDate: currentRecord?.excuseEndDate ?? "",
+  };
+
+  return currentRecord ? history.map((record) => (record.eventId === eventId ? nextRecord : record)) : [nextRecord, ...history];
 }
 
 export function PermissionsPageContent({ user, members, groups, memberLinkRequests = [] }: AppDataProps) {

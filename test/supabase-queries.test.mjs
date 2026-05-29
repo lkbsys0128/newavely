@@ -120,6 +120,17 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(memberDetailSource, /#care-followups/);
 });
 
+test("attendance checklist uses roster members and exposes search filters", () => {
+  assert.match(dashboardSource, /isAttendanceRosterMember/);
+  assert.match(dashboardSource, /member\.status === "active" \|\| member\.status === "care"/);
+  assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
+  assert.match(dashboardSource, /attendanceSearchQuery/);
+  assert.match(dashboardSource, /attendanceGroupId/);
+  assert.match(dashboardSource, /attendance-check-grid/);
+  assert.match(dashboardSource, /attendance-card/);
+  assert.doesNotMatch(dashboardSource, /member\.groupName} · {member\.phone/);
+});
+
 test("group management uses active member choices and supports audited delete", () => {
   assert.match(dashboardSource, /groupLeaderOptions/);
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
