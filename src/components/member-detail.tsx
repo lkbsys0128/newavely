@@ -203,7 +203,7 @@ export function MemberDetailPageContent({
               <input name="phone" required defaultValue={member.phone} disabled={!canManageMembers} />
             </label>
             <label>
-              소그룹
+              순모임
               <select name="groupId" defaultValue={member.groupId ?? ""} disabled={!canManageMembers}>
                 <option value="">미배정</option>
                 {groups.map((group) => (

@@ -1163,6 +1163,63 @@ tbody tr:hover {
   justify-self: end;
 }
 
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(23, 51, 59, 0.36);
+  backdrop-filter: blur(6px);
+}
+
+.confirm-modal {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 18px;
+  border: 1px solid rgba(198, 80, 80, 0.32);
+  border-radius: 8px;
+  padding: 22px;
+  background: #ffffff;
+  box-shadow: 0 22px 60px rgba(23, 51, 59, 0.22);
+}
+
+.confirm-modal-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.confirm-modal-copy h2,
+.confirm-modal-copy p {
+  margin: 0;
+}
+
+.confirm-modal-copy h2 {
+  color: var(--ink);
+  font-size: 1.4rem;
+  letter-spacing: 0;
+}
+
+.confirm-modal-copy p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-modal-actions form {
+  display: inline-flex;
+}
+
+.confirm-modal-actions button {
+  min-width: 92px;
+}
+
 .compact-action-form {
   margin-top: 10px;
   padding-top: 10px;
@@ -1898,6 +1955,15 @@ tbody tr:hover {
 
   .request-actions form,
   .request-actions button {
+    width: 100%;
+  }
+
+  .confirm-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-modal-actions form,
+  .confirm-modal-actions button {
     width: 100%;
   }
 

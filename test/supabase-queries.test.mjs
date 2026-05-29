@@ -125,6 +125,11 @@ test("group management uses active member choices and supports audited delete", 
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
   assert.match(actionsSource, /export async function deleteGroup/);
   assert.match(actionsSource, /action: "group.delete"/);
+  assert.match(actionsSource, /assignLeaderToGroup/);
+  assert.match(actionsSource, /group_id: groupId/);
+  assert.match(dashboardSource, /groupPendingDelete/);
+  assert.match(dashboardSource, /정말 지우시겠습니까/);
+  assert.doesNotMatch(actionsSource, /const deleteGroupSchema[\s\S]{0,120}confirmName/);
   assert.match(memberDetailSource, /!isMergedPlaceholderMember\(item\)/);
 });
 
