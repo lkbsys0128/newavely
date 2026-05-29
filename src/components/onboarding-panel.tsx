@@ -112,9 +112,7 @@ export function OnboardingPanel({
                     />
                     <div className="person-block">
                       <strong>{member.name}</strong>
-                      <span>
-                        {member.groupName} · {member.email || "이메일 없음"} · {member.phone || "연락처 없음"}
-                      </span>
+                      <span>{member.groupName || "소그룹 미배정"}</span>
                     </div>
                     <button className="primary-button" type="submit" disabled={isSubmitting}>
                       이 멤버로 요청
