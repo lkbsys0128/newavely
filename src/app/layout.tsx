@@ -37,7 +37,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </nav>
 
             <div className="auth-card">
-              <span>Supabase Google Auth</span>
+              <div>
+                <strong>Google 계정</strong>
+                <span>Supabase Auth</span>
+              </div>
               <SignOutButton enabled={authEnabled} />
             </div>
           </aside>
