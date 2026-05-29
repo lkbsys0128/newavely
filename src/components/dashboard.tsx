@@ -1189,18 +1189,23 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </div>
         <div className="role-management-list">
           {pendingLinkRequests.map((request) => (
-            <article className="definition-row" key={request.id}>
-              <div className="detail-row">
-                <div className="person-block">
+            <article className="link-request-card" key={request.id}>
+              <div className="link-request-layout">
+                <div className="link-request-summary">
+                  <span className="status-pill">요청자</span>
                   <strong>{request.requesterName}</strong>
-                  <span>
-                    요청자 · {request.requesterEmail || "이메일 없음"} · {new Date(request.createdAt).toLocaleString("ko-KR")}
-                  </span>
-                  {request.note ? <span>메모: {request.note}</span> : null}
+                  <span>{request.requesterEmail || "이메일 없음"}</span>
+                  <time dateTime={request.createdAt}>{new Date(request.createdAt).toLocaleString("ko-KR")}</time>
+                  {request.note ? <p>메모: {request.note}</p> : null}
                 </div>
-                <div className="person-block">
-                  <strong>{request.targetName}</strong>
-                  <span>연결 대상 · {request.targetEmail || (request.targetMemberId ? "이메일 없음" : "관리자가 선택 필요")}</span>
+                <div className="link-request-workspace">
+                  <div className="link-request-target">
+                    <div className="person-block">
+                      <strong>관리자 확인 필요</strong>
+                      <span>연결 대상 · {request.targetEmail || (request.targetMemberId ? "이메일 없음" : "관리자가 선택 필요")}</span>
+                    </div>
+                    <strong>{request.targetName}</strong>
+                  </div>
                   {!request.targetMemberId ? (
                     <div className="link-request-resolution">
                       <label>
@@ -1263,21 +1268,21 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                       </div>
                     </div>
                   ) : null}
+                  <div className="request-actions">
+                    <form action={approveAction} id={`approve-link-request-${request.id}`}>
+                      <input name="id" type="hidden" value={request.id} />
+                      <button className="primary-button" type="submit" disabled={!canManageRoles || isApprovingRequest}>
+                        승인
+                      </button>
+                    </form>
+                    <form action={rejectAction}>
+                      <input name="id" type="hidden" value={request.id} />
+                      <button className="danger-button" type="submit" disabled={!canManageRoles || isRejectingRequest}>
+                        거절
+                      </button>
+                    </form>
+                  </div>
                 </div>
-              </div>
-              <div className="row-actions request-actions">
-                <form action={approveAction} id={`approve-link-request-${request.id}`}>
-                  <input name="id" type="hidden" value={request.id} />
-                  <button className="primary-button" type="submit" disabled={!canManageRoles || isApprovingRequest}>
-                    승인
-                  </button>
-                </form>
-                <form action={rejectAction}>
-                  <input name="id" type="hidden" value={request.id} />
-                  <button className="danger-button" type="submit" disabled={!canManageRoles || isRejectingRequest}>
-                    거절
-                  </button>
-                </form>
               </div>
             </article>
           ))}
