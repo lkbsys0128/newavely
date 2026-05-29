@@ -148,19 +148,21 @@ a {
 .primary-button,
 .secondary-button,
 .danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 42px;
   border: 0;
   border-radius: 8px;
   padding: 0 14px;
   font-weight: 700;
+  line-height: 1;
+  text-align: center;
   white-space: nowrap;
 }
 
 .google-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   width: 100%;
   background: #ffffff;
   color: #202124;
