@@ -17,6 +17,7 @@ import {
 } from "@/app/actions";
 import { hasPermission } from "@/lib/rbac";
 import type { Role } from "@/lib/rbac";
+import { isMergedPlaceholderMember } from "@/lib/member-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import {
   appendCurrentOption,
@@ -61,7 +62,7 @@ export function MemberDetailPageContent({
   const canManageDefinitions = hasPermission(user.role, "roles:manage");
   const canManageRoles = hasPermission(user.role, "roles:manage");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
-  const assignableMembers = members.filter((item) => item.status !== "inactive");
+  const assignableMembers = members.filter((item) => item.status !== "inactive" && !isMergedPlaceholderMember(item));
   const currentMemberId =
     assignableMembers.find((item) => item.authUserId === user.id)?.id ??
     assignableMembers.find((item) => item.email === user.email)?.id ??
@@ -100,7 +101,7 @@ export function MemberDetailPageContent({
   const currentMemberLinkRequests = memberLinkRequests.filter((request) => request.requesterMemberId === member.id);
   const pendingLinkRequest = currentMemberLinkRequests.find(isActionableLinkRequest);
   const rejectedLinkRequest = currentMemberLinkRequests.find((request) => request.status === "rejected");
-  const linkableMembers = members.filter((item) => item.id !== member.id && !item.authUserId && item.status !== "inactive");
+  const linkableMembers = assignableMembers.filter((item) => item.id !== member.id && !item.authUserId);
   const sectionItems = [
     ...(showLinkRequest ? [{ href: "#account-link", label: "계정 연결" }] : []),
     { href: "#basic-info", label: "기본 정보" },
