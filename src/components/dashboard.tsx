@@ -1265,13 +1265,15 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </div>
       </DisclosurePanel>
 
-      <section className="panel form-panel" id="link-requests">
-        <div className="panel-heading">
+      <section className="panel form-panel link-request-section" id="link-requests">
+        <div className="panel-heading link-request-heading">
           <div>
             <h2>교적 연결 요청</h2>
             <p className="meta">첫 로그인 사용자가 기존 CSV 교적 멤버와 연결을 요청하면 여기서 승인합니다.</p>
           </div>
-          <span>{pendingLinkRequests.length}건 대기</span>
+          <span className={`request-count-pill ${pendingLinkRequests.length > 0 ? "active" : ""}`}>
+            {pendingLinkRequests.length}건 대기
+          </span>
         </div>
         <div className="role-management-list">
           {pendingLinkRequests.map((request) => (
@@ -1373,7 +1375,8 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
             </article>
           ))}
           {pendingLinkRequests.length === 0 ? (
-            <article className="care-item">
+            <article className="request-empty-state">
+              <span className="request-empty-mark" aria-hidden="true" />
               <div className="person-block">
                 <strong>대기 중인 요청이 없습니다</strong>
                 <span>새 사용자가 내 프로필에서 연결 요청을 만들면 이곳에 표시됩니다.</span>
