@@ -125,6 +125,9 @@ test("member detail opens as a right side drawer from the roster", () => {
   assert.match(dashboardSource, /member-list-table/);
   assert.match(dashboardSource, /member-detail-backdrop/);
   assert.match(dashboardSource, /member-detail-drawer/);
+  assert.match(dashboardSource, /member-detail-actions/);
+  assert.match(dashboardSource, /member-delete-zone/);
+  assert.match(dashboardSource, /member-delete-actions/);
   assert.match(dashboardSource, /setSelectedMemberId\(""\)/);
   assert.match(dashboardSource, /selected-row/);
 });

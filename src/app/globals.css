@@ -1045,6 +1045,49 @@ tbody tr:hover {
   pointer-events: auto;
 }
 
+.member-detail-drawer .management-form {
+  gap: 12px;
+}
+
+.member-detail-actions {
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 56px;
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.member-detail-actions .action-message {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.member-detail-actions button {
+  min-width: 96px;
+}
+
+.member-delete-zone {
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.member-delete-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.member-delete-actions .action-message {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.member-delete-actions button {
+  min-width: 118px;
+}
+
 .form-panel {
   margin-top: 14px;
   margin-bottom: 14px;
@@ -1168,8 +1211,9 @@ tbody tr:hover {
 }
 
 .single-action-form {
-  display: grid;
-  justify-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
   margin-top: 12px;
   padding-top: 12px;
@@ -2009,6 +2053,17 @@ tbody tr:hover {
 
   .confirm-modal-actions form,
   .confirm-modal-actions button {
+    width: 100%;
+  }
+
+  .member-detail-actions,
+  .member-delete-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .member-detail-actions button,
+  .member-delete-actions button {
     width: 100%;
   }
 

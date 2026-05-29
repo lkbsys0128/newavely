@@ -391,7 +391,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 커스텀 메모
                 <textarea name="notes" defaultValue={selectedMember.notes} disabled={!canManageMembers} />
               </label>
-              <div className="form-actions full-width">
+              <div className="form-actions member-detail-actions full-width">
                 <ActionMessage state={updateMemberState} />
                 <button className="primary-button" type="submit" disabled={!canManageMembers || isUpdatingMember}>
                   저장
@@ -400,7 +400,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </form>
           ) : null}
           {selectedMember ? (
-            <form action={deactivateMemberAction} className="single-action-form">
+            <form action={deactivateMemberAction} className="single-action-form member-detail-actions">
               <input name="id" type="hidden" value={selectedMember.id} />
               <ActionMessage state={deactivateMemberState} />
               <button
@@ -413,7 +413,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </form>
           ) : null}
           {selectedMember?.status === "inactive" ? (
-            <form action={reactivateMemberAction} className="single-action-form">
+            <form action={reactivateMemberAction} className="single-action-form member-detail-actions">
               <input name="id" type="hidden" value={selectedMember.id} />
               <ActionMessage state={reactivateMemberState} />
               <button className="primary-button" type="submit" disabled={!canManageMembers || isReactivatingMember}>
@@ -422,7 +422,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </form>
           ) : null}
           {selectedMember && canDeleteMembers ? (
-            <form action={deleteMemberAction} className="danger-zone-form">
+            <form action={deleteMemberAction} className="danger-zone-form member-delete-zone">
               <input name="id" type="hidden" value={selectedMember.id} />
               <div className="person-block">
                 <strong>완전 삭제</strong>
@@ -432,10 +432,12 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 확인을 위해 멤버 이름 입력
                 <input name="confirmName" placeholder="예: 홍길동" />
               </label>
-              <ActionMessage state={deleteMemberState} />
-              <button className="danger-button" type="submit" disabled={isDeletingMember}>
-                완전히 삭제
-              </button>
+              <div className="member-delete-actions">
+                <ActionMessage state={deleteMemberState} />
+                <button className="danger-button" type="submit" disabled={isDeletingMember}>
+                  완전히 삭제
+                </button>
+              </div>
             </form>
           ) : null}
         </aside>
