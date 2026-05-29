@@ -553,6 +553,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
 
 export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
+  const [groupPendingDelete, setGroupPendingDelete] = useState<Group | null>(null);
   const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
   const [updateGroupState, updateGroupAction, isUpdatingGroup] = useActionState(updateGroup, initialActionState);
   const [deleteGroupState, deleteGroupAction, isDeletingGroup] = useActionState(deleteGroup, initialActionState);
@@ -693,25 +694,59 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                   저장
                 </button>
               </form>
-              <form action={deleteGroupAction} className="danger-zone-form group-delete-form">
-                <input name="id" type="hidden" value={group.id} />
+              <div className="danger-zone-form group-delete-form">
                 <div className="person-block">
                   <strong>소그룹 삭제</strong>
                   <span>삭제하면 이 소그룹의 멤버들은 미배정으로 이동됩니다.</span>
                 </div>
-                <label>
-                  확인을 위해 소그룹 이름 입력
-                  <input name="confirmName" placeholder={group.name} disabled={!canManageGroups} />
-                </label>
-                <button className="danger-button" type="submit" disabled={!canManageGroups || isDeletingGroup}>
+                <button
+                  className="danger-button"
+                  type="button"
+                  disabled={!canManageGroups || isDeletingGroup}
+                  onClick={() => setGroupPendingDelete(group)}
+                >
                   삭제
                 </button>
-              </form>
+              </div>
               <ActionMessage state={deleteGroupState} />
             </article>
           );
         })}
       </section>
+      {groupPendingDelete ? (
+        <div
+          className="confirm-modal-backdrop"
+          role="presentation"
+          onClick={() => setGroupPendingDelete(null)}
+        >
+          <div
+            aria-labelledby="group-delete-title"
+            aria-modal="true"
+            className="confirm-modal"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="confirm-modal-copy">
+              <span className="status-pill inactive">삭제 확인</span>
+              <h2 id="group-delete-title">정말 지우시겠습니까?</h2>
+              <p>
+                <strong>{groupPendingDelete.name}</strong> 소그룹을 삭제하면, 해당 소그룹의 멤버들은 미배정으로 이동됩니다.
+              </p>
+            </div>
+            <div className="confirm-modal-actions">
+              <button className="secondary-button" type="button" onClick={() => setGroupPendingDelete(null)}>
+                취소
+              </button>
+              <form action={deleteGroupAction}>
+                <input name="id" type="hidden" value={groupPendingDelete.id} />
+                <button className="danger-button" type="submit" disabled={!canManageGroups || isDeletingGroup}>
+                  삭제
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {unassignedMembers.length > 0 ? (
         <DisclosurePanel id="unassigned-members" title="미배정 멤버" meta={`${unassignedMembers.length}명`}>
           <div className="group-member-list">

@@ -91,7 +91,6 @@ const updateGroupSchema = groupSchema.extend({
 
 const deleteGroupSchema = z.object({
   id: z.string().uuid(),
-  confirmName: z.string().min(1),
 });
 
 const attendanceEventSchema = z.object({
@@ -1444,7 +1443,6 @@ export async function deleteGroup(_previousState: ActionState, formData: FormDat
     const { supabase } = await getAuthorizedCurrentMember("groups:write");
     const parsed = deleteGroupSchema.parse({
       id: formData.get("id"),
-      confirmName: formData.get("confirmName"),
     });
 
     const { data: beforeData, error: beforeError } = await supabase
@@ -1454,9 +1452,6 @@ export async function deleteGroup(_previousState: ActionState, formData: FormDat
       .single();
 
     if (beforeError) throw beforeError;
-    if ((beforeData.name as string) !== parsed.confirmName.trim()) {
-      throw new Error("삭제 확인 이름이 소그룹 이름과 일치하지 않습니다.");
-    }
 
     const { error } = await supabase.from("groups").delete().eq("id", parsed.id);
 
