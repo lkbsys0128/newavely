@@ -67,7 +67,9 @@ $$;
 
 grant execute on function record_audit_log(text, text, uuid, jsonb, jsonb, jsonb) to authenticated;
 
-create policy "admins can read audit logs"
+drop policy if exists "admins can read audit logs" on audit_logs;
+drop policy if exists "owners and admins can read audit logs" on audit_logs;
+create policy "owners and admins can read audit logs"
 on audit_logs for select
 to authenticated
-using (current_member_role() = 'admin');
+using (current_member_role() in ('owner', 'admin'));

@@ -90,13 +90,18 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       };
     }
 
-    const allCustomFieldDefinitions =
-      currentMember.role === "admin" || currentMember.role === "leader" ? await getCustomFieldDefinitions(supabase) : [];
+    const allCustomFieldDefinitions = hasPermission(currentMember.role, "members:write")
+      ? await getCustomFieldDefinitions(supabase)
+      : [];
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
       ? allCustomFieldDefinitions
       : allCustomFieldDefinitions.filter((field) => !field.isSensitive);
-    const auditLogs = currentMember.role === "admin" ? await getAuditLogs(supabase) : undefined;
-    const memberLinkRequests = await getMemberLinkRequests(supabase, currentMember.id, currentMember.role === "admin");
+    const auditLogs = hasPermission(currentMember.role, "roles:manage") ? await getAuditLogs(supabase) : undefined;
+    const memberLinkRequests = await getMemberLinkRequests(
+      supabase,
+      currentMember.id,
+      hasPermission(currentMember.role, "roles:manage"),
+    );
 
     return {
       status: "ready",

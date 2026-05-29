@@ -41,7 +41,7 @@ stable
 security definer
 set search_path = public
 as $$
-  select current_member_role() in ('admin', 'leader', 'staff');
+  select current_member_role() in ('owner', 'admin', 'leader', 'staff');
 $$;
 
 drop policy if exists "authenticated users can read active members" on members;
@@ -75,7 +75,11 @@ create policy "admins and leaders can update members"
 on members for update
 to authenticated
 using (can_manage_members())
-with check (can_manage_members());
+with check (
+  current_member_role() = 'owner'
+  or (current_member_role() = 'admin' and role <> 'owner')
+  or (current_member_role() = 'leader' and role = 'member')
+);
 
 drop policy if exists "users can read their own link requests" on member_link_requests;
 create policy "users can read their own link requests"
@@ -83,7 +87,7 @@ on member_link_requests for select
 to authenticated
 using (
   requester_member_id = current_member_id()
-  or current_member_role() = 'admin'
+  or current_member_role() in ('owner', 'admin')
 );
 
 drop policy if exists "users can create their own link requests" on member_link_requests;
@@ -100,6 +104,6 @@ create policy "authorized users can read attendance records"
 on attendance_records for select
 to authenticated
 using (
-  current_member_role() in ('admin', 'leader', 'staff')
+  current_member_role() in ('owner', 'admin', 'leader', 'staff')
   or member_id in (select id from members where auth_user_id = auth.uid())
 );

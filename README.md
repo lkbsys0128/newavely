@@ -91,6 +91,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 9. `db/009_cleanup_stale_member_link_requests.sql`
 10. `db/010_admin_member_delete_policy.sql`
 11. `db/011_member_link_request_admin_policy.sql`
+12. `db/012_owner_role.sql`
 
 주요 테이블:
 
@@ -127,7 +128,8 @@ attendance_records!attendance_records_member_id_fkey(status)
 
 앱 역할은 `src/lib/rbac.ts`에 정의되어 있습니다.
 
-- `admin`: 전체 관리 권한
+- `owner`: 최고 관리자. 관리자 지정/회수, 영구 삭제 같은 최상위 작업 권한
+- `admin`: 운영 관리자. 멤버/소그룹/출석/권한/감사 관리 권한
 - `leader`: 멤버/출석 관리 권한
 - `staff`: 운영을 위한 읽기 중심 권한
 - `member`: 기본 접근 권한
@@ -149,7 +151,7 @@ attendance_records!attendance_records_member_id_fkey(status)
 - 커스텀 필드 값: `members.custom_fields` JSONB에 저장
 - 커스텀 필드 정의: `member_custom_field_definitions`에 저장
 
-커스텀 필드 정의는 관리자만 추가할 수 있습니다. 필드 타입은 `text`, `number`, `date`, `boolean`을 사용합니다.
+커스텀 필드 정의는 최고 관리자 또는 관리자만 추가할 수 있습니다. 필드 타입은 `text`, `number`, `date`, `boolean`을 사용합니다.
 
 민감 정보로 표시된 필드는 `sensitive:read` 권한이 있는 역할만 볼 수 있습니다.
 

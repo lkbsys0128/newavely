@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { hasPermission } from "@/lib/rbac";
+import { hasPermission, type Role } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
 import { getRoleChangeBlockReason } from "@/lib/role-policy";
 import { replaceGoogleSheetValues } from "@/lib/google-sheets";
@@ -32,7 +32,7 @@ const memberSchema = z.object({
   address: nullableText,
   baptismStatus: z.preprocess(normalizeBaptismStatus, nullableText),
   notes: nullableText,
-  role: z.enum(["admin", "leader", "staff", "member"]),
+  role: z.enum(["owner", "admin", "leader", "staff", "member"]),
   status: z.enum(["active", "new", "care", "inactive"]),
 });
 
@@ -57,7 +57,7 @@ const mergeMemberProfileSchema = z.object({
 
 const updateMemberRoleSchema = z.object({
   id: z.string().uuid(),
-  role: z.enum(["admin", "leader", "staff", "member"]),
+  role: z.enum(["owner", "admin", "leader", "staff", "member"]),
 });
 
 const deleteMemberSchema = z.object({
@@ -197,7 +197,7 @@ async function runAction(callback: () => Promise<string>): Promise<ActionState> 
 }
 
 async function getAuthorizedCurrentMember(
-  permission: "members:read" | "members:write" | "groups:write" | "attendance:write" | "roles:manage",
+  permission: "members:read" | "members:write" | "groups:write" | "attendance:write" | "roles:manage" | "owner:manage",
 ) {
   const supabase = await createClient();
   const {
@@ -293,14 +293,15 @@ async function writeAuditLog({
   if (error) throw error;
 }
 
-const rolePriority: Record<"admin" | "leader" | "staff" | "member", number> = {
+const rolePriority: Record<Role, number> = {
+  owner: 5,
   admin: 4,
   leader: 3,
   staff: 2,
   member: 1,
 };
 
-function higherRole(a: "admin" | "leader" | "staff" | "member", b: "admin" | "leader" | "staff" | "member") {
+function higherRole(a: Role, b: Role) {
   return rolePriority[a] >= rolePriority[b] ? a : b;
 }
 
@@ -316,7 +317,7 @@ function chooseMergeValue(choice: "survivor" | "source", survivorValue: unknown,
 }
 
 function toRole(value: unknown) {
-  return String(value ?? "member") as "admin" | "leader" | "staff" | "member";
+  return String(value ?? "member") as Role;
 }
 
 function mergeCustomFields(survivorMember: Record<string, unknown>, sourceMember: Record<string, unknown>) {
@@ -344,7 +345,7 @@ function makeMergedPlaceholderEmail(memberId: unknown) {
 
 export async function createMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
 
     const parsed = memberSchema.parse({
       name: formData.get("name"),
@@ -358,11 +359,18 @@ export async function createMember(_previousState: ActionState, formData: FormDa
       status: formData.get("status"),
     });
 
+    const requestedRole = parsed.role;
+    const canManageRoles = hasPermission(currentMember.role, "roles:manage");
+    if (requestedRole === "owner" && !hasPermission(currentMember.role, "owner:manage")) {
+      throw new Error("최고 관리자 권한은 최고 관리자만 지정할 수 있습니다.");
+    }
+    const nextRole = canManageRoles ? requestedRole : "member";
+
     const insertPayload = {
       name: parsed.name,
       phone: parsed.phone,
       group_id: parsed.groupId,
-      role: parsed.role,
+      role: nextRole,
       status: parsed.status,
       email: parsed.email ?? `${parsed.name.replace(/\s/g, "").toLowerCase()}-${Date.now()}@placeholder.local`,
       address: parsed.address,
@@ -387,7 +395,7 @@ export async function createMember(_previousState: ActionState, formData: FormDa
 
 export async function updateMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
 
     const parsed = updateMemberSchema.parse({
       id: formData.get("id"),
@@ -409,6 +417,35 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
       .single();
 
     if (beforeError) throw beforeError;
+    const currentRole = beforeData.role as Role;
+    const requestedRole = parsed.role as Role;
+    const canManageRoles = hasPermission(currentMember.role, "roles:manage");
+    if ((currentRole === "owner" || requestedRole === "owner") && !hasPermission(currentMember.role, "owner:manage")) {
+      throw new Error("최고 관리자 권한은 최고 관리자만 변경할 수 있습니다.");
+    }
+    const nextRole = canManageRoles ? requestedRole : currentRole;
+    if (nextRole !== currentRole) {
+      const [
+        { count: activeAdminCount, error: activeAdminCountError },
+        { count: activeOwnerCount, error: activeOwnerCountError },
+      ] = await Promise.all([
+        supabase.from("members").select("id", { count: "exact", head: true }).eq("role", "admin").neq("status", "inactive"),
+        supabase.from("members").select("id", { count: "exact", head: true }).eq("role", "owner").neq("status", "inactive"),
+      ]);
+
+      if (activeAdminCountError) throw activeAdminCountError;
+      if (activeOwnerCountError) throw activeOwnerCountError;
+
+      const blockReason = getRoleChangeBlockReason({
+        actorRole: currentMember.role,
+        targetCurrentRole: currentRole,
+        nextRole,
+        activeAdminCount: activeAdminCount ?? 0,
+        activeOwnerCount: activeOwnerCount ?? 0,
+      });
+
+      if (blockReason) throw new Error(blockReason);
+    }
 
     const { data: afterData, error } = await supabase
       .from("members")
@@ -416,7 +453,7 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
         name: parsed.name,
         phone: parsed.phone,
         group_id: parsed.groupId,
-        role: parsed.role,
+        role: nextRole,
         status: parsed.status,
         email: parsed.email,
         address: parsed.address,
@@ -952,7 +989,7 @@ export async function reopenMemberLinkRequest(_previousState: ActionState, formD
 
 export async function updateMemberRole(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
     const parsed = updateMemberRoleSchema.parse({
       id: formData.get("id"),
       role: formData.get("role"),
@@ -966,18 +1003,23 @@ export async function updateMemberRole(_previousState: ActionState, formData: Fo
 
     if (beforeError) throw beforeError;
 
-    const { count: activeAdminCount, error: countError } = await supabase
-      .from("members")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "admin")
-      .neq("status", "inactive");
+    const [
+      { count: activeAdminCount, error: activeAdminCountError },
+      { count: activeOwnerCount, error: activeOwnerCountError },
+    ] = await Promise.all([
+      supabase.from("members").select("id", { count: "exact", head: true }).eq("role", "admin").neq("status", "inactive"),
+      supabase.from("members").select("id", { count: "exact", head: true }).eq("role", "owner").neq("status", "inactive"),
+    ]);
 
-    if (countError) throw countError;
+    if (activeAdminCountError) throw activeAdminCountError;
+    if (activeOwnerCountError) throw activeOwnerCountError;
 
     const blockReason = getRoleChangeBlockReason({
+      actorRole: currentMember.role,
       targetCurrentRole: beforeData.role,
       nextRole: parsed.role,
       activeAdminCount: activeAdminCount ?? 0,
+      activeOwnerCount: activeOwnerCount ?? 0,
     });
 
     if (blockReason) throw new Error(blockReason);
@@ -1245,7 +1287,7 @@ export async function reactivateMember(_previousState: ActionState, formData: Fo
 
 export async function deleteMemberPermanently(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const { supabase } = await getAuthorizedCurrentMember("owner:manage");
     const parsed = deleteMemberSchema.parse({
       id: formData.get("id"),
       confirmName: formData.get("confirmName"),

@@ -7,6 +7,7 @@ const schemaSource = readFileSync(new URL("../db/schema.sql", import.meta.url), 
 const staleLinkCleanupSource = readFileSync(new URL("../db/009_cleanup_stale_member_link_requests.sql", import.meta.url), "utf8");
 const memberDeletePolicySource = readFileSync(new URL("../db/010_admin_member_delete_policy.sql", import.meta.url), "utf8");
 const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_request_admin_policy.sql", import.meta.url), "utf8");
+const ownerRoleMigrationSource = readFileSync(new URL("../db/012_owner_role.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
@@ -80,19 +81,27 @@ test("link request decisions support rejection and new member creation", () => {
   assert.match(dashboardSource, /거절된 요청 다시 검토/);
   assert.match(dashboardSource, /reopenMemberLinkRequest/);
   assert.match(memberDetailSource, /rejectedLinkRequest/);
-  assert.match(memberLinkAdminPolicySource, /admins can update link requests/);
+  assert.match(memberLinkAdminPolicySource, /owners and admins can update link requests/);
 });
 
-test("member permanent delete is admin-only and audited", () => {
+test("member permanent delete is owner-only and audited", () => {
   assert.match(actionsSource, /deleteMemberPermanently/);
-  assert.match(actionsSource, /getAuthorizedCurrentMember\("roles:manage"\)/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("owner:manage"\)/);
   assert.match(actionsSource, /member\.permanent_delete/);
   assert.match(actionsSource, /cascadingRecords/);
   assert.match(actionsSource, /closedPendingLinkRequests/);
   assert.match(actionsSource, /deletedCount !== 1/);
-  assert.match(schemaSource, /admins can delete members/);
+  assert.match(schemaSource, /owners can delete members/);
   assert.match(memberDeletePolicySource, /on members for delete/);
   assert.match(dashboardSource, /완전 삭제/);
+});
+
+test("schema supports owner role above admin", () => {
+  assert.match(schemaSource, /create type member_role as enum \('owner', 'admin', 'leader', 'staff', 'member'\)/);
+  assert.match(actionsSource, /owner:manage/);
+  assert.match(dashboardSource, /최고 관리자/);
+  assert.match(ownerRoleMigrationSource, /alter type member_role add value if not exists 'owner'/);
+  assert.match(ownerRoleMigrationSource, /set role = 'owner'/);
 });
 
 test("stale member link request cleanup closes orphaned pending requests", () => {

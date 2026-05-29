@@ -25,7 +25,7 @@ on member_link_requests for select
 to authenticated
 using (
   requester_member_id in (select id from members where auth_user_id = auth.uid())
-  or current_member_role() = 'admin'
+  or current_member_role() in ('owner', 'admin')
 );
 
 drop policy if exists "users can create their own link requests" on member_link_requests;
@@ -37,8 +37,9 @@ with check (
 );
 
 drop policy if exists "admins can update link requests" on member_link_requests;
-create policy "admins can update link requests"
+drop policy if exists "owners and admins can update link requests" on member_link_requests;
+create policy "owners and admins can update link requests"
 on member_link_requests for update
 to authenticated
-using (current_member_role() = 'admin')
-with check (current_member_role() = 'admin');
+using (current_member_role() in ('owner', 'admin'))
+with check (current_member_role() in ('owner', 'admin'));
