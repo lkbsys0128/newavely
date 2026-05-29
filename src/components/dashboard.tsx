@@ -563,6 +563,12 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const totalAttendanceRate = activeMembers.length ? Math.round((totalPresent / activeMembers.length) * 100) : 0;
   const groupLeaderOptions = [...activeMembers].sort((a, b) => a.name.localeCompare(b.name));
 
+  useEffect(() => {
+    if (deleteGroupState.ok) {
+      setGroupPendingDelete(null);
+    }
+  }, [deleteGroupState]);
+
   return (
     <>
       <PageHeader eyebrow="순모임 관리" title="순모임" user={user} />
