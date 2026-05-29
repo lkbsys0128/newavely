@@ -13,6 +13,7 @@ const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", 
 const googleSheetsSource = readFileSync(new URL("../src/lib/google-sheets.ts", import.meta.url), "utf8");
 const memberDetailSource = readFileSync(new URL("../src/components/member-detail.tsx", import.meta.url), "utf8");
 const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
+const profilePageSource = readFileSync(new URL("../src/app/profile/page.tsx", import.meta.url), "utf8");
 const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
@@ -125,4 +126,10 @@ test("member roster can be exported to Google Sheets without internal fields", (
   assert.match(googleSheetsSource, /GOOGLE_PRIVATE_KEY/);
   assert.match(googleSheetsSource, /GOOGLE_SHEET_ID/);
   assert.match(googleSheetsSource, /:clear/);
+});
+
+test("profile link request panel only appears for the current onboarding member", () => {
+  assert.match(profilePageSource, /showLinkRequest={member\.status === "new"}/);
+  assert.match(memberDetailSource, /request\.requesterMemberId === member\.id/);
+  assert.match(memberDetailSource, /currentMemberLinkRequests\.find\(isActionableLinkRequest\)/);
 });

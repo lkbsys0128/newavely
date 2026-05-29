@@ -41,7 +41,7 @@ export default async function ProfilePage() {
             eyebrow="내 프로필"
             backHref="/"
             backLabel="대시보드"
-            showLinkRequest
+            showLinkRequest={member.status === "new"}
           />
         );
       }}
