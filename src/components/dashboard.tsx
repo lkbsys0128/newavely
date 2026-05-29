@@ -125,6 +125,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
   const canDeleteMembers = hasPermission(user.role, "owner:manage");
   const canExportMembers = hasPermission(user.role, "roles:manage");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
+  const isSoonjang = user.role === "staff";
   const visibleMembers = (showInactive ? members : members.filter((member) => member.status !== "inactive")).filter(
     (member) => !isMergedPlaceholderMember(member),
   );
@@ -243,21 +244,21 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         <section className="panel wide" id="member-list">
           <div className="panel-heading">
             <h2>멤버 목록</h2>
-            <span>{filteredMembers.length}명</span>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>이름</th>
-                  <th>소그룹</th>
-                  <th>역할</th>
-                  <th>상태</th>
-                  <th>계정</th>
-                  <th>연락처</th>
-                  <th>상세</th>
-                </tr>
-              </thead>
+          <span>{filteredMembers.length}명</span>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>소그룹</th>
+                {!isSoonjang ? <th>역할</th> : null}
+                {!isSoonjang ? <th>상태</th> : null}
+                {!isSoonjang ? <th>계정</th> : null}
+                {!isSoonjang ? <th>연락처</th> : null}
+                <th>상세</th>
+              </tr>
+            </thead>
               <tbody>
                 {filteredMembers.map((member) => (
                   <tr key={member.id} onClick={() => setSelectedMemberId(member.id)}>
@@ -265,20 +266,26 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                       <strong>{member.name}</strong>
                     </td>
                     <td>{member.groupName}</td>
-                    <td>
-                      <span className="role-pill">{roleLabels[member.role]}</span>
-                    </td>
-                    <td>
-                      <span className={`status-pill ${member.status === "active" ? "active" : ""}`}>
-                        {statusLabels[member.status]}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`account-pill ${member.authUserId ? "connected" : ""}`}>
-                        {member.authUserId ? "Google 연결" : "미연결"}
-                      </span>
-                    </td>
-                    <td>{member.phone}</td>
+                    {!isSoonjang ? (
+                      <td>
+                        <span className="role-pill">{roleLabels[member.role]}</span>
+                      </td>
+                    ) : null}
+                    {!isSoonjang ? (
+                      <td>
+                        <span className={`status-pill ${member.status === "active" ? "active" : ""}`}>
+                          {statusLabels[member.status]}
+                        </span>
+                      </td>
+                    ) : null}
+                    {!isSoonjang ? (
+                      <td>
+                        <span className={`account-pill ${member.authUserId ? "connected" : ""}`}>
+                          {member.authUserId ? "Google 연결" : "미연결"}
+                        </span>
+                      </td>
+                    ) : null}
+                    {!isSoonjang ? <td>{member.phone}</td> : null}
                     <td>
                       <Link className="secondary-button table-action" href={`/members/${member.id}`}>
                         열기
@@ -288,7 +295,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 ))}
                 {filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={7}>
+                    <td colSpan={isSoonjang ? 3 : 7}>
                       <div className="empty-table-state">
                         <strong>조건에 맞는 멤버가 없습니다</strong>
                         <span>검색어 또는 필터를 조금 넓혀보세요.</span>
@@ -1134,7 +1141,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           <small>운영 관리자</small>
         </article>
         <article className="metric-card">
-          <span>리더/스태프</span>
+          <span>리더/순장</span>
           <strong>{members.filter((member) => member.role === "leader" || member.role === "staff").length}</strong>
           <small>운영 권한 보유</small>
         </article>
@@ -1579,7 +1586,7 @@ const roleLabels: Record<Role, string> = {
   owner: "최고 관리자",
   admin: "관리자",
   leader: "리더",
-  staff: "스태프",
+  staff: "순장",
   member: "멤버",
 };
 

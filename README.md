@@ -131,7 +131,7 @@ attendance_records!attendance_records_member_id_fkey(status)
 - `owner`: 최고 관리자. 관리자 지정/회수, 영구 삭제 같은 최상위 작업 권한
 - `admin`: 운영 관리자. 멤버/소그룹/출석/권한/감사 관리 권한
 - `leader`: 멤버/출석 관리 권한
-- `staff`: 운영을 위한 읽기 중심 권한
+- `staff`: 순장. 본인이 리드하는 순 멤버는 상세 열람, 다른 순은 이름 중심 열람
 - `member`: 기본 접근 권한
 
 권한은 두 레이어에서 적용됩니다.

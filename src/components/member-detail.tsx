@@ -659,7 +659,7 @@ const roleLabels: Record<Role, string> = {
   owner: "최고 관리자",
   admin: "관리자",
   leader: "리더",
-  staff: "스태프",
+  staff: "순장",
   member: "멤버",
 };
 

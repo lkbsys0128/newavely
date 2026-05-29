@@ -1,6 +1,7 @@
 import { hasPermission, type Role } from "@/lib/rbac";
 import type { AttendanceEvent, AuditLog, CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { scopeMembersForRole } from "@/lib/member-visibility";
 import { createClient } from "@/lib/supabase/server";
 import {
   ensureAttendanceEvent,
@@ -90,7 +91,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       };
     }
 
-    const allCustomFieldDefinitions = hasPermission(currentMember.role, "members:write")
+    const allCustomFieldDefinitions = hasPermission(currentMember.role, "members:read")
       ? await getCustomFieldDefinitions(supabase)
       : [];
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
@@ -102,6 +103,12 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       currentMember.id,
       hasPermission(currentMember.role, "roles:manage"),
     );
+    const scopedMembers = scopeMembersForRole({
+      role: currentMember.role,
+      currentMemberId: currentMember.id,
+      groups: dashboardData.groups,
+      members: dashboardData.members,
+    });
 
     return {
       status: "ready",
@@ -110,7 +117,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       attendanceTitle: dashboardData.attendanceTitle,
       attendanceEventId: dashboardData.attendanceEventId,
       attendanceEvents: dashboardData.attendanceEvents,
-      members: dashboardData.members,
+      members: scopedMembers,
       groups: dashboardData.groups,
       memberLinkRequests,
       auditLogs,
