@@ -2,6 +2,7 @@ import { hasPermission, type Role } from "@/lib/rbac";
 import type { AttendanceEvent, AuditLog, CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { scopeMembersForRole } from "@/lib/member-visibility";
+import { isMergedPlaceholderMember } from "@/lib/member-filters";
 import { createClient } from "@/lib/supabase/server";
 import {
   ensureAttendanceEvent,
@@ -32,6 +33,16 @@ export type ReadyAppPageData = {
   memberLinkRequests: MemberLinkRequest[];
   auditLogs?: AuditLog[];
   customFieldDefinitions: CustomFieldDefinition[];
+  dashboardMetrics: DashboardMetrics;
+};
+
+export type DashboardMetrics = {
+  totalMembers: number;
+  activeMembers: number;
+  inactiveMembers: number;
+  presentMembers: number;
+  attendanceEligibleMembers: number;
+  groups: number;
 };
 
 export type OnboardingAppPageData = {
@@ -48,6 +59,21 @@ export type AppPageData =
   | { status: "error"; message: string }
   | OnboardingAppPageData
   | ReadyAppPageData;
+
+export function buildDashboardMetrics(members: Member[], groups: Group[]): DashboardMetrics {
+  const visibleMembers = members.filter((member) => !isMergedPlaceholderMember(member));
+  const activeMembers = visibleMembers.filter((member) => member.status !== "inactive");
+  const presentMembers = activeMembers.filter((member) => member.present);
+
+  return {
+    totalMembers: visibleMembers.length,
+    activeMembers: activeMembers.length,
+    inactiveMembers: visibleMembers.length - activeMembers.length,
+    presentMembers: presentMembers.length,
+    attendanceEligibleMembers: activeMembers.length,
+    groups: groups.length,
+  };
+}
 
 export async function getAppPageData(options?: { attendanceEventId?: string }): Promise<AppPageData> {
   if (!hasSupabaseEnv()) {
@@ -109,6 +135,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       groups: dashboardData.groups,
       members: dashboardData.members,
     });
+    const dashboardMetrics = buildDashboardMetrics(dashboardData.members, dashboardData.groups);
 
     return {
       status: "ready",
@@ -122,6 +149,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       memberLinkRequests,
       auditLogs,
       customFieldDefinitions,
+      dashboardMetrics,
     };
   } catch (error) {
     return { status: "error", message: formatSupabaseError(error) };
