@@ -26,19 +26,23 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               </div>
             </div>
 
-            <nav className="nav-list" aria-label="앱 섹션">
-              <Link href="/">대시보드</Link>
-              <Link href="/profile">내 프로필</Link>
-              <Link href="/members">멤버</Link>
-              <Link href="/groups">순</Link>
-              <Link href="/attendance">출석</Link>
-              <Link href="/permissions">권한</Link>
-              <Link href="/audit">감사 로그</Link>
-            </nav>
+            <details className="sidebar-menu">
+              <summary className="mobile-menu-toggle">메뉴</summary>
 
-            <div className="auth-card" aria-label="계정 메뉴">
-              <SignOutButton enabled={authEnabled} />
-            </div>
+              <nav className="nav-list" aria-label="앱 섹션">
+                <Link href="/">대시보드</Link>
+                <Link href="/profile">내 프로필</Link>
+                <Link href="/members">멤버</Link>
+                <Link href="/groups">순</Link>
+                <Link href="/attendance">출석</Link>
+                <Link href="/permissions">권한</Link>
+                <Link href="/audit">감사 로그</Link>
+              </nav>
+
+              <div className="auth-card" aria-label="계정 메뉴">
+                <SignOutButton enabled={authEnabled} />
+              </div>
+            </details>
           </aside>
 
           {children}
