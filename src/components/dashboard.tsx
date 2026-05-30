@@ -23,7 +23,7 @@ import {
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import { canDeleteMemberRole, canUseDeleteActions } from "@/lib/role-policy";
-import type { AppUser } from "@/lib/app-page-data";
+import type { AppUser, DashboardMetrics } from "@/lib/app-page-data";
 import type { AttendanceEvent, AuditLog, Group, Member, MemberLinkRequest } from "@/lib/types";
 import {
   defaultMemberFilters,
@@ -42,6 +42,7 @@ type AppDataProps = {
   members: Member[];
   groups: Group[];
   memberLinkRequests?: MemberLinkRequest[];
+  dashboardMetrics?: DashboardMetrics;
 };
 
 type AttendanceFilter = "all" | "present" | "absent" | "excused";
@@ -49,12 +50,21 @@ type AttendanceStatus = "present" | "absent" | "excused";
 
 const initialActionState: ActionState = { ok: false, message: "" };
 
-export function DashboardOverview({ user, members, groups }: AppDataProps) {
+export function DashboardOverview({ user, members, groups, dashboardMetrics }: AppDataProps) {
   const dashboardMembers = members.filter((member) => !isMergedPlaceholderMember(member));
-  const activeMembers = dashboardMembers.filter((member) => member.status !== "inactive");
-  const inactiveMembers = dashboardMembers.filter((member) => member.status === "inactive");
-  const presentCount = activeMembers.filter((member) => member.present).length;
-  const attendanceRate = activeMembers.length ? Math.round((presentCount / activeMembers.length) * 100) : 0;
+  const localActiveMembers = dashboardMembers.filter((member) => member.status !== "inactive");
+  const localPresentCount = localActiveMembers.filter((member) => member.present).length;
+  const metrics = dashboardMetrics ?? {
+    totalMembers: dashboardMembers.length,
+    activeMembers: localActiveMembers.length,
+    inactiveMembers: dashboardMembers.length - localActiveMembers.length,
+    presentMembers: localPresentCount,
+    attendanceEligibleMembers: localActiveMembers.length,
+    groups: groups.length,
+  };
+  const attendanceRate = metrics.attendanceEligibleMembers
+    ? Math.round((metrics.presentMembers / metrics.attendanceEligibleMembers) * 100)
+    : 0;
 
   return (
     <>
@@ -69,29 +79,29 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       <div className="metric-grid" id="overview-metrics">
         <article className="metric-card">
           <span>전체 멤버</span>
-          <strong>{dashboardMembers.length}</strong>
+          <strong>{metrics.totalMembers}</strong>
           <small>비활성 멤버 포함</small>
         </article>
         <article className="metric-card">
           <span>활동 멤버</span>
-          <strong>{activeMembers.length}</strong>
+          <strong>{metrics.activeMembers}</strong>
           <small>출석/돌봄 기준 인원</small>
         </article>
         <article className="metric-card">
           <span>비활성화</span>
-          <strong>{inactiveMembers.length}</strong>
+          <strong>{metrics.inactiveMembers}</strong>
           <small>기록 보존 중</small>
         </article>
         <article className="metric-card">
           <span>이번 주 출석</span>
           <strong>{attendanceRate}%</strong>
           <small>
-            활동 {presentCount}/{activeMembers.length}명 출석
+            활동 {metrics.presentMembers}/{metrics.attendanceEligibleMembers}명 출석
           </small>
         </article>
         <article className="metric-card">
           <span>순</span>
-          <strong>{groups.length}</strong>
+          <strong>{metrics.groups}</strong>
           <small>리더 배정 완료</small>
         </article>
       </div>

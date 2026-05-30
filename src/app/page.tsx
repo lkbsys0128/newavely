@@ -9,7 +9,14 @@ export default async function HomePage() {
 
   return (
     <AppPageGate data={data}>
-      {(readyData) => <DashboardOverview user={readyData.user} members={readyData.members} groups={readyData.groups} />}
+      {(readyData) => (
+        <DashboardOverview
+          user={readyData.user}
+          members={readyData.members}
+          groups={readyData.groups}
+          dashboardMetrics={readyData.dashboardMetrics}
+        />
+      )}
     </AppPageGate>
   );
 }
