@@ -70,6 +70,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       <SectionNav
         items={[
           { href: "#overview-metrics", label: "요약" },
+          { href: "#statistics-summary", label: "통계" },
           { href: "#birthday-overview", label: "생일" },
           { href: "#group-roster", label: "순 배정표" },
           { href: "#ministry-roster", label: "사역팀" },
@@ -109,6 +110,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
         </article>
       </div>
 
+      <DashboardStatisticsSummary summary={dashboardInsights.statisticsSummary} />
       <DashboardRosterInsights insights={dashboardInsights} />
 
       <div className="dashboard-layout single-panel-layout">
@@ -140,12 +142,101 @@ type BirthdayMonthBucket = {
 };
 
 type DashboardInsights = {
+  statisticsSummary: StatisticsSummary;
   birthdayMonths: BirthdayMonthBucket[];
   groupRosters: InsightBucket[];
   ministryRosters: InsightBucket[];
   jobDistribution: InsightBucket[];
   ageDistribution: InsightBucket[];
 };
+
+type StatSummaryRow = {
+  label: string;
+  count: number;
+  ratio: number;
+};
+
+type StatisticsSummary = {
+  totalMembers: number;
+  gender: StatSummaryRow[];
+  age: StatSummaryRow[];
+  job: StatSummaryRow[];
+  ministry: StatSummaryRow[];
+};
+
+function DashboardStatisticsSummary({ summary }: { summary: StatisticsSummary }) {
+  return (
+    <section className="panel statistics-panel" id="statistics-summary">
+      <div className="panel-heading">
+        <div>
+          <h2>교적부 통계 요약</h2>
+          <span>활동 멤버 {summary.totalMembers}명 기준</span>
+        </div>
+      </div>
+
+      <div className="statistics-layout">
+        <article className="statistics-table-card">
+          <div className="statistics-table-heading">
+            <strong>항목</strong>
+            <span>인원 / 비율</span>
+          </div>
+          <StatisticsTableGroup title="성별 통계" rows={summary.gender} />
+          <StatisticsTableGroup title="연령대 통계" rows={summary.age} />
+          <StatisticsTableGroup title="직업별 통계" rows={summary.job} />
+          <StatisticsTableGroup title="사역별 통계" rows={summary.ministry} />
+        </article>
+
+        <div className="statistics-chart-grid">
+          <StatisticsBarCard title="성별 구성" rows={summary.gender} />
+          <StatisticsBarCard title="연령대 분포" rows={summary.age.filter((row) => row.label !== "미입력")} />
+          <StatisticsBarCard title="직업 구성" rows={summary.job} />
+          <StatisticsBarCard title="사역 참여 현황" rows={summary.ministry} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StatisticsTableGroup({ title, rows }: { title: string; rows: StatSummaryRow[] }) {
+  return (
+    <div className="statistics-table-group">
+      <strong>{title}</strong>
+      {rows.map((row) => (
+        <div className="statistics-table-row" key={row.label}>
+          <span>{row.label}</span>
+          <span>
+            {row.count}명 · {formatPercent(row.ratio)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatisticsBarCard({ title, rows }: { title: string; rows: StatSummaryRow[] }) {
+  const visibleRows = rows.length ? rows : [{ label: "데이터 없음", count: 0, ratio: 0 }];
+
+  return (
+    <article className="statistics-chart-card">
+      <h3>{title}</h3>
+      <div className="statistics-bars">
+        {visibleRows.map((row) => (
+          <div className="statistics-bar-row" key={row.label}>
+            <div className="statistics-bar-label">
+              <span>{row.label}</span>
+              <strong>
+                {row.count}명 · {formatPercent(row.ratio)}
+              </strong>
+            </div>
+            <div className="statistics-bar-track" aria-hidden="true">
+              <span style={{ width: `${Math.max(row.ratio, row.count > 0 ? 4 : 0)}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
 
 function DashboardRosterInsights({ insights }: { insights: DashboardInsights }) {
   return (
@@ -264,11 +355,30 @@ function buildDashboardInsights(members: Member[], groups: Group[]): DashboardIn
   const sortedMembers = [...members].sort((a, b) => a.name.localeCompare(b.name));
 
   return {
+    statisticsSummary: buildStatisticsSummary(sortedMembers),
     birthdayMonths: buildBirthdayMonths(sortedMembers),
     groupRosters: buildGroupRosters(sortedMembers, groups),
     ministryRosters: buildMinistryRosters(sortedMembers),
     jobDistribution: buildJobDistribution(sortedMembers),
     ageDistribution: buildAgeDistribution(sortedMembers),
+  };
+}
+
+function buildStatisticsSummary(members: Member[]): StatisticsSummary {
+  const genderCounts = countByLabels(members, ["남", "여", "미입력"], (member) => {
+    const gender = getCustomFieldString(member, "gender");
+    return gender === "남" || gender === "여" ? gender : "미입력";
+  });
+  const ageCounts = countByLabels(members, ["10대", "20대", "30대", "40대 이상", "미입력"], getAgeBucketLabel);
+  const jobCounts = countByLabels(members, ["학생", "사회인", "기타", "미입력"], getJobBucketLabel);
+  const ministryCounts = buildMinistrySummaryRows(members);
+
+  return {
+    totalMembers: members.length,
+    gender: toStatRows(genderCounts, members.length),
+    age: toStatRows(ageCounts, members.length),
+    job: toStatRows(jobCounts, members.length),
+    ministry: ministryCounts,
   };
 }
 
@@ -346,12 +456,11 @@ function buildJobDistribution(members: Member[]): InsightBucket[] {
 
   for (const member of members) {
     const normalizedJob = normalizeJobValue(getCustomFieldString(member, "job"));
-    const label = normalizedJob === "직장인" || normalizedJob === "사회인" ? "사회인" : normalizedJob || "미입력";
-    const bucketLabel = label === "학생" || label === "사회인" || label === "미입력" ? label : "기타";
+    const bucketLabel = getJobBucketLabel(member);
     buckets.get(bucketLabel)?.push({
       id: member.id,
       name: member.name,
-      meta: bucketLabel === "기타" && label !== "기타" ? label : member.groupName || undefined,
+      meta: bucketLabel === "기타" && normalizedJob !== "기타" ? normalizedJob : member.groupName || undefined,
     });
   }
 
@@ -364,16 +473,7 @@ function buildAgeDistribution(members: Member[]): InsightBucket[] {
 
   for (const member of members) {
     const age = Number(calculateKoreanAge(getCustomFieldString(member, "birthdate")));
-    const label =
-      !Number.isFinite(age) || age <= 0
-        ? "미입력"
-        : age < 20
-          ? "10대"
-          : age < 30
-            ? "20대"
-            : age < 40
-              ? "30대"
-              : "40대 이상";
+    const label = getAgeBucketLabel(member);
 
     buckets.get(label)?.push({
       id: member.id,
@@ -383,6 +483,83 @@ function buildAgeDistribution(members: Member[]): InsightBucket[] {
   }
 
   return labels.map((label) => ({ label, members: buckets.get(label) ?? [] }));
+}
+
+function buildMinistrySummaryRows(members: Member[]): StatSummaryRow[] {
+  const uniqueAssignedMemberIds = new Set<string>();
+  const teamRows = ministryOptions.map((ministry) => {
+    const assignedMembers = members.filter((member) => getMemberMinistries(member).includes(ministry));
+    for (const member of assignedMembers) uniqueAssignedMemberIds.add(member.id);
+    return {
+      label: ministry,
+      count: assignedMembers.length,
+      ratio: calculateRatio(assignedMembers.length, members.length),
+    };
+  });
+
+  return [
+    ...teamRows,
+    {
+      label: "총 사역자 수",
+      count: uniqueAssignedMemberIds.size,
+      ratio: calculateRatio(uniqueAssignedMemberIds.size, members.length),
+    },
+    {
+      label: "미배정",
+      count: Math.max(members.length - uniqueAssignedMemberIds.size, 0),
+      ratio: calculateRatio(Math.max(members.length - uniqueAssignedMemberIds.size, 0), members.length),
+    },
+  ];
+}
+
+function countByLabels(members: Member[], labels: string[], getLabel: (member: Member) => string): Map<string, number>;
+function countByLabels(members: Member[], labels: string[], getLabel: (member: Member) => string) {
+  const counts = new Map(labels.map((label) => [label, 0]));
+  for (const member of members) {
+    const label = getLabel(member);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function toStatRows(counts: Map<string, number>, total: number): StatSummaryRow[] {
+  return [...counts.entries()].map(([label, count]) => ({
+    label,
+    count,
+    ratio: calculateRatio(count, total),
+  }));
+}
+
+function calculateRatio(count: number, total: number) {
+  return total ? Math.round((count / total) * 1000) / 10 : 0;
+}
+
+function formatPercent(value: number) {
+  return `${value.toFixed(1)}%`;
+}
+
+function getJobBucketLabel(member: Member) {
+  const normalizedJob = normalizeJobValue(getCustomFieldString(member, "job"));
+  if (normalizedJob === "직장인" || normalizedJob === "사회인") return "사회인";
+  if (normalizedJob === "학생") return "학생";
+  if (!normalizedJob) return "미입력";
+  return "기타";
+}
+
+function getAgeBucketLabel(member: Member) {
+  const age = Number(calculateKoreanAge(getCustomFieldString(member, "birthdate")));
+  if (!Number.isFinite(age) || age <= 0) return "미입력";
+  if (age < 20) return "10대";
+  if (age < 30) return "20대";
+  if (age < 40) return "30대";
+  return "40대 이상";
+}
+
+function getMemberMinistries(member: Member) {
+  return [
+    normalizeMinistryValue(getCustomFieldString(member, "ministry_1")),
+    normalizeMinistryValue(getCustomFieldString(member, "ministry_2")),
+  ].filter(Boolean);
 }
 
 function getCustomFieldString(member: Member, key: string) {

@@ -128,6 +128,9 @@ test("pages expose section navigation anchors for operator workflows", () => {
 
 test("dashboard exposes roster insight sections for operators", () => {
   assert.match(dashboardSource, /buildDashboardInsights/);
+  assert.match(dashboardSource, /교적부 통계 요약/);
+  assert.match(dashboardSource, /StatisticsBarCard/);
+  assert.match(dashboardSource, /buildStatisticsSummary/);
   assert.match(dashboardSource, /월별 생일자/);
   assert.match(dashboardSource, /순 배정표/);
   assert.match(dashboardSource, /사역자 구성 현황/);
@@ -139,6 +142,7 @@ test("dashboard exposes roster insight sections for operators", () => {
   assert.match(dashboardSource, /buildJobDistribution/);
   assert.match(dashboardSource, /buildAgeDistribution/);
   assert.match(globalCssSource, /dashboard-insights/);
+  assert.match(globalCssSource, /statistics-panel/);
   assert.match(globalCssSource, /mini-roster-card/);
 });
 
