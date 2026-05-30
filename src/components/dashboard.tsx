@@ -6,6 +6,7 @@ import {
   createAttendanceEvent,
   createGroup,
   createMember,
+  deleteAttendanceEvent,
   deleteGroup,
   deleteMemberPermanently,
   deactivateMember,
@@ -1362,16 +1363,26 @@ export function AttendanceManager({
   const [localMembers, setLocalMembers] = useState(members);
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
   const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
+  const [deleteEventState, deleteEventAction, isDeletingEvent] = useActionState(deleteAttendanceEvent, initialActionState);
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
+  const canDeleteAttendanceEvents = canUseDeleteActions(user.role);
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
   const [attendanceGroupId, setAttendanceGroupId] = useState("all");
   const [eventSearchQuery, setEventSearchQuery] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState("all");
+  const [eventPendingDelete, setEventPendingDelete] = useState<AttendanceEvent | null>(null);
 
   useEffect(() => {
     setLocalMembers(members);
   }, [attendanceEventId, members]);
+
+  useEffect(() => {
+    if (deleteEventState.ok) {
+      setEventPendingDelete(null);
+      window.location.href = "/attendance";
+    }
+  }, [deleteEventState.ok]);
 
   const attendanceEventTypes = useMemo(() => {
     const preferredOrder = ["주일 예배", "순모임"];
@@ -1396,6 +1407,7 @@ export function AttendanceManager({
     const matchesType = eventTypeFilter === "all" || event.title === eventTypeFilter;
     return matchesQuery && matchesType;
   });
+  const selectedAttendanceEvent = attendanceEvents.find((event) => event.id === attendanceEventId) ?? null;
 
   const activeMembers = localMembers.filter(isAttendanceRosterMember);
   const activeMemberCount = activeMembers.length;
@@ -1513,17 +1525,41 @@ export function AttendanceManager({
             </select>
           </label>
         </div>
-        <div className="event-list">
-          {filteredAttendanceEvents.map((event) => (
-            <Link
-              className={`event-chip ${event.id === attendanceEventId ? "active" : ""}`}
-              href={`/attendance?eventId=${event.id}`}
-              key={event.id}
+        <div className="event-selector-panel">
+          <label>
+            최신순 이벤트
+            <select
+              value={attendanceEventId ?? ""}
+              onChange={(event) => {
+                if (event.target.value) {
+                  window.location.href = `/attendance?eventId=${event.target.value}`;
+                }
+              }}
             >
-              <strong>{event.title}</strong>
-              <span>{event.eventDate}</span>
-            </Link>
-          ))}
+              {filteredAttendanceEvents.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.eventDate} · {event.title}
+                </option>
+              ))}
+              {filteredAttendanceEvents.length === 0 ? <option value="">조건에 맞는 이벤트 없음</option> : null}
+            </select>
+          </label>
+          {selectedAttendanceEvent ? (
+            <div className="selected-event-summary">
+              <div className="person-block">
+                <strong>{selectedAttendanceEvent.title}</strong>
+                <span>{selectedAttendanceEvent.eventDate}</span>
+              </div>
+              <button
+                className="danger-text-button"
+                type="button"
+                disabled={!canManageAttendance || !canDeleteAttendanceEvents || isDeletingEvent}
+                onClick={() => setEventPendingDelete(selectedAttendanceEvent)}
+              >
+                삭제
+              </button>
+            </div>
+          ) : null}
           {attendanceEvents.length === 0 ? (
             <article className="care-item">
               <div className="person-block">
@@ -1541,7 +1577,47 @@ export function AttendanceManager({
             </article>
           ) : null}
         </div>
+        <ActionMessage state={deleteEventState} />
       </section>
+      {eventPendingDelete ? (
+        <div
+          className="confirm-modal-backdrop"
+          role="presentation"
+          onClick={() => setEventPendingDelete(null)}
+        >
+          <div
+            aria-labelledby="attendance-event-delete-title"
+            aria-modal="true"
+            className="confirm-modal"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="confirm-modal-copy">
+              <span className="status-pill inactive">삭제 확인</span>
+              <h2 id="attendance-event-delete-title">출석 이벤트를 지울까요?</h2>
+              <p>
+                <strong>{eventPendingDelete.eventDate} · {eventPendingDelete.title}</strong> 이벤트를 삭제하면 연결된 멤버별
+                출석 기록도 함께 삭제됩니다.
+              </p>
+            </div>
+            <div className="confirm-modal-actions">
+              <button className="secondary-button" type="button" onClick={() => setEventPendingDelete(null)}>
+                취소
+              </button>
+              <form action={deleteEventAction}>
+                <input name="id" type="hidden" value={eventPendingDelete.id} />
+                <button
+                  className="danger-button"
+                  type="submit"
+                  disabled={!canManageAttendance || !canDeleteAttendanceEvents || isDeletingEvent}
+                >
+                  삭제
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <DisclosurePanel
         id="attendance-create"

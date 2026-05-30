@@ -2302,6 +2302,43 @@ tbody tr:hover {
   text-decoration: none;
 }
 
+.event-selector-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-strong);
+}
+
+.event-selector-panel > label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.event-selector-panel select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.selected-event-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
 .attendance-check-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -2609,6 +2646,12 @@ tbody tr:hover {
   .mobile-menu-control:checked ~ .nav-list,
   .mobile-menu-control:checked ~ .auth-card {
     animation: mobileMenuReveal 180ms ease both;
+  }
+
+  .selected-event-summary,
+  .event-switcher {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .topbar,

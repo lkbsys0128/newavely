@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission, type Role } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
-import { canDeleteMemberRole, getRoleChangeBlockReason } from "@/lib/role-policy";
+import { canDeleteMemberRole, canUseDeleteActions, getRoleChangeBlockReason } from "@/lib/role-policy";
 import { replaceGoogleSheetValues } from "@/lib/google-sheets";
 import {
   calculateKoreanAge,
@@ -96,6 +96,10 @@ const deleteGroupSchema = z.object({
 const attendanceEventSchema = z.object({
   eventDate: z.string().min(1, "날짜를 선택해주세요."),
   title: z.string().min(1, "이벤트 이름을 입력해주세요."),
+});
+
+const deleteAttendanceEventSchema = z.object({
+  id: z.string().uuid(),
 });
 
 const attendanceReasonSchema = z
@@ -1255,6 +1259,40 @@ export async function createAttendanceEvent(_previousState: ActionState, formDat
     });
     revalidateAppData();
     return "출석 이벤트를 만들었습니다.";
+  });
+}
+
+export async function deleteAttendanceEvent(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
+    if (!canUseDeleteActions(currentMember.role)) {
+      throw new Error("삭제 권한이 없습니다.");
+    }
+
+    const parsed = deleteAttendanceEventSchema.parse({
+      id: formData.get("id"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("attendance_events")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const { error } = await supabase.from("attendance_events").delete().eq("id", parsed.id);
+    if (error) throw error;
+
+    await writeAuditLog({
+      supabase,
+      action: "attendance_event.delete",
+      targetTable: "attendance_events",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "출석 이벤트를 삭제했습니다. 연결된 출석 기록도 함께 정리됩니다.";
   });
 }
 
