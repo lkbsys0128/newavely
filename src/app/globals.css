@@ -2321,25 +2321,26 @@ tbody tr:hover {
   padding-top: 12px;
 }
 
-.attendance-check-grid {
+.attendance-check-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .attendance-card {
-  align-items: stretch;
-  min-height: 172px;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(180px, 1.3fr) auto minmax(260px, 0.95fr);
+  align-items: center;
+  min-height: 72px;
+  gap: 14px;
   border-color: var(--line);
   background: #ffffff;
+  padding: 12px 14px;
 }
 
 .attendance-card.present {
   border-color: rgba(22, 126, 145, 0.42);
-  background: linear-gradient(180deg, rgba(47, 145, 181, 0.16), rgba(255, 255, 255, 0.95) 70%);
-  box-shadow: 0 14px 28px rgba(47, 145, 181, 0.12);
+  background: linear-gradient(90deg, rgba(47, 145, 181, 0.16), rgba(255, 255, 255, 0.96) 42%);
+  box-shadow: 0 10px 22px rgba(47, 145, 181, 0.1);
 }
 
 .attendance-card.absent {
@@ -2348,7 +2349,7 @@ tbody tr:hover {
 
 .attendance-card.excused {
   border-color: rgba(72, 152, 128, 0.36);
-  background: linear-gradient(180deg, rgba(237, 248, 245, 0.9), rgba(255, 255, 255, 0.96) 74%);
+  background: linear-gradient(90deg, rgba(237, 248, 245, 0.92), rgba(255, 255, 255, 0.96) 42%);
 }
 
 .attendance-card .person-block {
@@ -2357,20 +2358,25 @@ tbody tr:hover {
 }
 
 .attendance-card .attendance-pill {
-  justify-self: start;
+  justify-self: center;
 }
 
 .attendance-card .attendance-actions {
   align-self: stretch;
+  display: grid;
+  grid-template-columns: minmax(108px, auto) minmax(130px, 1fr);
+  align-items: center;
+  justify-content: end;
+  gap: 10px;
   min-width: 0;
 }
 
 .attendance-card .attendance-actions > button {
-  width: 100%;
+  width: auto;
 }
 
 .attendance-empty-state {
-  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .reason-details {
@@ -2751,6 +2757,18 @@ tbody tr:hover {
     justify-items: stretch;
     max-width: none;
     min-width: 0;
+  }
+
+  .attendance-card {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-card .attendance-pill {
+    justify-self: start;
+  }
+
+  .attendance-card .attendance-actions {
+    grid-template-columns: 1fr;
   }
 
   .reason-form {

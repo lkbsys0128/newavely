@@ -1795,7 +1795,7 @@ export function AttendanceManager({
             </select>
           </label>
         </div>
-        <div className="attendance-check-grid">
+        <div className="attendance-check-list">
           {attendanceMembers.map((member) => {
             const status = getMemberAttendanceStatus(member, attendanceEventId);
             return (
@@ -1862,13 +1862,14 @@ function AttendanceRow({
 }) {
   const [reasonState, reasonAction, isSavingReason] = useActionState(updateAttendanceReason, initialActionState);
   const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
+  const visibleNote = currentRecord?.note && !isImportedAttendanceNote(currentRecord.note) ? currentRecord.note : "";
 
   return (
     <article className={`attendance-row attendance-card ${status}`}>
       <div className="person-block">
         <strong>{member.name}</strong>
         <span>{member.groupName}</span>
-        {currentRecord?.note ? <span>사유: {currentRecord.note}</span> : null}
+        {visibleNote ? <span>사유: {visibleNote}</span> : null}
         {currentRecord?.excuseStartDate || currentRecord?.excuseEndDate ? (
           <span>
             기간: {currentRecord.excuseStartDate || "시작일 미입력"} - {currentRecord.excuseEndDate || "종료일 미입력"}
@@ -1913,7 +1914,7 @@ function AttendanceRow({
               <textarea
                 name="note"
                 placeholder="여행, 건강, 가정 일정 등"
-                defaultValue={currentRecord?.note}
+                defaultValue={visibleNote}
                 disabled={!canManageAttendance || !eventId}
               />
             </label>
@@ -1928,6 +1929,10 @@ function AttendanceRow({
       </div>
     </article>
   );
+}
+
+function isImportedAttendanceNote(note: string) {
+  return note.trim() === "Imported from 2026 annual attendance CSV";
 }
 
 function getMemberAttendanceStatus(member: Member, eventId?: string): AttendanceStatus {

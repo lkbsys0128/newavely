@@ -95,6 +95,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 13. `db/013_owner_role_policies.sql`
 14. `db/014_delete_role_policies.sql`
 15. `db/015_attendance_observability.sql`
+16. `db/016_clear_attendance_import_notes.sql`
 
 주요 테이블:
 
@@ -151,6 +152,8 @@ import 방식:
 - SQL Editor 수동 실행: `private/attendance_import_2026_chunks/` 안의 SQL 파일을 숫자 순서대로 실행합니다.
 
 자동 실행 전에 순서만 확인하려면 `npm run import:attendance:2026 -- --dry-run`을 실행합니다.
+
+CSV import 후 출석 사유에 `Imported from 2026 annual attendance CSV`가 남아 있으면 `db/016_clear_attendance_import_notes.sql`을 한 번 실행합니다.
 
 ## 인증과 권한
 
