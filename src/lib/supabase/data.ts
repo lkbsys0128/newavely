@@ -196,7 +196,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
     .from("attendance_events")
     .select("id, event_date, title")
     .order("event_date", { ascending: false })
-    .limit(12);
+    .order("title", { ascending: true });
 
   if (eventsError) throw eventsError;
 

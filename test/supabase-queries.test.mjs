@@ -197,13 +197,20 @@ test("member detail opens as a centered modal from the roster", () => {
 });
 
 test("attendance checklist uses roster members and exposes search filters", () => {
+  assert.doesNotMatch(dataSource, /\.limit\(12\)/);
+  assert.match(dataSource, /\.order\("event_date", \{ ascending: false \}\)[\s\S]*\.order\("title", \{ ascending: true \}\)/);
   assert.match(dashboardSource, /isAttendanceRosterMember/);
   assert.match(dashboardSource, /member\.status === "active" \|\| member\.status === "care"/);
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
   assert.match(dashboardSource, /attendanceSearchQuery/);
   assert.match(dashboardSource, /attendanceGroupId/);
+  assert.match(dashboardSource, /eventSearchQuery/);
+  assert.match(dashboardSource, /eventTypeFilter/);
+  assert.match(dashboardSource, /sameDateEvents/);
+  assert.match(dashboardSource, /주일 예배[\s\S]*순모임/);
   assert.match(dashboardSource, /attendance-check-grid/);
   assert.match(dashboardSource, /attendance-card/);
+  assert.match(actionsSource, /이미 같은 날짜와 이름의 출석 이벤트/);
   assert.doesNotMatch(dashboardSource, /member\.groupName} · {member\.phone/);
 });
 

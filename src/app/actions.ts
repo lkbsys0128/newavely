@@ -1222,6 +1222,19 @@ export async function createAttendanceEvent(_previousState: ActionState, formDat
       title: formData.get("title"),
     });
 
+    const { data: existingEvent, error: existingEventError } = await supabase
+      .from("attendance_events")
+      .select("id")
+      .eq("event_date", parsed.eventDate)
+      .eq("title", parsed.title)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingEventError) throw existingEventError;
+    if (existingEvent) {
+      return "이미 같은 날짜와 이름의 출석 이벤트가 있습니다.";
+    }
+
     const { data: inserted, error } = await supabase
       .from("attendance_events")
       .insert({
