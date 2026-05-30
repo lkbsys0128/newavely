@@ -26,8 +26,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               </div>
             </div>
 
-            <details className="sidebar-menu">
-              <summary className="mobile-menu-toggle">메뉴</summary>
+            <div className="sidebar-menu">
+              <input className="mobile-menu-control" id="mobile-menu-control" type="checkbox" />
+              <label className="mobile-menu-toggle" htmlFor="mobile-menu-control">
+                메뉴
+              </label>
 
               <nav className="nav-list" aria-label="앱 섹션">
                 <Link href="/">대시보드</Link>
@@ -42,7 +45,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <div className="auth-card" aria-label="계정 메뉴">
                 <SignOutButton enabled={authEnabled} />
               </div>
-            </details>
+            </div>
           </aside>
 
           {children}

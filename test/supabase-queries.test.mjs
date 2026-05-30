@@ -127,10 +127,11 @@ test("pages expose section navigation anchors for operator workflows", () => {
 });
 
 test("mobile navigation collapses into an expandable dropdown", () => {
-  assert.match(layoutSource, /<details className="sidebar-menu">/);
-  assert.match(layoutSource, /<summary className="mobile-menu-toggle">메뉴<\/summary>/);
-  assert.match(globalCssSource, /@media \(max-width: 760px\)[\s\S]*\.sidebar-menu:not\(\[open\]\) > \.nav-list/);
-  assert.match(globalCssSource, /\.sidebar-menu\[open\] > \.nav-list[\s\S]*mobileMenuReveal/);
+  assert.match(layoutSource, /<div className="sidebar-menu">/);
+  assert.match(layoutSource, /className="mobile-menu-control"[\s\S]*type="checkbox"/);
+  assert.match(layoutSource, /<label className="mobile-menu-toggle" htmlFor="mobile-menu-control">/);
+  assert.match(globalCssSource, /@media \(max-width: 760px\)[\s\S]*\.mobile-menu-control:not\(:checked\) ~ \.nav-list/);
+  assert.match(globalCssSource, /\.mobile-menu-control:checked ~ \.nav-list[\s\S]*mobileMenuReveal/);
 });
 
 test("global styles include sharper control radius pass", () => {
