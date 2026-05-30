@@ -230,6 +230,10 @@ test("permissions page exposes member search for role management", () => {
   assert.match(dashboardSource, /filteredRoleManagedMembers/);
   assert.match(dashboardSource, /#permission-matrix[\s\S]*#admin-checks[\s\S]*#link-requests[\s\S]*#role-management/);
   assert.match(dashboardSource, /id="permission-matrix"[\s\S]*id="admin-checks"[\s\S]*id="link-requests"[\s\S]*id="role-management"/);
+  assert.match(dashboardSource, /visiblePermissionEntries/);
+  assert.match(dashboardSource, /role !== "owner"/);
+  assert.match(dashboardSource, /<h2>역할 기반 권한<\/h2>/);
+  assert.doesNotMatch(dashboardSource, /<DisclosurePanel id="permission-matrix"/);
   assert.match(dashboardSource, /link-request-section/);
   assert.match(dashboardSource, /request-count-pill/);
   assert.match(dashboardSource, /request-empty-state/);
@@ -243,6 +247,7 @@ test("legacy manual account merge entrypoint is not exposed", () => {
 
 test("member roster can be exported to Google Sheets without internal fields", () => {
   assert.match(actionsSource, /exportMembersToGoogleSheet/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("members:write"\)/);
   assert.match(actionsSource, /members\.export_google_sheet/);
   assert.match(actionsSource, /internalCustomFieldKeys/);
   assert.match(actionsSource, /is_sensitive/);

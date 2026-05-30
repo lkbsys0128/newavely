@@ -623,7 +623,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
   );
   const canManageMembers = hasPermission(user.role, "members:write");
   const canManageRoles = hasPermission(user.role, "roles:manage");
-  const canExportMembers = hasPermission(user.role, "roles:manage");
+  const canExportMembers = hasPermission(user.role, "members:write");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
   const isSoonjang = user.role === "staff";
   const visibleMembers = (showInactive ? members : members.filter((member) => member.status !== "inactive")).filter(
@@ -1833,10 +1833,12 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
   const rejectedLinkRequests = memberLinkRequests
     .filter((request) => request.status === "rejected" && request.requesterStatus !== "inactive")
     .slice(0, 10);
-  const activeOwners = members.filter((member) => member.role === "owner" && member.status !== "inactive");
   const activeAdmins = members.filter((member) => member.role === "admin" && member.status !== "inactive");
   const ownerAndAdmins = members.filter(
     (member) => (member.role === "owner" || member.role === "admin") && member.status !== "inactive",
+  );
+  const visiblePermissionEntries = (Object.entries(permissionsByRole) as Array<[Role, (typeof permissionsByRole)[Role]]>).filter(
+    ([role]) => role !== "owner",
   );
   const unlinkedActiveMembers = members
     .filter((member) => !member.authUserId && member.status !== "inactive" && !isMergedPlaceholderMember(member))
@@ -1864,17 +1866,12 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         items={[
           { href: "#permission-metrics", label: "요약" },
           { href: "#permission-matrix", label: "권한표" },
-          { href: "#admin-checks", label: "관리자/소유자 체크" },
+          { href: "#admin-checks", label: "관리자 체크" },
           { href: "#link-requests", label: "연결 요청" },
           { href: "#role-management", label: "역할 변경" },
         ]}
       />
       <div className="metric-grid" id="permission-metrics">
-        <article className="metric-card">
-          <span>최고 관리자</span>
-          <strong>{activeOwners.length}</strong>
-          <small>최소 1명 유지 필요</small>
-        </article>
         <article className="metric-card">
           <span>관리자</span>
           <strong>{activeAdmins.length}</strong>
@@ -1892,12 +1889,18 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </article>
       </div>
 
-      <DisclosurePanel id="permission-matrix" title="역할 기반 권한" meta="로그인한 사용자 역할에 따라 메뉴와 데이터 접근 제한">
+      <section className="panel form-panel" id="permission-matrix">
+        <div className="panel-heading">
+          <div>
+            <h2>역할 기반 권한</h2>
+            <p className="meta">로그인한 사용자 역할에 따라 메뉴와 데이터 접근이 제한됩니다.</p>
+          </div>
+        </div>
         <div className="permission-matrix">
-          {Object.entries(permissionsByRole).map(([role, permissions]) => (
+          {visiblePermissionEntries.map(([role, permissions]) => (
             <article className="permission-row" key={role}>
               <div className="person-block">
-                <strong>{roleLabels[role as Role]}</strong>
+                <strong>{roleLabels[role]}</strong>
                 <span>{members.filter((member) => member.role === role).length}명 배정</span>
               </div>
               <div className="permission-list">
@@ -1910,27 +1913,18 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
             </article>
           ))}
         </div>
-      </DisclosurePanel>
+      </section>
 
       <DisclosurePanel
         id="admin-checks"
-        title="최고 관리자 온보딩 체크"
+        title="관리자 온보딩 체크"
         meta={canManageRoles ? "역할 변경은 관리자 이상만 가능합니다" : "관리자 권한 필요"}
       >
         <div className="onboarding-list">
           <article className="detail-row">
             <div className="person-block">
-              <strong>최소 1명의 활성 최고 관리자 유지</strong>
-              <span>마지막 최고 관리자는 다른 역할로 변경할 수 없도록 막혀 있습니다.</span>
-            </div>
-            <span className={`status-pill ${activeOwners.length > 0 ? "active" : ""}`}>
-              {activeOwners.length > 0 ? "정상" : "필요"}
-            </span>
-          </article>
-          <article className="detail-row">
-            <div className="person-block">
               <strong>관리자 Google 계정 연결</strong>
-              <span>최고 관리자/관리자 권한은 실제 로그인 계정과 연결된 멤버에 부여하는 것이 안전합니다.</span>
+              <span>관리자 권한은 실제 로그인 계정과 연결된 멤버에 부여하는 것이 안전합니다.</span>
             </div>
             <span className={`status-pill ${ownerAndAdmins.some((member) => member.authUserId) ? "active" : ""}`}>
               {ownerAndAdmins.some((member) => member.authUserId) ? "정상" : "확인 필요"}
