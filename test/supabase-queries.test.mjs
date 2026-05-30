@@ -126,6 +126,22 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(memberDetailSource, /#care-followups/);
 });
 
+test("dashboard exposes roster insight sections for operators", () => {
+  assert.match(dashboardSource, /buildDashboardInsights/);
+  assert.match(dashboardSource, /월별 생일자/);
+  assert.match(dashboardSource, /순 배정표/);
+  assert.match(dashboardSource, /사역자 구성 현황/);
+  assert.match(dashboardSource, /직업 분포/);
+  assert.match(dashboardSource, /연령대 분포/);
+  assert.match(dashboardSource, /buildBirthdayMonths/);
+  assert.match(dashboardSource, /buildGroupRosters/);
+  assert.match(dashboardSource, /buildMinistryRosters/);
+  assert.match(dashboardSource, /buildJobDistribution/);
+  assert.match(dashboardSource, /buildAgeDistribution/);
+  assert.match(globalCssSource, /dashboard-insights/);
+  assert.match(globalCssSource, /mini-roster-card/);
+});
+
 test("mobile navigation collapses into an expandable dropdown", () => {
   assert.match(layoutSource, /<div className="sidebar-menu">/);
   assert.match(layoutSource, /className="mobile-menu-control"[\s\S]*type="checkbox"/);

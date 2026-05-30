@@ -1798,6 +1798,110 @@ tbody tr:hover {
   text-align: right;
 }
 
+.dashboard-insights {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.insight-panel {
+  padding: 16px;
+}
+
+.birthday-month-grid,
+.insight-card-grid,
+.dashboard-insight-row {
+  display: grid;
+  gap: 12px;
+}
+
+.birthday-month-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.insight-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.insight-card-grid.compact {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.dashboard-insight-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.insight-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.mini-roster-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfeff;
+}
+
+.mini-roster-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mini-roster-heading strong {
+  color: var(--ink);
+  font-size: 0.94rem;
+}
+
+.mini-roster-heading span {
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.insight-member-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-height: 172px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.insight-member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  border: 1px solid rgba(47, 145, 181, 0.18);
+  border-radius: 8px;
+  padding: 0 9px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.insight-member-chip small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.empty-mini-roster {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .group-card {
   display: grid;
   gap: 16px;
@@ -2304,6 +2408,7 @@ tbody tr:hover {
 
   .nav-list,
   .metric-grid,
+  .dashboard-insight-row,
   .group-grid,
   .stats-grid,
   .dashboard-layout,
@@ -2437,6 +2542,8 @@ tbody tr:hover {
 .metric-card,
 .panel,
 .group-card,
+.mini-roster-card,
+.insight-member-chip,
 .care-item,
 .summary-row,
 .attendance-row,
@@ -2473,6 +2580,7 @@ tbody tr:hover {
 .request-count-pill,
 .onboarding-status-pill,
 .member-chip,
+.insight-member-chip,
 .permission-chip,
 .progress,
 .progress span {
@@ -2488,6 +2596,7 @@ tbody tr:hover {
 
 .metric-card,
 .panel,
-.group-card {
+.group-card,
+.mini-roster-card {
   box-shadow: 0 8px 18px rgba(23, 51, 59, 0.045);
 }

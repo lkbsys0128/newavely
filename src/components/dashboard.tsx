@@ -33,7 +33,14 @@ import {
   type MemberFilters,
 } from "@/lib/member-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
-import { baptismStatusOptions, normalizeBaptismStatus } from "@/lib/member-field-options";
+import {
+  baptismStatusOptions,
+  calculateKoreanAge,
+  ministryOptions,
+  normalizeBaptismStatus,
+  normalizeJobValue,
+  normalizeMinistryValue,
+} from "@/lib/member-field-options";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
 
@@ -55,6 +62,7 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
   const inactiveMembers = dashboardMembers.filter((member) => member.status === "inactive");
   const presentCount = activeMembers.filter((member) => member.present).length;
   const attendanceRate = activeMembers.length ? Math.round((presentCount / activeMembers.length) * 100) : 0;
+  const dashboardInsights = buildDashboardInsights(activeMembers, groups);
 
   return (
     <>
@@ -62,6 +70,11 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
       <SectionNav
         items={[
           { href: "#overview-metrics", label: "요약" },
+          { href: "#birthday-overview", label: "생일" },
+          { href: "#group-roster", label: "순 배정표" },
+          { href: "#ministry-roster", label: "사역팀" },
+          { href: "#job-distribution", label: "직업" },
+          { href: "#age-distribution", label: "연령대" },
           { href: "#group-summary", label: "순 현황" },
         ]}
       />
@@ -96,11 +109,285 @@ export function DashboardOverview({ user, members, groups }: AppDataProps) {
         </article>
       </div>
 
+      <DashboardRosterInsights insights={dashboardInsights} />
+
       <div className="dashboard-layout single-panel-layout">
         <GroupSummaryPanel members={dashboardMembers} groups={groups} />
       </div>
     </>
   );
+}
+
+type InsightMember = {
+  id: string;
+  name: string;
+  meta?: string;
+};
+
+type BirthdayInsightMember = InsightMember & {
+  day: number;
+};
+
+type InsightBucket = {
+  label: string;
+  members: InsightMember[];
+};
+
+type BirthdayMonthBucket = {
+  month: number;
+  label: string;
+  members: BirthdayInsightMember[];
+};
+
+type DashboardInsights = {
+  birthdayMonths: BirthdayMonthBucket[];
+  groupRosters: InsightBucket[];
+  ministryRosters: InsightBucket[];
+  jobDistribution: InsightBucket[];
+  ageDistribution: InsightBucket[];
+};
+
+function DashboardRosterInsights({ insights }: { insights: DashboardInsights }) {
+  return (
+    <div className="dashboard-insights">
+      <section className="panel insight-panel" id="birthday-overview">
+        <div className="panel-heading">
+          <div>
+            <h2>월별 생일자</h2>
+            <span>활동 멤버 기준</span>
+          </div>
+        </div>
+        <div className="birthday-month-grid">
+          {insights.birthdayMonths.map((month) => (
+            <article className="mini-roster-card" key={month.month}>
+              <div className="mini-roster-heading">
+                <strong>{month.label}</strong>
+                <span>{month.members.length}명</span>
+              </div>
+              <MemberChipList emptyLabel="생일자 없음" members={month.members} />
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel insight-panel" id="group-roster">
+        <div className="panel-heading">
+          <div>
+            <h2>순 배정표</h2>
+            <span>각 순 로스터</span>
+          </div>
+        </div>
+        <div className="insight-card-grid">
+          {insights.groupRosters.map((group) => (
+            <RosterBucketCard bucket={group} emptyLabel="배정 멤버 없음" key={group.label} />
+          ))}
+        </div>
+      </section>
+
+      <section className="panel insight-panel" id="ministry-roster">
+        <div className="panel-heading">
+          <div>
+            <h2>사역자 구성 현황</h2>
+            <span>팀별 명단</span>
+          </div>
+        </div>
+        <div className="insight-card-grid compact">
+          {insights.ministryRosters.map((team) => (
+            <RosterBucketCard bucket={team} emptyLabel="배정 없음" key={team.label} />
+          ))}
+        </div>
+      </section>
+
+      <section className="dashboard-insight-row">
+        <div className="panel insight-panel" id="job-distribution">
+          <div className="panel-heading">
+            <div>
+              <h2>직업 분포</h2>
+              <span>학생/사회인 명단</span>
+            </div>
+          </div>
+          <div className="insight-stack">
+            {insights.jobDistribution.map((bucket) => (
+              <RosterBucketCard bucket={bucket} emptyLabel="해당 없음" key={bucket.label} />
+            ))}
+          </div>
+        </div>
+
+        <div className="panel insight-panel" id="age-distribution">
+          <div className="panel-heading">
+            <div>
+              <h2>연령대 분포</h2>
+              <span>만 나이 기준</span>
+            </div>
+          </div>
+          <div className="insight-stack">
+            {insights.ageDistribution.map((bucket) => (
+              <RosterBucketCard bucket={bucket} emptyLabel="해당 없음" key={bucket.label} />
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function RosterBucketCard({ bucket, emptyLabel }: { bucket: InsightBucket; emptyLabel: string }) {
+  return (
+    <article className="mini-roster-card">
+      <div className="mini-roster-heading">
+        <strong>{bucket.label}</strong>
+        <span>{bucket.members.length}명</span>
+      </div>
+      <MemberChipList emptyLabel={emptyLabel} members={bucket.members} />
+    </article>
+  );
+}
+
+function MemberChipList({ members, emptyLabel }: { members: InsightMember[]; emptyLabel: string }) {
+  if (members.length === 0) {
+    return <span className="empty-mini-roster">{emptyLabel}</span>;
+  }
+
+  return (
+    <div className="insight-member-list">
+      {members.map((member) => (
+        <span className="insight-member-chip" key={`${member.id}-${member.meta ?? ""}`}>
+          {member.name}
+          {member.meta ? <small>{member.meta}</small> : null}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function buildDashboardInsights(members: Member[], groups: Group[]): DashboardInsights {
+  const sortedMembers = [...members].sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    birthdayMonths: buildBirthdayMonths(sortedMembers),
+    groupRosters: buildGroupRosters(sortedMembers, groups),
+    ministryRosters: buildMinistryRosters(sortedMembers),
+    jobDistribution: buildJobDistribution(sortedMembers),
+    ageDistribution: buildAgeDistribution(sortedMembers),
+  };
+}
+
+function buildBirthdayMonths(members: Member[]): BirthdayMonthBucket[] {
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const monthMembers: BirthdayInsightMember[] = [];
+
+    for (const member of members) {
+      const birthdate = getCustomFieldString(member, "birthdate");
+      const [, birthMonth, birthDay] = birthdate.split("-").map(Number);
+      if (birthMonth !== month || !birthDay) continue;
+
+      monthMembers.push({
+        id: member.id,
+        name: member.name,
+        day: birthDay,
+        meta: `${birthDay}일${member.groupName ? ` · ${member.groupName}` : ""}`,
+      });
+    }
+
+    monthMembers.sort((a, b) => a.day - b.day || a.name.localeCompare(b.name));
+
+    return { month, label: `${month}월`, members: monthMembers };
+  });
+}
+
+function buildGroupRosters(members: Member[], groups: Group[]): InsightBucket[] {
+  const groupBuckets = groups.map((group) => ({
+    label: group.name,
+    members: members
+      .filter((member) => member.groupId === group.id)
+      .map((member) => ({
+        id: member.id,
+        name: member.name,
+        meta: member.id === group.leaderMemberId ? "리더" : undefined,
+      })),
+  }));
+
+  const unassignedMembers = members
+    .filter((member) => !member.groupId)
+    .map((member) => ({ id: member.id, name: member.name, meta: "미배정" }));
+
+  return [...groupBuckets, { label: "미배정", members: unassignedMembers }];
+}
+
+function buildMinistryRosters(members: Member[]): InsightBucket[] {
+  const buckets = new Map<string, InsightMember[]>();
+  for (const option of ministryOptions) buckets.set(option, []);
+  buckets.set("미입력", []);
+
+  for (const member of members) {
+    const ministries = [getCustomFieldString(member, "ministry_1"), getCustomFieldString(member, "ministry_2")]
+      .map((value) => normalizeMinistryValue(value))
+      .filter(Boolean);
+    const uniqueMinistries = [...new Set(ministries)];
+
+    if (uniqueMinistries.length === 0) {
+      buckets.get("미입력")?.push({ id: member.id, name: member.name, meta: member.groupName || undefined });
+      continue;
+    }
+
+    for (const ministry of uniqueMinistries) {
+      if (!buckets.has(ministry)) buckets.set(ministry, []);
+      buckets.get(ministry)?.push({ id: member.id, name: member.name, meta: member.groupName || undefined });
+    }
+  }
+
+  return [...buckets.entries()].map(([label, bucketMembers]) => ({ label, members: bucketMembers }));
+}
+
+function buildJobDistribution(members: Member[]): InsightBucket[] {
+  const labels = ["학생", "사회인", "기타", "미입력"];
+  const buckets = new Map(labels.map((label) => [label, [] as InsightMember[]]));
+
+  for (const member of members) {
+    const normalizedJob = normalizeJobValue(getCustomFieldString(member, "job"));
+    const label = normalizedJob === "직장인" || normalizedJob === "사회인" ? "사회인" : normalizedJob || "미입력";
+    const bucketLabel = label === "학생" || label === "사회인" || label === "미입력" ? label : "기타";
+    buckets.get(bucketLabel)?.push({
+      id: member.id,
+      name: member.name,
+      meta: bucketLabel === "기타" && label !== "기타" ? label : member.groupName || undefined,
+    });
+  }
+
+  return labels.map((label) => ({ label, members: buckets.get(label) ?? [] }));
+}
+
+function buildAgeDistribution(members: Member[]): InsightBucket[] {
+  const labels = ["10대", "20대", "30대", "40대 이상", "미입력"];
+  const buckets = new Map(labels.map((label) => [label, [] as InsightMember[]]));
+
+  for (const member of members) {
+    const age = Number(calculateKoreanAge(getCustomFieldString(member, "birthdate")));
+    const label =
+      !Number.isFinite(age) || age <= 0
+        ? "미입력"
+        : age < 20
+          ? "10대"
+          : age < 30
+            ? "20대"
+            : age < 40
+              ? "30대"
+              : "40대 이상";
+
+    buckets.get(label)?.push({
+      id: member.id,
+      name: member.name,
+      meta: label === "미입력" ? member.groupName || undefined : `만 ${age}세`,
+    });
+  }
+
+  return labels.map((label) => ({ label, members: buckets.get(label) ?? [] }));
+}
+
+function getCustomFieldString(member: Member, key: string) {
+  const value = member.customFields[key];
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
 }
 
 export function MembersManager({ user, members, groups }: AppDataProps) {
