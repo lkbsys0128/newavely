@@ -11,6 +11,7 @@ const ownerRoleMigrationSource = readFileSync(new URL("../db/012_owner_role.sql"
 const ownerRolePoliciesSource = readFileSync(new URL("../db/013_owner_role_policies.sql", import.meta.url), "utf8");
 const deleteRolePoliciesSource = readFileSync(new URL("../db/014_delete_role_policies.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
+const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
 const googleSheetsSource = readFileSync(new URL("../src/lib/google-sheets.ts", import.meta.url), "utf8");
@@ -122,6 +123,12 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(dashboardSource, /#link-requests/);
   assert.match(memberDetailSource, /#basic-info/);
   assert.match(memberDetailSource, /#care-followups/);
+});
+
+test("global styles include sharper control radius pass", () => {
+  assert.match(globalCssSource, /Sharper UI pass/);
+  assert.match(globalCssSource, /\.primary-button,[\s\S]*\.event-chip \{[\s\S]*border-radius: 4px/);
+  assert.match(globalCssSource, /\.status-pill,[\s\S]*\.permission-chip,[\s\S]*\.progress span \{[\s\S]*border-radius: 4px/);
 });
 
 test("member detail opens as a centered modal from the roster", () => {
