@@ -125,8 +125,8 @@ test("stale member link request cleanup closes orphaned pending requests", () =>
 
 test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(sectionNavSource, /aria-label="페이지 섹션"/);
-  assert.match(sectionNavSource, /section-nav-label/);
-  assert.match(sectionNavSource, /빠른 이동/);
+  assert.doesNotMatch(sectionNavSource, /section-nav-label/);
+  assert.doesNotMatch(sectionNavSource, /빠른 이동/);
   assert.match(sectionNavSource, /section-nav-links/);
   assert.match(dashboardSource, /#member-list/);
   assert.match(dashboardSource, /#attendance-checklist/);
