@@ -2249,6 +2249,59 @@ tbody tr:hover {
   font-weight: 700;
 }
 
+.event-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px);
+  gap: 12px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(47, 145, 181, 0.18);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fcfd;
+}
+
+.event-toolbar label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.event-toolbar input,
+.event-toolbar select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.event-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(47, 145, 181, 0.22);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f5fbfd;
+}
+
+.event-switcher > span {
+  color: var(--accent-dark);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.event-segment {
+  text-decoration: none;
+}
+
 .attendance-check-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -2614,6 +2667,7 @@ tbody tr:hover {
   .management-form,
   .filter-grid,
   .attendance-toolbar,
+  .event-toolbar,
   .link-request-resolution,
   .new-member-inline-fields,
   .role-management-toolbar,

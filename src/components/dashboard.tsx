@@ -1366,10 +1366,36 @@ export function AttendanceManager({
   const canManageAttendance = hasPermission(user.role, "attendance:write");
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
   const [attendanceGroupId, setAttendanceGroupId] = useState("all");
+  const [eventSearchQuery, setEventSearchQuery] = useState("");
+  const [eventTypeFilter, setEventTypeFilter] = useState("all");
 
   useEffect(() => {
     setLocalMembers(members);
   }, [attendanceEventId, members]);
+
+  const attendanceEventTypes = useMemo(() => {
+    const preferredOrder = ["주일 예배", "순모임"];
+    const titles = [...new Set(attendanceEvents.map((event) => event.title))];
+    return titles.sort((a, b) => {
+      const preferredA = preferredOrder.indexOf(a);
+      const preferredB = preferredOrder.indexOf(b);
+      if (preferredA !== -1 || preferredB !== -1) {
+        return (preferredA === -1 ? 99 : preferredA) - (preferredB === -1 ? 99 : preferredB);
+      }
+      return a.localeCompare(b);
+    });
+  }, [attendanceEvents]);
+  const sameDateEvents = attendanceEvents
+    .filter((event) => event.eventDate === attendanceDate)
+    .sort((a, b) => attendanceEventTypes.indexOf(a.title) - attendanceEventTypes.indexOf(b.title));
+  const filteredAttendanceEvents = attendanceEvents.filter((event) => {
+    const normalizedQuery = eventSearchQuery.trim().toLowerCase();
+    const matchesQuery = normalizedQuery
+      ? [event.title, event.eventDate].some((value) => value.toLowerCase().includes(normalizedQuery))
+      : true;
+    const matchesType = eventTypeFilter === "all" || event.title === eventTypeFilter;
+    return matchesQuery && matchesType;
+  });
 
   const activeMembers = localMembers.filter(isAttendanceRosterMember);
   const activeMemberCount = activeMembers.length;
@@ -1443,11 +1469,52 @@ export function AttendanceManager({
       />
       <section className="panel form-panel" id="attendance-events">
         <div className="panel-heading">
-          <h2>출석 이벤트 선택</h2>
-          <span>{attendanceEvents.length}개 이벤트</span>
+          <div>
+            <h2>출석 이벤트 선택</h2>
+            <p className="meta">예배와 순모임 이벤트를 같은 날짜 안에서 빠르게 전환할 수 있습니다.</p>
+          </div>
+          <span>{attendanceEvents.length}개 전체 이벤트</span>
+        </div>
+        {sameDateEvents.length > 1 ? (
+          <div className="event-switcher" aria-label={`${attendanceDate} 이벤트 전환`}>
+            <span>{attendanceDate}</span>
+            <div className="segmented">
+              {sameDateEvents.map((event) => (
+                <Link
+                  className={`segment event-segment ${event.id === attendanceEventId ? "active" : ""}`}
+                  href={`/attendance?eventId=${event.id}`}
+                  key={event.id}
+                >
+                  {event.title}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <div className="event-toolbar">
+          <label>
+            이벤트 검색
+            <input
+              type="search"
+              placeholder="날짜 또는 이름"
+              value={eventSearchQuery}
+              onChange={(event) => setEventSearchQuery(event.target.value)}
+            />
+          </label>
+          <label>
+            종류
+            <select value={eventTypeFilter} onChange={(event) => setEventTypeFilter(event.target.value)}>
+              <option value="all">전체 이벤트</option>
+              {attendanceEventTypes.map((title) => (
+                <option key={title} value={title}>
+                  {title}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <div className="event-list">
-          {attendanceEvents.map((event) => (
+          {filteredAttendanceEvents.map((event) => (
             <Link
               className={`event-chip ${event.id === attendanceEventId ? "active" : ""}`}
               href={`/attendance?eventId=${event.id}`}
@@ -1462,6 +1529,14 @@ export function AttendanceManager({
               <div className="person-block">
                 <strong>아직 출석 이벤트가 없습니다</strong>
                 <span>새 출석 이벤트를 만들면 멤버별 출석을 체크할 수 있습니다.</span>
+              </div>
+            </article>
+          ) : null}
+          {attendanceEvents.length > 0 && filteredAttendanceEvents.length === 0 ? (
+            <article className="care-item">
+              <div className="person-block">
+                <strong>조건에 맞는 이벤트가 없습니다</strong>
+                <span>검색어나 이벤트 종류를 조정해보세요.</span>
               </div>
             </article>
           ) : null}
@@ -1480,7 +1555,10 @@ export function AttendanceManager({
           </label>
           <label>
             이름
-            <input name="title" required placeholder="주일 예배" disabled={!canManageAttendance} />
+            <select name="title" required defaultValue="주일 예배" disabled={!canManageAttendance}>
+              <option value="주일 예배">주일 예배</option>
+              <option value="순모임">순모임</option>
+            </select>
           </label>
           <div className="form-actions full-width">
             <ActionMessage state={createEventState} />
