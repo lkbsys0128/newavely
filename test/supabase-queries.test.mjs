@@ -125,8 +125,8 @@ test("stale member link request cleanup closes orphaned pending requests", () =>
 
 test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(sectionNavSource, /aria-label="페이지 섹션"/);
-  assert.match(sectionNavSource, /section-nav-label/);
-  assert.match(sectionNavSource, /빠른 이동/);
+  assert.doesNotMatch(sectionNavSource, /section-nav-label/);
+  assert.doesNotMatch(sectionNavSource, /빠른 이동/);
   assert.match(sectionNavSource, /section-nav-links/);
   assert.match(dashboardSource, /#member-list/);
   assert.match(dashboardSource, /#attendance-checklist/);
@@ -207,10 +207,18 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /eventSearchQuery/);
   assert.match(dashboardSource, /eventTypeFilter/);
   assert.match(dashboardSource, /sameDateEvents/);
+  assert.match(dashboardSource, /event-selector-panel/);
+  assert.match(dashboardSource, /최신순 이벤트/);
   assert.match(dashboardSource, /주일 예배[\s\S]*순모임/);
   assert.match(dashboardSource, /attendance-check-grid/);
   assert.match(dashboardSource, /attendance-card/);
   assert.match(actionsSource, /이미 같은 날짜와 이름의 출석 이벤트/);
+  assert.match(actionsSource, /export async function deleteAttendanceEvent/);
+  assert.match(actionsSource, /attendance_event\.delete/);
+  assert.match(actionsSource, /canUseDeleteActions\(currentMember\.role\)/);
+  assert.match(dashboardSource, /eventPendingDelete/);
+  assert.match(dashboardSource, /출석 이벤트를 지울까요/);
+  assert.match(dashboardSource, /deleteEventAction/);
   assert.doesNotMatch(dashboardSource, /member\.groupName} · {member\.phone/);
 });
 
