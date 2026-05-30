@@ -15,6 +15,7 @@ const attendanceObservabilitySource = readFileSync(
   "utf8",
 );
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
+const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
@@ -24,6 +25,7 @@ const memberDetailSource = readFileSync(new URL("../src/components/member-detail
 const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
 const profilePageSource = readFileSync(new URL("../src/app/profile/page.tsx", import.meta.url), "utf8");
 const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
+const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
   assert.match(dataSource, /id, auth_user_id, name/);
@@ -152,6 +154,16 @@ test("dashboard exposes roster insight sections for operators", () => {
   assert.match(globalCssSource, /statistics-panel/);
   assert.match(globalCssSource, /upcoming-birthday-grid/);
   assert.match(globalCssSource, /mini-roster-card/);
+});
+
+test("dashboard metric cards use role-independent server metrics", () => {
+  assert.match(appPageDataSource, /export function buildDashboardMetrics/);
+  assert.match(appPageDataSource, /dashboardMetrics = buildDashboardMetrics\(dashboardData\.members, dashboardData\.groups\)/);
+  assert.match(homePageSource, /dashboardMetrics=\{readyData\.dashboardMetrics\}/);
+  assert.match(dashboardSource, /dashboardMetrics\?: DashboardMetrics/);
+  assert.match(dashboardSource, /const metrics = dashboardMetrics \?\?/);
+  assert.match(dashboardSource, /metrics\.totalMembers/);
+  assert.match(dashboardSource, /metrics\.attendanceEligibleMembers/);
 });
 
 test("mobile navigation collapses into an expandable dropdown", () => {
