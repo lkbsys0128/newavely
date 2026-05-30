@@ -595,6 +595,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
   const [filters, setFilters] = useState<MemberFilters>(defaultMemberFilters);
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [showInactive, setShowInactive] = useState(false);
+  const [showSheetLinkModal, setShowSheetLinkModal] = useState(false);
   const [createMemberState, createMemberAction, isCreatingMember] = useActionState(createMember, initialActionState);
   const [updateMemberState, updateMemberAction, isUpdatingMember] = useActionState(updateMember, initialActionState);
   const [deactivateMemberState, deactivateMemberAction, isDeactivatingMember] = useActionState(
@@ -635,6 +636,14 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     filters.role !== "all" ||
     filters.status !== "all" ||
     filters.account !== "all";
+  const exportedSheetUrl =
+    typeof exportMembersState.data?.spreadsheetUrl === "string" ? exportMembersState.data.spreadsheetUrl : "";
+
+  useEffect(() => {
+    if (exportMembersState.ok && exportedSheetUrl) {
+      setShowSheetLinkModal(true);
+    }
+  }, [exportMembersState.ok, exportedSheetUrl]);
 
   function updateFilters(nextFilters: Partial<MemberFilters>) {
     setFilters((current) => ({ ...current, ...nextFilters }));
@@ -658,6 +667,39 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         </form>
       </PageHeader>
       <ActionMessage state={exportMembersState} />
+      {showSheetLinkModal && exportedSheetUrl ? (
+        <div className="confirm-modal-backdrop" role="presentation" onClick={() => setShowSheetLinkModal(false)}>
+          <div
+            aria-labelledby="sheet-export-title"
+            aria-modal="true"
+            className="confirm-modal sheet-link-modal"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="confirm-modal-copy">
+              <span className="status-pill active">내보내기 완료</span>
+              <h2 id="sheet-export-title">Google Sheet를 확인할까요?</h2>
+              <p>
+                교적부 내보내기가 완료되었습니다. 연결된 Google Sheet를 새 탭에서 열어 확인할 수 있습니다.
+              </p>
+            </div>
+            <div className="confirm-modal-actions">
+              <button className="secondary-button" type="button" onClick={() => setShowSheetLinkModal(false)}>
+                취소
+              </button>
+              <a
+                className="primary-button"
+                href={exportedSheetUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setShowSheetLinkModal(false)}
+              >
+                확인
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <SectionNav
         items={[
           { href: "#member-filters", label: "필터" },

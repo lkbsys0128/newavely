@@ -231,10 +231,15 @@ test("member roster can be exported to Google Sheets without internal fields", (
   assert.match(actionsSource, /members\.export_google_sheet/);
   assert.match(actionsSource, /internalCustomFieldKeys/);
   assert.match(actionsSource, /is_sensitive/);
+  assert.match(actionsSource, /spreadsheetUrl: result\.spreadsheetUrl/);
+  assert.match(dashboardSource, /showSheetLinkModal/);
+  assert.match(dashboardSource, /Google Sheet를 확인할까요/);
+  assert.match(dashboardSource, /href=\{exportedSheetUrl\}/);
   assert.match(dashboardSource, /Google Sheet로 내보내기/);
   assert.match(googleSheetsSource, /GOOGLE_SERVICE_ACCOUNT_EMAIL/);
   assert.match(googleSheetsSource, /GOOGLE_PRIVATE_KEY/);
   assert.match(googleSheetsSource, /GOOGLE_SHEET_ID/);
+  assert.match(googleSheetsSource, /spreadsheetUrl: `https:\/\/docs\.google\.com\/spreadsheets\/d\/\$\{spreadsheetId\}\/edit`/);
   assert.match(googleSheetsSource, /:clear/);
 });
 

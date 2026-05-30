@@ -6,6 +6,7 @@ const sheetsScope = "https://www.googleapis.com/auth/spreadsheets";
 export type SheetSyncResult = {
   spreadsheetId: string;
   sheetName: string;
+  spreadsheetUrl: string;
   updatedRows: number;
   updatedColumns: number;
 };
@@ -100,6 +101,7 @@ export async function replaceGoogleSheetValues(rows: string[][]): Promise<SheetS
   return {
     spreadsheetId,
     sheetName,
+    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
     updatedRows: result.updatedRows ?? rows.length,
     updatedColumns: result.updatedColumns ?? rows[0]?.length ?? 0,
   };

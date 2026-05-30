@@ -1431,6 +1431,15 @@ tbody tr:hover {
   min-width: 92px;
 }
 
+.confirm-modal-actions a {
+  min-width: 92px;
+  text-decoration: none;
+}
+
+.sheet-link-modal {
+  border-color: rgba(47, 145, 181, 0.24);
+}
+
 .compact-action-form {
   margin-top: 10px;
   padding-top: 10px;
