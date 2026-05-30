@@ -127,7 +127,7 @@ attendance_records!attendance_records_member_id_fkey(status)
 
 ### 2026 출석 CSV import
 
-연간 출석부 CSV를 Supabase 출석 DB로 넣을 때는 `private/import_2026_attendance_history.sql`을 사용합니다. `private/` 폴더는 `.gitignore`에 포함되어 있으므로 민감한 교적/출석 데이터는 GitHub에 올라가지 않습니다.
+연간 출석부 CSV를 Supabase 출석 DB로 넣을 때는 `private/import_2026_attendance_history.sql` 또는 `private/attendance_import_2026_chunks/`를 사용합니다. `private/` 폴더는 `.gitignore`에 포함되어 있으므로 민감한 교적/출석 데이터는 GitHub에 올라가지 않습니다.
 
 import 방식:
 
@@ -143,7 +143,14 @@ import 방식:
 - `attendance_monthly_summary`: 월별 이벤트 출석률
 - `attendance_member_yearly_summary`: 멤버별 연간 예배/순모임 출석률
 
-운영 DB에 적용할 때는 먼저 `db/015_attendance_observability.sql`을 실행하고, 그 다음 `private/import_2026_attendance_history.sql`을 SQL Editor에서 실행합니다.
+운영 DB에 적용할 때는 먼저 `db/015_attendance_observability.sql`을 실행합니다.
+
+그 다음 둘 중 하나를 선택합니다.
+
+- 터미널 자동 실행: Supabase DB connection string을 `DATABASE_URL`에 넣고 `npm run import:attendance:2026`을 실행합니다.
+- SQL Editor 수동 실행: `private/attendance_import_2026_chunks/` 안의 SQL 파일을 숫자 순서대로 실행합니다.
+
+자동 실행 전에 순서만 확인하려면 `npm run import:attendance:2026 -- --dry-run`을 실행합니다.
 
 ## 인증과 권한
 
