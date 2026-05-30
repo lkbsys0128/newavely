@@ -10,6 +10,10 @@ const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_
 const ownerRoleMigrationSource = readFileSync(new URL("../db/012_owner_role.sql", import.meta.url), "utf8");
 const ownerRolePoliciesSource = readFileSync(new URL("../db/013_owner_role_policies.sql", import.meta.url), "utf8");
 const deleteRolePoliciesSource = readFileSync(new URL("../db/014_delete_role_policies.sql", import.meta.url), "utf8");
+const attendanceObservabilitySource = readFileSync(
+  new URL("../db/015_attendance_observability.sql", import.meta.url),
+  "utf8",
+);
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
@@ -238,4 +242,14 @@ test("profile link request panel only appears for the current onboarding member"
   assert.match(profilePageSource, /showLinkRequest={member\.status === "new"}/);
   assert.match(memberDetailSource, /request\.requesterMemberId === member\.id/);
   assert.match(memberDetailSource, /currentMemberLinkRequests\.find\(isActionableLinkRequest\)/);
+});
+
+test("attendance observability migration exposes summary views", () => {
+  assert.match(attendanceObservabilitySource, /attendance_events_date_title_idx/);
+  assert.match(attendanceObservabilitySource, /attendance_records_status_idx/);
+  assert.match(attendanceObservabilitySource, /create or replace view attendance_event_group_summary/);
+  assert.match(attendanceObservabilitySource, /create or replace view attendance_monthly_summary/);
+  assert.match(attendanceObservabilitySource, /create or replace view attendance_member_yearly_summary/);
+  assert.match(attendanceObservabilitySource, /with \(security_invoker = true\)/);
+  assert.match(attendanceObservabilitySource, /attendance_rate/);
 });
