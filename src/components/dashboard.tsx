@@ -143,6 +143,7 @@ type BirthdayMonthBucket = {
 
 type DashboardInsights = {
   statisticsSummary: StatisticsSummary;
+  upcomingBirthdays: BirthdayMonthBucket[];
   birthdayMonths: BirthdayMonthBucket[];
   groupRosters: InsightBucket[];
   ministryRosters: InsightBucket[];
@@ -247,6 +248,17 @@ function DashboardRosterInsights({ insights }: { insights: DashboardInsights }) 
             <h2>월별 생일자</h2>
             <span>활동 멤버 기준</span>
           </div>
+        </div>
+        <div className="upcoming-birthday-grid">
+          {insights.upcomingBirthdays.map((month) => (
+            <article className="upcoming-birthday-card" key={`upcoming-${month.month}`}>
+              <div className="mini-roster-heading">
+                <strong>{month.label} 생일자</strong>
+                <span>{month.members.length}명</span>
+              </div>
+              <MemberChipList emptyLabel="생일자 없음" members={month.members} />
+            </article>
+          ))}
         </div>
         <div className="birthday-month-grid">
           {insights.birthdayMonths.map((month) => (
@@ -356,12 +368,24 @@ function buildDashboardInsights(members: Member[], groups: Group[]): DashboardIn
 
   return {
     statisticsSummary: buildStatisticsSummary(sortedMembers),
+    upcomingBirthdays: buildUpcomingBirthdayMonths(sortedMembers),
     birthdayMonths: buildBirthdayMonths(sortedMembers),
     groupRosters: buildGroupRosters(sortedMembers, groups),
     ministryRosters: buildMinistryRosters(sortedMembers),
     jobDistribution: buildJobDistribution(sortedMembers),
     ageDistribution: buildAgeDistribution(sortedMembers),
   };
+}
+
+function buildUpcomingBirthdayMonths(members: Member[], today = new Date()): BirthdayMonthBucket[] {
+  const currentMonth = today.getMonth() + 1;
+  const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+  const birthdayMonths = buildBirthdayMonths(members);
+
+  return [currentMonth, nextMonth].map((month, index) => ({
+    ...birthdayMonths[month - 1],
+    label: index === 0 ? "이번달" : "다음달",
+  }));
 }
 
 function buildStatisticsSummary(members: Member[]): StatisticsSummary {

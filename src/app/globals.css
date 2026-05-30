@@ -1931,10 +1931,16 @@ tbody tr:hover {
 }
 
 .birthday-month-grid,
+.upcoming-birthday-grid,
 .insight-card-grid,
 .dashboard-insight-row {
   display: grid;
   gap: 12px;
+}
+
+.upcoming-birthday-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
 }
 
 .birthday-month-grid {
@@ -1967,6 +1973,19 @@ tbody tr:hover {
   border-radius: 8px;
   padding: 12px;
   background: #fbfeff;
+}
+
+.upcoming-birthday-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 112px;
+  border: 1px solid rgba(47, 145, 181, 0.24);
+  border-radius: 8px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(47, 145, 181, 0.08), transparent 80px),
+    #ffffff;
 }
 
 .mini-roster-heading {
@@ -2532,6 +2551,7 @@ tbody tr:hover {
   .metric-grid,
   .statistics-layout,
   .statistics-chart-grid,
+  .upcoming-birthday-grid,
   .dashboard-insight-row,
   .group-grid,
   .stats-grid,
@@ -2669,6 +2689,7 @@ tbody tr:hover {
 .statistics-chart-card,
 .group-card,
 .mini-roster-card,
+.upcoming-birthday-card,
 .insight-member-chip,
 .care-item,
 .summary-row,
@@ -2727,6 +2748,7 @@ tbody tr:hover {
 .statistics-table-card,
 .statistics-chart-card,
 .group-card,
-.mini-roster-card {
+.mini-roster-card,
+.upcoming-birthday-card {
   box-shadow: 0 8px 18px rgba(23, 51, 59, 0.045);
 }
