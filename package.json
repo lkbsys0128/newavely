@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "node --test",
+    "import:attendance:2026": "node scripts/import-attendance-2026.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "latest",

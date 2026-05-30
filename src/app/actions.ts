@@ -492,7 +492,7 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
 
 export async function exportMembersToGoogleSheet(_previousState: ActionState, _formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const { supabase } = await getAuthorizedCurrentMember("members:write");
 
     const { data: members, error: membersError } = await supabase
       .from("members")
