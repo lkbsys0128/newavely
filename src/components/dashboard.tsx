@@ -330,7 +330,12 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             type="button"
           />
         ) : null}
-        <aside className={`panel member-detail-drawer ${selectedMember ? "open" : ""}`} id="member-detail">
+        <aside
+          aria-modal={selectedMember ? "true" : undefined}
+          className={`panel member-detail-modal ${selectedMember ? "open" : ""}`}
+          id="member-detail"
+          role={selectedMember ? "dialog" : undefined}
+        >
           <div className="panel-heading">
             <h2>멤버 상세</h2>
             <button className="secondary-button table-action" type="button" onClick={() => setSelectedMemberId("")}>
@@ -730,13 +735,9 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                   저장
                 </button>
               </form>
-              <div className="danger-zone-form group-delete-form">
-                <div className="person-block">
-                  <strong>순 삭제</strong>
-                  <span>삭제하면 이 순의 멤버들은 미배정으로 이동됩니다.</span>
-                </div>
+              <div className="group-delete-form">
                 <button
-                  className="danger-button"
+                  className="danger-text-button"
                   type="button"
                   disabled={!canDeleteGroups || isDeletingGroup}
                   onClick={() => setGroupPendingDelete(group)}

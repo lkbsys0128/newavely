@@ -1,6 +1,10 @@
 import type { Role } from "@/lib/rbac";
 import type { Group, Member } from "@/lib/types";
 
+function isMergedPlaceholderForVisibility(member: Pick<Member, "email">) {
+  return member.email.trim().toLowerCase().endsWith("@merged.local");
+}
+
 export function getLedGroupIds(currentMemberId: string, groups: Group[]) {
   return new Set(groups.filter((group) => group.leaderMemberId === currentMemberId).map((group) => group.id));
 }
@@ -50,10 +54,12 @@ export function scopeMembersForRole({
   groups: Group[];
   members: Member[];
 }) {
-  if (role !== "staff") return members;
+  const visibleMembers = members.filter((member) => !isMergedPlaceholderForVisibility(member));
+
+  if (role !== "staff") return visibleMembers;
 
   const ledGroupIds = getLedGroupIds(currentMemberId, groups);
-  return members.map((member) =>
+  return visibleMembers.map((member) =>
     canViewFullMemberDetail({ role, currentMemberId, ledGroupIds, member }) ? member : maskMemberToDirectoryEntry(member),
   );
 }

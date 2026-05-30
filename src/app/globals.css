@@ -199,7 +199,8 @@ a {
 .google-button,
 .primary-button,
 .secondary-button,
-.danger-button {
+.danger-button,
+.danger-text-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -212,6 +213,26 @@ a {
   line-height: 1;
   text-align: center;
   white-space: nowrap;
+}
+
+.danger-text-button {
+  min-height: 32px;
+  border: 1px solid transparent;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--danger);
+  font-weight: 850;
+}
+
+.danger-text-button:hover:not(:disabled) {
+  border-color: rgba(209, 85, 85, 0.22);
+  background: rgba(209, 85, 85, 0.08);
+  transform: translateY(-1px);
+}
+
+.danger-text-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .google-button {
@@ -811,6 +832,7 @@ h3 {
 .primary-button,
 .secondary-button,
 .danger-button,
+.danger-text-button,
 .segment,
 .event-chip,
 .member-chip {
@@ -1100,15 +1122,15 @@ tbody tr:hover {
   cursor: default;
 }
 
-.member-detail-drawer {
+.member-detail-modal {
   position: fixed;
-  top: 18px;
-  right: 18px;
+  top: 50%;
+  left: 50%;
   z-index: 56;
-  width: min(460px, calc(100vw - 36px));
+  width: min(760px, calc(100vw - 36px));
   max-height: calc(100vh - 36px);
   overflow: auto;
-  transform: translateX(calc(100% + 32px));
+  transform: translate(-50%, -46%) scale(0.96);
   opacity: 0;
   pointer-events: none;
   transition:
@@ -1116,13 +1138,13 @@ tbody tr:hover {
     transform 220ms ease;
 }
 
-.member-detail-drawer.open {
-  transform: translateX(0);
+.member-detail-modal.open {
+  transform: translate(-50%, -50%) scale(1);
   opacity: 1;
   pointer-events: auto;
 }
 
-.member-detail-drawer .management-form {
+.member-detail-modal .management-form {
   gap: 12px;
 }
 
@@ -1796,6 +1818,12 @@ tbody tr:hover {
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 800;
+}
+
+.group-delete-form {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
 }
 
 .group-member-list {

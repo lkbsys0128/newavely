@@ -49,6 +49,36 @@ test("soonjang sees full detail only for members in led groups", () => {
   assert.deepEqual(Array.from(scopedMembers.find((item) => item.id === "other-group").attendanceHistory), []);
 });
 
+test("all roles use the same visible roster basis without merged placeholders", () => {
+  const groups = [{ id: "group-a", name: "A순", leaderMemberId: "soonjang", leaderName: "순장" }];
+  const members = [
+    member({ id: "real", name: "요셉", groupId: "group-a" }),
+    member({ id: "merged-placeholder", name: "요셉", email: "merged-placeholder@merged.local", groupId: null }),
+  ];
+
+  const soonjangMembers = scopeMembersForRole({
+    role: "staff",
+    currentMemberId: "soonjang",
+    groups,
+    members,
+  });
+  const adminMembers = scopeMembersForRole({
+    role: "admin",
+    currentMemberId: "admin",
+    groups,
+    members,
+  });
+
+  assert.deepEqual(
+    soonjangMembers.map((item) => item.id),
+    ["real"],
+  );
+  assert.deepEqual(
+    adminMembers.map((item) => item.id),
+    ["real"],
+  );
+});
+
 test("non-soonjang roles keep full member detail", () => {
   const [adminMember] = scopeMembersForRole({
     role: "admin",
