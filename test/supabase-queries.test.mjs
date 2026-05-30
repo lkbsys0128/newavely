@@ -14,6 +14,8 @@ const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
 const googleSheetsSource = readFileSync(new URL("../src/lib/google-sheets.ts", import.meta.url), "utf8");
+const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const layoutSource = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
 const memberDetailSource = readFileSync(new URL("../src/components/member-detail.tsx", import.meta.url), "utf8");
 const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
 const profilePageSource = readFileSync(new URL("../src/app/profile/page.tsx", import.meta.url), "utf8");
@@ -122,6 +124,13 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(dashboardSource, /#link-requests/);
   assert.match(memberDetailSource, /#basic-info/);
   assert.match(memberDetailSource, /#care-followups/);
+});
+
+test("mobile navigation collapses into an expandable dropdown", () => {
+  assert.match(layoutSource, /<details className="sidebar-menu">/);
+  assert.match(layoutSource, /<summary className="mobile-menu-toggle">메뉴<\/summary>/);
+  assert.match(globalCssSource, /@media \(max-width: 760px\)[\s\S]*\.sidebar-menu:not\(\[open\]\) > \.nav-list/);
+  assert.match(globalCssSource, /\.sidebar-menu\[open\] > \.nav-list[\s\S]*mobileMenuReveal/);
 });
 
 test("member detail opens as a centered modal from the roster", () => {
