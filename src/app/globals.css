@@ -1431,6 +1431,15 @@ tbody tr:hover {
   min-width: 92px;
 }
 
+.confirm-modal-actions a {
+  min-width: 92px;
+  text-decoration: none;
+}
+
+.sheet-link-modal {
+  border-color: rgba(47, 145, 181, 0.24);
+}
+
 .compact-action-form {
   margin-top: 10px;
   padding-top: 10px;
@@ -1796,6 +1805,251 @@ tbody tr:hover {
   gap: 10px;
   min-width: 150px;
   text-align: right;
+}
+
+.statistics-panel {
+  margin-top: 14px;
+  padding: 16px;
+}
+
+.statistics-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.statistics-table-card,
+.statistics-chart-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfeff;
+}
+
+.statistics-table-card {
+  overflow: hidden;
+}
+
+.statistics-table-heading,
+.statistics-table-group strong,
+.statistics-table-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.statistics-table-heading {
+  padding: 10px 12px;
+  background: rgba(47, 145, 181, 0.1);
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.statistics-table-group {
+  border-top: 1px solid var(--line);
+}
+
+.statistics-table-group strong {
+  padding: 9px 12px;
+  background: #ffffff;
+  color: var(--accent-dark);
+  font-size: 0.8rem;
+}
+
+.statistics-table-row {
+  min-height: 32px;
+  border-top: 1px solid rgba(47, 145, 181, 0.12);
+  padding: 0 12px;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.statistics-table-row span:last-child {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.statistics-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.statistics-chart-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.statistics-chart-card h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.statistics-bars {
+  display: grid;
+  gap: 11px;
+}
+
+.statistics-bar-row {
+  display: grid;
+  gap: 6px;
+}
+
+.statistics-bar-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.statistics-bar-label strong {
+  color: var(--muted);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.statistics-bar-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dcebf0;
+}
+
+.statistics-bar-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+}
+
+.dashboard-insights {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.insight-panel {
+  padding: 16px;
+}
+
+.birthday-month-grid,
+.upcoming-birthday-grid,
+.insight-card-grid,
+.dashboard-insight-row {
+  display: grid;
+  gap: 12px;
+}
+
+.upcoming-birthday-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.birthday-month-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.insight-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.insight-card-grid.compact {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.dashboard-insight-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.insight-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.mini-roster-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfeff;
+}
+
+.upcoming-birthday-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 112px;
+  border: 1px solid rgba(47, 145, 181, 0.24);
+  border-radius: 8px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(47, 145, 181, 0.08), transparent 80px),
+    #ffffff;
+}
+
+.mini-roster-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mini-roster-heading strong {
+  color: var(--ink);
+  font-size: 0.94rem;
+}
+
+.mini-roster-heading span {
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.insight-member-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-height: 172px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.insight-member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  border: 1px solid rgba(47, 145, 181, 0.18);
+  border-radius: 8px;
+  padding: 0 9px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.insight-member-chip small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.empty-mini-roster {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
 }
 
 .group-card {
@@ -2304,6 +2558,10 @@ tbody tr:hover {
 
   .nav-list,
   .metric-grid,
+  .statistics-layout,
+  .statistics-chart-grid,
+  .upcoming-birthday-grid,
+  .dashboard-insight-row,
   .group-grid,
   .stats-grid,
   .dashboard-layout,
@@ -2436,7 +2694,12 @@ tbody tr:hover {
 .role-management-row select,
 .metric-card,
 .panel,
+.statistics-table-card,
+.statistics-chart-card,
 .group-card,
+.mini-roster-card,
+.upcoming-birthday-card,
+.insight-member-chip,
 .care-item,
 .summary-row,
 .attendance-row,
@@ -2473,8 +2736,11 @@ tbody tr:hover {
 .request-count-pill,
 .onboarding-status-pill,
 .member-chip,
+.insight-member-chip,
 .permission-chip,
 .progress,
+.statistics-bar-track,
+.statistics-bar-track span,
 .progress span {
   border-radius: 4px;
 }
@@ -2488,6 +2754,10 @@ tbody tr:hover {
 
 .metric-card,
 .panel,
-.group-card {
+.statistics-table-card,
+.statistics-chart-card,
+.group-card,
+.mini-roster-card,
+.upcoming-birthday-card {
   box-shadow: 0 8px 18px rgba(23, 51, 59, 0.045);
 }

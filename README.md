@@ -93,6 +93,8 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 11. `db/011_member_link_request_admin_policy.sql`
 12. `db/012_owner_role.sql`
 13. `db/013_owner_role_policies.sql`
+14. `db/014_delete_role_policies.sql`
+15. `db/015_attendance_observability.sql`
 
 주요 테이블:
 
@@ -122,6 +124,26 @@ attendance_records!attendance_records_member_id_fkey(status)
 ```
 
 이 문제가 다시 생기지 않도록 `test/supabase-queries.test.mjs`에 회귀 테스트가 있습니다. Supabase select query를 수정할 때는 이 테스트도 같이 확인해주세요.
+
+### 2026 출석 CSV import
+
+연간 출석부 CSV를 Supabase 출석 DB로 넣을 때는 `private/import_2026_attendance_history.sql`을 사용합니다. `private/` 폴더는 `.gitignore`에 포함되어 있으므로 민감한 교적/출석 데이터는 GitHub에 올라가지 않습니다.
+
+import 방식:
+
+- `2026 연간 출석 현황.csv`에서 실제 집계가 있는 주차만 import합니다. 현재 생성된 스크립트는 `2026-05-24`까지 포함합니다.
+- 각 날짜마다 `주일 예배`, `순모임` 두 개의 `attendance_events`를 만듭니다.
+- 각 멤버의 TRUE/FALSE는 `attendance_records.status`의 `present`/`absent`로 변환합니다.
+- 멤버는 이름 기준으로 기존 `members`와 연결합니다. 괄호 안 영어 이름과 공백은 비교에서 제외합니다.
+- CSV에는 있지만 앱 교적에 없는 이름은 마지막 검증 쿼리에서 따로 보여줍니다.
+
+출석 관찰용 DB view:
+
+- `attendance_event_group_summary`: 날짜/이벤트/순별 출석률
+- `attendance_monthly_summary`: 월별 이벤트 출석률
+- `attendance_member_yearly_summary`: 멤버별 연간 예배/순모임 출석률
+
+운영 DB에 적용할 때는 먼저 `db/015_attendance_observability.sql`을 실행하고, 그 다음 `private/import_2026_attendance_history.sql`을 SQL Editor에서 실행합니다.
 
 ## 인증과 권한
 

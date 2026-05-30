@@ -33,7 +33,14 @@ import {
   type MemberFilters,
 } from "@/lib/member-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
-import { baptismStatusOptions, normalizeBaptismStatus } from "@/lib/member-field-options";
+import {
+  baptismStatusOptions,
+  calculateKoreanAge,
+  ministryOptions,
+  normalizeBaptismStatus,
+  normalizeJobValue,
+  normalizeMinistryValue,
+} from "@/lib/member-field-options";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
 
@@ -52,19 +59,20 @@ const initialActionState: ActionState = { ok: false, message: "" };
 
 export function DashboardOverview({ user, members, groups, dashboardMetrics }: AppDataProps) {
   const dashboardMembers = members.filter((member) => !isMergedPlaceholderMember(member));
-  const localActiveMembers = dashboardMembers.filter((member) => member.status !== "inactive");
-  const localPresentCount = localActiveMembers.filter((member) => member.present).length;
+  const activeMembers = dashboardMembers.filter((member) => member.status !== "inactive");
+  const localPresentCount = activeMembers.filter((member) => member.present).length;
   const metrics = dashboardMetrics ?? {
     totalMembers: dashboardMembers.length,
-    activeMembers: localActiveMembers.length,
-    inactiveMembers: dashboardMembers.length - localActiveMembers.length,
+    activeMembers: activeMembers.length,
+    inactiveMembers: dashboardMembers.length - activeMembers.length,
     presentMembers: localPresentCount,
-    attendanceEligibleMembers: localActiveMembers.length,
+    attendanceEligibleMembers: activeMembers.length,
     groups: groups.length,
   };
   const attendanceRate = metrics.attendanceEligibleMembers
     ? Math.round((metrics.presentMembers / metrics.attendanceEligibleMembers) * 100)
     : 0;
+  const dashboardInsights = buildDashboardInsights(activeMembers, groups);
 
   return (
     <>
@@ -72,6 +80,12 @@ export function DashboardOverview({ user, members, groups, dashboardMetrics }: A
       <SectionNav
         items={[
           { href: "#overview-metrics", label: "요약" },
+          { href: "#statistics-summary", label: "통계" },
+          { href: "#birthday-overview", label: "생일" },
+          { href: "#group-roster", label: "순 배정표" },
+          { href: "#ministry-roster", label: "사역팀" },
+          { href: "#job-distribution", label: "직업" },
+          { href: "#age-distribution", label: "연령대" },
           { href: "#group-summary", label: "순 현황" },
         ]}
       />
@@ -106,6 +120,9 @@ export function DashboardOverview({ user, members, groups, dashboardMetrics }: A
         </article>
       </div>
 
+      <DashboardStatisticsSummary summary={dashboardInsights.statisticsSummary} />
+      <DashboardRosterInsights insights={dashboardInsights} />
+
       <div className="dashboard-layout single-panel-layout">
         <GroupSummaryPanel members={dashboardMembers} groups={groups} />
       </div>
@@ -113,10 +130,482 @@ export function DashboardOverview({ user, members, groups, dashboardMetrics }: A
   );
 }
 
+type InsightMember = {
+  id: string;
+  name: string;
+  meta?: string;
+};
+
+type BirthdayInsightMember = InsightMember & {
+  day: number;
+};
+
+type InsightBucket = {
+  label: string;
+  members: InsightMember[];
+};
+
+type BirthdayMonthBucket = {
+  month: number;
+  label: string;
+  members: BirthdayInsightMember[];
+};
+
+type DashboardInsights = {
+  statisticsSummary: StatisticsSummary;
+  upcomingBirthdays: BirthdayMonthBucket[];
+  birthdayMonths: BirthdayMonthBucket[];
+  groupRosters: InsightBucket[];
+  ministryRosters: InsightBucket[];
+  jobDistribution: InsightBucket[];
+  ageDistribution: InsightBucket[];
+};
+
+type StatSummaryRow = {
+  label: string;
+  count: number;
+  ratio: number;
+};
+
+type StatisticsSummary = {
+  totalMembers: number;
+  gender: StatSummaryRow[];
+  age: StatSummaryRow[];
+  job: StatSummaryRow[];
+  ministry: StatSummaryRow[];
+};
+
+function DashboardStatisticsSummary({ summary }: { summary: StatisticsSummary }) {
+  return (
+    <section className="panel statistics-panel" id="statistics-summary">
+      <div className="panel-heading">
+        <div>
+          <h2>교적부 통계 요약</h2>
+          <span>활동 멤버 {summary.totalMembers}명 기준</span>
+        </div>
+      </div>
+
+      <div className="statistics-layout">
+        <article className="statistics-table-card">
+          <div className="statistics-table-heading">
+            <strong>항목</strong>
+            <span>인원 / 비율</span>
+          </div>
+          <StatisticsTableGroup title="성별 통계" rows={summary.gender} />
+          <StatisticsTableGroup title="연령대 통계" rows={summary.age} />
+          <StatisticsTableGroup title="직업별 통계" rows={summary.job} />
+          <StatisticsTableGroup title="사역별 통계" rows={summary.ministry} />
+        </article>
+
+        <div className="statistics-chart-grid">
+          <StatisticsBarCard title="성별 구성" rows={summary.gender} />
+          <StatisticsBarCard title="연령대 분포" rows={summary.age.filter((row) => row.label !== "미입력")} />
+          <StatisticsBarCard title="직업 구성" rows={summary.job} />
+          <StatisticsBarCard title="사역 참여 현황" rows={summary.ministry} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StatisticsTableGroup({ title, rows }: { title: string; rows: StatSummaryRow[] }) {
+  return (
+    <div className="statistics-table-group">
+      <strong>{title}</strong>
+      {rows.map((row) => (
+        <div className="statistics-table-row" key={row.label}>
+          <span>{row.label}</span>
+          <span>
+            {row.count}명 · {formatPercent(row.ratio)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatisticsBarCard({ title, rows }: { title: string; rows: StatSummaryRow[] }) {
+  const visibleRows = rows.length ? rows : [{ label: "데이터 없음", count: 0, ratio: 0 }];
+
+  return (
+    <article className="statistics-chart-card">
+      <h3>{title}</h3>
+      <div className="statistics-bars">
+        {visibleRows.map((row) => (
+          <div className="statistics-bar-row" key={row.label}>
+            <div className="statistics-bar-label">
+              <span>{row.label}</span>
+              <strong>
+                {row.count}명 · {formatPercent(row.ratio)}
+              </strong>
+            </div>
+            <div className="statistics-bar-track" aria-hidden="true">
+              <span style={{ width: `${Math.max(row.ratio, row.count > 0 ? 4 : 0)}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function DashboardRosterInsights({ insights }: { insights: DashboardInsights }) {
+  return (
+    <div className="dashboard-insights">
+      <section className="panel insight-panel" id="birthday-overview">
+        <div className="panel-heading">
+          <div>
+            <h2>월별 생일자</h2>
+            <span>활동 멤버 기준</span>
+          </div>
+        </div>
+        <div className="upcoming-birthday-grid">
+          {insights.upcomingBirthdays.map((month) => (
+            <article className="upcoming-birthday-card" key={`upcoming-${month.month}`}>
+              <div className="mini-roster-heading">
+                <strong>{month.label} 생일자</strong>
+                <span>{month.members.length}명</span>
+              </div>
+              <MemberChipList emptyLabel="생일자 없음" members={month.members} />
+            </article>
+          ))}
+        </div>
+        <div className="birthday-month-grid">
+          {insights.birthdayMonths.map((month) => (
+            <article className="mini-roster-card" key={month.month}>
+              <div className="mini-roster-heading">
+                <strong>{month.label}</strong>
+                <span>{month.members.length}명</span>
+              </div>
+              <MemberChipList emptyLabel="생일자 없음" members={month.members} />
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel insight-panel" id="group-roster">
+        <div className="panel-heading">
+          <div>
+            <h2>순 배정표</h2>
+            <span>각 순 로스터</span>
+          </div>
+        </div>
+        <div className="insight-card-grid">
+          {insights.groupRosters.map((group) => (
+            <RosterBucketCard bucket={group} emptyLabel="배정 멤버 없음" key={group.label} />
+          ))}
+        </div>
+      </section>
+
+      <section className="panel insight-panel" id="ministry-roster">
+        <div className="panel-heading">
+          <div>
+            <h2>사역자 구성 현황</h2>
+            <span>팀별 명단</span>
+          </div>
+        </div>
+        <div className="insight-card-grid compact">
+          {insights.ministryRosters.map((team) => (
+            <RosterBucketCard bucket={team} emptyLabel="배정 없음" key={team.label} />
+          ))}
+        </div>
+      </section>
+
+      <section className="dashboard-insight-row">
+        <div className="panel insight-panel" id="job-distribution">
+          <div className="panel-heading">
+            <div>
+              <h2>직업 분포</h2>
+              <span>학생/사회인 명단</span>
+            </div>
+          </div>
+          <div className="insight-stack">
+            {insights.jobDistribution.map((bucket) => (
+              <RosterBucketCard bucket={bucket} emptyLabel="해당 없음" key={bucket.label} />
+            ))}
+          </div>
+        </div>
+
+        <div className="panel insight-panel" id="age-distribution">
+          <div className="panel-heading">
+            <div>
+              <h2>연령대 분포</h2>
+              <span>만 나이 기준</span>
+            </div>
+          </div>
+          <div className="insight-stack">
+            {insights.ageDistribution.map((bucket) => (
+              <RosterBucketCard bucket={bucket} emptyLabel="해당 없음" key={bucket.label} />
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function RosterBucketCard({ bucket, emptyLabel }: { bucket: InsightBucket; emptyLabel: string }) {
+  return (
+    <article className="mini-roster-card">
+      <div className="mini-roster-heading">
+        <strong>{bucket.label}</strong>
+        <span>{bucket.members.length}명</span>
+      </div>
+      <MemberChipList emptyLabel={emptyLabel} members={bucket.members} />
+    </article>
+  );
+}
+
+function MemberChipList({ members, emptyLabel }: { members: InsightMember[]; emptyLabel: string }) {
+  if (members.length === 0) {
+    return <span className="empty-mini-roster">{emptyLabel}</span>;
+  }
+
+  return (
+    <div className="insight-member-list">
+      {members.map((member) => (
+        <span className="insight-member-chip" key={`${member.id}-${member.meta ?? ""}`}>
+          {member.name}
+          {member.meta ? <small>{member.meta}</small> : null}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function buildDashboardInsights(members: Member[], groups: Group[]): DashboardInsights {
+  const sortedMembers = [...members].sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    statisticsSummary: buildStatisticsSummary(sortedMembers),
+    upcomingBirthdays: buildUpcomingBirthdayMonths(sortedMembers),
+    birthdayMonths: buildBirthdayMonths(sortedMembers),
+    groupRosters: buildGroupRosters(sortedMembers, groups),
+    ministryRosters: buildMinistryRosters(sortedMembers),
+    jobDistribution: buildJobDistribution(sortedMembers),
+    ageDistribution: buildAgeDistribution(sortedMembers),
+  };
+}
+
+function buildUpcomingBirthdayMonths(members: Member[], today = new Date()): BirthdayMonthBucket[] {
+  const currentMonth = today.getMonth() + 1;
+  const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+  const birthdayMonths = buildBirthdayMonths(members);
+
+  return [currentMonth, nextMonth].map((month, index) => ({
+    ...birthdayMonths[month - 1],
+    label: index === 0 ? "이번달" : "다음달",
+  }));
+}
+
+function buildStatisticsSummary(members: Member[]): StatisticsSummary {
+  const genderCounts = countByLabels(members, ["남", "여", "미입력"], (member) => {
+    const gender = getCustomFieldString(member, "gender");
+    return gender === "남" || gender === "여" ? gender : "미입력";
+  });
+  const ageCounts = countByLabels(members, ["10대", "20대", "30대", "40대 이상", "미입력"], getAgeBucketLabel);
+  const jobCounts = countByLabels(members, ["학생", "사회인", "기타", "미입력"], getJobBucketLabel);
+  const ministryCounts = buildMinistrySummaryRows(members);
+
+  return {
+    totalMembers: members.length,
+    gender: toStatRows(genderCounts, members.length),
+    age: toStatRows(ageCounts, members.length),
+    job: toStatRows(jobCounts, members.length),
+    ministry: ministryCounts,
+  };
+}
+
+function buildBirthdayMonths(members: Member[]): BirthdayMonthBucket[] {
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const monthMembers: BirthdayInsightMember[] = [];
+
+    for (const member of members) {
+      const birthdate = getCustomFieldString(member, "birthdate");
+      const [, birthMonth, birthDay] = birthdate.split("-").map(Number);
+      if (birthMonth !== month || !birthDay) continue;
+
+      monthMembers.push({
+        id: member.id,
+        name: member.name,
+        day: birthDay,
+        meta: `${birthDay}일${member.groupName ? ` · ${member.groupName}` : ""}`,
+      });
+    }
+
+    monthMembers.sort((a, b) => a.day - b.day || a.name.localeCompare(b.name));
+
+    return { month, label: `${month}월`, members: monthMembers };
+  });
+}
+
+function buildGroupRosters(members: Member[], groups: Group[]): InsightBucket[] {
+  const groupBuckets = groups.map((group) => ({
+    label: group.name,
+    members: members
+      .filter((member) => member.groupId === group.id)
+      .map((member) => ({
+        id: member.id,
+        name: member.name,
+        meta: member.id === group.leaderMemberId ? "리더" : undefined,
+      })),
+  }));
+
+  const unassignedMembers = members
+    .filter((member) => !member.groupId)
+    .map((member) => ({ id: member.id, name: member.name, meta: "미배정" }));
+
+  return [...groupBuckets, { label: "미배정", members: unassignedMembers }];
+}
+
+function buildMinistryRosters(members: Member[]): InsightBucket[] {
+  const buckets = new Map<string, InsightMember[]>();
+  for (const option of ministryOptions) buckets.set(option, []);
+  buckets.set("미입력", []);
+
+  for (const member of members) {
+    const ministries = [getCustomFieldString(member, "ministry_1"), getCustomFieldString(member, "ministry_2")]
+      .map((value) => normalizeMinistryValue(value))
+      .filter(Boolean);
+    const uniqueMinistries = [...new Set(ministries)];
+
+    if (uniqueMinistries.length === 0) {
+      buckets.get("미입력")?.push({ id: member.id, name: member.name, meta: member.groupName || undefined });
+      continue;
+    }
+
+    for (const ministry of uniqueMinistries) {
+      if (!buckets.has(ministry)) buckets.set(ministry, []);
+      buckets.get(ministry)?.push({ id: member.id, name: member.name, meta: member.groupName || undefined });
+    }
+  }
+
+  return [...buckets.entries()].map(([label, bucketMembers]) => ({ label, members: bucketMembers }));
+}
+
+function buildJobDistribution(members: Member[]): InsightBucket[] {
+  const labels = ["학생", "사회인", "기타", "미입력"];
+  const buckets = new Map(labels.map((label) => [label, [] as InsightMember[]]));
+
+  for (const member of members) {
+    const normalizedJob = normalizeJobValue(getCustomFieldString(member, "job"));
+    const bucketLabel = getJobBucketLabel(member);
+    buckets.get(bucketLabel)?.push({
+      id: member.id,
+      name: member.name,
+      meta: bucketLabel === "기타" && normalizedJob !== "기타" ? normalizedJob : member.groupName || undefined,
+    });
+  }
+
+  return labels.map((label) => ({ label, members: buckets.get(label) ?? [] }));
+}
+
+function buildAgeDistribution(members: Member[]): InsightBucket[] {
+  const labels = ["10대", "20대", "30대", "40대 이상", "미입력"];
+  const buckets = new Map(labels.map((label) => [label, [] as InsightMember[]]));
+
+  for (const member of members) {
+    const age = Number(calculateKoreanAge(getCustomFieldString(member, "birthdate")));
+    const label = getAgeBucketLabel(member);
+
+    buckets.get(label)?.push({
+      id: member.id,
+      name: member.name,
+      meta: label === "미입력" ? member.groupName || undefined : `만 ${age}세`,
+    });
+  }
+
+  return labels.map((label) => ({ label, members: buckets.get(label) ?? [] }));
+}
+
+function buildMinistrySummaryRows(members: Member[]): StatSummaryRow[] {
+  const uniqueAssignedMemberIds = new Set<string>();
+  const teamRows = ministryOptions.map((ministry) => {
+    const assignedMembers = members.filter((member) => getMemberMinistries(member).includes(ministry));
+    for (const member of assignedMembers) uniqueAssignedMemberIds.add(member.id);
+    return {
+      label: ministry,
+      count: assignedMembers.length,
+      ratio: calculateRatio(assignedMembers.length, members.length),
+    };
+  });
+
+  return [
+    ...teamRows,
+    {
+      label: "총 사역자 수",
+      count: uniqueAssignedMemberIds.size,
+      ratio: calculateRatio(uniqueAssignedMemberIds.size, members.length),
+    },
+    {
+      label: "미배정",
+      count: Math.max(members.length - uniqueAssignedMemberIds.size, 0),
+      ratio: calculateRatio(Math.max(members.length - uniqueAssignedMemberIds.size, 0), members.length),
+    },
+  ];
+}
+
+function countByLabels(members: Member[], labels: string[], getLabel: (member: Member) => string): Map<string, number>;
+function countByLabels(members: Member[], labels: string[], getLabel: (member: Member) => string) {
+  const counts = new Map(labels.map((label) => [label, 0]));
+  for (const member of members) {
+    const label = getLabel(member);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function toStatRows(counts: Map<string, number>, total: number): StatSummaryRow[] {
+  return [...counts.entries()].map(([label, count]) => ({
+    label,
+    count,
+    ratio: calculateRatio(count, total),
+  }));
+}
+
+function calculateRatio(count: number, total: number) {
+  return total ? Math.round((count / total) * 1000) / 10 : 0;
+}
+
+function formatPercent(value: number) {
+  return `${value.toFixed(1)}%`;
+}
+
+function getJobBucketLabel(member: Member) {
+  const normalizedJob = normalizeJobValue(getCustomFieldString(member, "job"));
+  if (normalizedJob === "직장인" || normalizedJob === "사회인") return "사회인";
+  if (normalizedJob === "학생") return "학생";
+  if (!normalizedJob) return "미입력";
+  return "기타";
+}
+
+function getAgeBucketLabel(member: Member) {
+  const age = Number(calculateKoreanAge(getCustomFieldString(member, "birthdate")));
+  if (!Number.isFinite(age) || age <= 0) return "미입력";
+  if (age < 20) return "10대";
+  if (age < 30) return "20대";
+  if (age < 40) return "30대";
+  return "40대 이상";
+}
+
+function getMemberMinistries(member: Member) {
+  return [
+    normalizeMinistryValue(getCustomFieldString(member, "ministry_1")),
+    normalizeMinistryValue(getCustomFieldString(member, "ministry_2")),
+  ].filter(Boolean);
+}
+
+function getCustomFieldString(member: Member, key: string) {
+  const value = member.customFields[key];
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+}
+
 export function MembersManager({ user, members, groups }: AppDataProps) {
   const [filters, setFilters] = useState<MemberFilters>(defaultMemberFilters);
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [showInactive, setShowInactive] = useState(false);
+  const [showSheetLinkModal, setShowSheetLinkModal] = useState(false);
   const [createMemberState, createMemberAction, isCreatingMember] = useActionState(createMember, initialActionState);
   const [updateMemberState, updateMemberAction, isUpdatingMember] = useActionState(updateMember, initialActionState);
   const [deactivateMemberState, deactivateMemberAction, isDeactivatingMember] = useActionState(
@@ -157,6 +646,14 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
     filters.role !== "all" ||
     filters.status !== "all" ||
     filters.account !== "all";
+  const exportedSheetUrl =
+    typeof exportMembersState.data?.spreadsheetUrl === "string" ? exportMembersState.data.spreadsheetUrl : "";
+
+  useEffect(() => {
+    if (exportMembersState.ok && exportedSheetUrl) {
+      setShowSheetLinkModal(true);
+    }
+  }, [exportMembersState.ok, exportedSheetUrl]);
 
   function updateFilters(nextFilters: Partial<MemberFilters>) {
     setFilters((current) => ({ ...current, ...nextFilters }));
@@ -180,6 +677,39 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         </form>
       </PageHeader>
       <ActionMessage state={exportMembersState} />
+      {showSheetLinkModal && exportedSheetUrl ? (
+        <div className="confirm-modal-backdrop" role="presentation" onClick={() => setShowSheetLinkModal(false)}>
+          <div
+            aria-labelledby="sheet-export-title"
+            aria-modal="true"
+            className="confirm-modal sheet-link-modal"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="confirm-modal-copy">
+              <span className="status-pill active">내보내기 완료</span>
+              <h2 id="sheet-export-title">Google Sheet를 확인할까요?</h2>
+              <p>
+                교적부 내보내기가 완료되었습니다. 연결된 Google Sheet를 새 탭에서 열어 확인할 수 있습니다.
+              </p>
+            </div>
+            <div className="confirm-modal-actions">
+              <button className="secondary-button" type="button" onClick={() => setShowSheetLinkModal(false)}>
+                취소
+              </button>
+              <a
+                className="primary-button"
+                href={exportedSheetUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setShowSheetLinkModal(false)}
+              >
+                확인
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <SectionNav
         items={[
           { href: "#member-filters", label: "필터" },

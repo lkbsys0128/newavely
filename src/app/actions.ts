@@ -159,6 +159,7 @@ const updateCareFollowupSchema = careFollowupSchema.extend({
 export type ActionState = {
   ok: boolean;
   message: string;
+  data?: Record<string, string | number | boolean | null>;
 };
 
 const initialErrorMessage = "작업 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
@@ -192,9 +193,15 @@ function toActionError(error: unknown) {
   return initialErrorMessage;
 }
 
-async function runAction(callback: () => Promise<string>): Promise<ActionState> {
+async function runAction(
+  callback: () => Promise<string | { message: string; data?: ActionState["data"] }>,
+): Promise<ActionState> {
   try {
-    return { ok: true, message: await callback() };
+    const result = await callback();
+    if (typeof result === "string") {
+      return { ok: true, message: result };
+    }
+    return { ok: true, message: result.message, data: result.data };
   } catch (error) {
     return { ok: false, message: toActionError(error) };
   }
@@ -569,7 +576,14 @@ export async function exportMembersToGoogleSheet(_previousState: ActionState, _f
       },
     });
 
-    return `Google Sheet에 교적부 ${Math.max(result.updatedRows - 1, 0)}명을 내보냈습니다.`;
+    return {
+      message: `Google Sheet에 교적부 ${Math.max(result.updatedRows - 1, 0)}명을 내보냈습니다.`,
+      data: {
+        spreadsheetUrl: result.spreadsheetUrl,
+        spreadsheetId: result.spreadsheetId,
+        sheetName: result.sheetName,
+      },
+    };
   });
 }
 

@@ -10,6 +10,10 @@ const memberLinkAdminPolicySource = readFileSync(new URL("../db/011_member_link_
 const ownerRoleMigrationSource = readFileSync(new URL("../db/012_owner_role.sql", import.meta.url), "utf8");
 const ownerRolePoliciesSource = readFileSync(new URL("../db/013_owner_role_policies.sql", import.meta.url), "utf8");
 const deleteRolePoliciesSource = readFileSync(new URL("../db/014_delete_role_policies.sql", import.meta.url), "utf8");
+const attendanceObservabilitySource = readFileSync(
+  new URL("../db/015_attendance_observability.sql", import.meta.url),
+  "utf8",
+);
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -128,6 +132,30 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(memberDetailSource, /#care-followups/);
 });
 
+test("dashboard exposes roster insight sections for operators", () => {
+  assert.match(dashboardSource, /buildDashboardInsights/);
+  assert.match(dashboardSource, /교적부 통계 요약/);
+  assert.match(dashboardSource, /StatisticsBarCard/);
+  assert.match(dashboardSource, /buildStatisticsSummary/);
+  assert.match(dashboardSource, /upcomingBirthdays/);
+  assert.match(dashboardSource, /이번달/);
+  assert.match(dashboardSource, /다음달/);
+  assert.match(dashboardSource, /월별 생일자/);
+  assert.match(dashboardSource, /순 배정표/);
+  assert.match(dashboardSource, /사역자 구성 현황/);
+  assert.match(dashboardSource, /직업 분포/);
+  assert.match(dashboardSource, /연령대 분포/);
+  assert.match(dashboardSource, /buildBirthdayMonths/);
+  assert.match(dashboardSource, /buildGroupRosters/);
+  assert.match(dashboardSource, /buildMinistryRosters/);
+  assert.match(dashboardSource, /buildJobDistribution/);
+  assert.match(dashboardSource, /buildAgeDistribution/);
+  assert.match(globalCssSource, /dashboard-insights/);
+  assert.match(globalCssSource, /statistics-panel/);
+  assert.match(globalCssSource, /upcoming-birthday-grid/);
+  assert.match(globalCssSource, /mini-roster-card/);
+});
+
 test("dashboard metric cards use role-independent server metrics", () => {
   assert.match(appPageDataSource, /export function buildDashboardMetrics/);
   assert.match(appPageDataSource, /dashboardMetrics = buildDashboardMetrics\(dashboardData\.members, dashboardData\.groups\)/);
@@ -215,10 +243,15 @@ test("member roster can be exported to Google Sheets without internal fields", (
   assert.match(actionsSource, /members\.export_google_sheet/);
   assert.match(actionsSource, /internalCustomFieldKeys/);
   assert.match(actionsSource, /is_sensitive/);
+  assert.match(actionsSource, /spreadsheetUrl: result\.spreadsheetUrl/);
+  assert.match(dashboardSource, /showSheetLinkModal/);
+  assert.match(dashboardSource, /Google Sheet를 확인할까요/);
+  assert.match(dashboardSource, /href=\{exportedSheetUrl\}/);
   assert.match(dashboardSource, /Google Sheet로 내보내기/);
   assert.match(googleSheetsSource, /GOOGLE_SERVICE_ACCOUNT_EMAIL/);
   assert.match(googleSheetsSource, /GOOGLE_PRIVATE_KEY/);
   assert.match(googleSheetsSource, /GOOGLE_SHEET_ID/);
+  assert.match(googleSheetsSource, /spreadsheetUrl: `https:\/\/docs\.google\.com\/spreadsheets\/d\/\$\{spreadsheetId\}\/edit`/);
   assert.match(googleSheetsSource, /:clear/);
 });
 
@@ -226,4 +259,14 @@ test("profile link request panel only appears for the current onboarding member"
   assert.match(profilePageSource, /showLinkRequest={member\.status === "new"}/);
   assert.match(memberDetailSource, /request\.requesterMemberId === member\.id/);
   assert.match(memberDetailSource, /currentMemberLinkRequests\.find\(isActionableLinkRequest\)/);
+});
+
+test("attendance observability migration exposes summary views", () => {
+  assert.match(attendanceObservabilitySource, /attendance_events_date_title_idx/);
+  assert.match(attendanceObservabilitySource, /attendance_records_status_idx/);
+  assert.match(attendanceObservabilitySource, /create or replace view attendance_event_group_summary/);
+  assert.match(attendanceObservabilitySource, /create or replace view attendance_monthly_summary/);
+  assert.match(attendanceObservabilitySource, /create or replace view attendance_member_yearly_summary/);
+  assert.match(attendanceObservabilitySource, /with \(security_invoker = true\)/);
+  assert.match(attendanceObservabilitySource, /attendance_rate/);
 });
