@@ -178,12 +178,10 @@ a {
   gap: 24px;
 }
 
-.sidebar-menu:not([open]) > .nav-list {
-  display: grid;
-}
-
-.sidebar-menu:not([open]) > .auth-card {
-  display: grid;
+.mobile-menu-control {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .mobile-menu-toggle {
@@ -2243,10 +2241,6 @@ tbody tr:hover {
       transform 160ms ease;
   }
 
-  .mobile-menu-toggle::-webkit-details-marker {
-    display: none;
-  }
-
   .mobile-menu-toggle::after {
     content: "";
     width: 9px;
@@ -2262,23 +2256,23 @@ tbody tr:hover {
     transform: translateY(-1px);
   }
 
-  .sidebar-menu[open] .mobile-menu-toggle {
+  .mobile-menu-control:checked + .mobile-menu-toggle {
     border-color: rgba(47, 145, 181, 0.34);
     background: var(--soft);
     color: var(--accent-dark);
   }
 
-  .sidebar-menu[open] .mobile-menu-toggle::after {
+  .mobile-menu-control:checked + .mobile-menu-toggle::after {
     transform: rotate(225deg) translate(-2px, -2px);
   }
 
-  .sidebar-menu:not([open]) > .nav-list,
-  .sidebar-menu:not([open]) > .auth-card {
+  .mobile-menu-control:not(:checked) ~ .nav-list,
+  .mobile-menu-control:not(:checked) ~ .auth-card {
     display: none;
   }
 
-  .sidebar-menu[open] > .nav-list,
-  .sidebar-menu[open] > .auth-card {
+  .mobile-menu-control:checked ~ .nav-list,
+  .mobile-menu-control:checked ~ .auth-card {
     animation: mobileMenuReveal 180ms ease both;
   }
 
