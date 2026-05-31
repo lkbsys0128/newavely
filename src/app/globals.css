@@ -2649,6 +2649,84 @@ tbody tr:hover {
 
 .permission-row {
   align-items: start;
+  position: relative;
+}
+
+.permission-row:focus-visible {
+  outline: 2px solid rgba(47, 145, 181, 0.3);
+  outline-offset: 2px;
+}
+
+.permission-role-summary {
+  position: relative;
+}
+
+.role-member-overlay {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 10px);
+  left: 0;
+  width: min(320px, 80vw);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 50, 60, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.permission-row:hover .role-member-overlay,
+.permission-row:focus-within .role-member-overlay {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.role-member-overlay-heading,
+.role-member-overlay-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.role-member-overlay-heading {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+  color: var(--text);
+}
+
+.role-member-overlay-heading span,
+.role-member-overlay-item small,
+.role-member-overlay-more,
+.role-member-overlay-empty {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.role-member-overlay-list {
+  display: grid;
+  gap: 8px;
+  max-height: 280px;
+  overflow: auto;
+  padding-top: 10px;
+}
+
+.role-member-overlay-item {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: var(--surface);
+}
+
+.role-member-overlay-more,
+.role-member-overlay-empty {
+  display: block;
+  padding: 6px 2px 0;
 }
 
 .permission-list {
