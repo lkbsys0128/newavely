@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   createAttendanceEvent,
@@ -1407,6 +1408,8 @@ export function AttendanceManager({
   attendanceEventId?: string;
   attendanceEvents: AttendanceEvent[];
 }) {
+  const searchParams = useSearchParams();
+  const explicitAttendanceEventId = searchParams.get("eventId");
   const [localMembers, setLocalMembers] = useState(members);
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
   const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
@@ -1421,6 +1424,9 @@ export function AttendanceManager({
   const [statsEventTypeFilter, setStatsEventTypeFilter] = useState("all");
   const [statsGroupId, setStatsGroupId] = useState("all");
   const [eventPendingDelete, setEventPendingDelete] = useState<AttendanceEvent | null>(null);
+  const [readAttendanceEventIds, setReadAttendanceEventIds] = useState<Set<string>>(new Set());
+  const readEventsStorageKey = `newavely:read-attendance-events:${user.id}`;
+  const hasExplicitAttendanceSelection = Boolean(explicitAttendanceEventId);
 
   useEffect(() => {
     setLocalMembers(members);
@@ -1432,6 +1438,39 @@ export function AttendanceManager({
       window.location.href = "/attendance";
     }
   }, [deleteEventState.ok]);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(readEventsStorageKey);
+      if (!stored) {
+        const initialReadIds = attendanceEvents.map((event) => event.id);
+        window.localStorage.setItem(readEventsStorageKey, JSON.stringify(initialReadIds));
+        setReadAttendanceEventIds(new Set(initialReadIds));
+        return;
+      }
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        setReadAttendanceEventIds(new Set(parsed.filter((id): id is string => typeof id === "string")));
+      }
+    } catch {
+      setReadAttendanceEventIds(new Set(attendanceEvents.map((event) => event.id)));
+    }
+  }, [attendanceEvents, readEventsStorageKey]);
+
+  useEffect(() => {
+    if (!explicitAttendanceEventId) return;
+    setReadAttendanceEventIds((current) => {
+      if (current.has(explicitAttendanceEventId)) return current;
+      const next = new Set(current);
+      next.add(explicitAttendanceEventId);
+      try {
+        window.localStorage.setItem(readEventsStorageKey, JSON.stringify([...next]));
+      } catch {
+        // Ignore storage write failures; the visual cue can reappear next session.
+      }
+      return next;
+    });
+  }, [explicitAttendanceEventId, readEventsStorageKey]);
 
   const attendanceEventTypes = useMemo(() => {
     const preferredOrder = ["주일 예배", "순모임"];
@@ -1457,6 +1496,7 @@ export function AttendanceManager({
     return matchesQuery && matchesType;
   });
   const selectedAttendanceEvent = attendanceEvents.find((event) => event.id === attendanceEventId) ?? null;
+  const unreadAttendanceEventIds = new Set(attendanceEvents.filter((event) => !readAttendanceEventIds.has(event.id)).map((event) => event.id));
   const attendanceStats = globalStats?.attendance;
 
   const activeMembers = localMembers.filter(isAttendanceRosterMember);
@@ -1595,12 +1635,13 @@ export function AttendanceManager({
       <PageHeader eyebrow="출석 관리" title="출석" user={user} />
       <SectionNav
         items={[
+          { href: "#attendance-stats", label: "통계" },
           { href: "#attendance-events", label: "이벤트" },
           { href: "#attendance-create", label: "새 이벤트" },
-          { href: "#attendance-stats", label: "통계" },
-          { href: "#attendance-checklist", label: "출석 체크" },
+          ...(hasExplicitAttendanceSelection ? [{ href: "#attendance-checklist", label: "출석 체크" }] : []),
         ]}
       />
+      <div className="attendance-page-flow">
       <section className="panel form-panel" id="attendance-events">
         <div className="panel-heading">
           <div>
@@ -1615,10 +1656,13 @@ export function AttendanceManager({
             <div className="segmented">
               {sameDateEvents.map((event) => (
                 <Link
-                  className={`segment event-segment ${event.id === attendanceEventId ? "active" : ""}`}
+                  className={`segment event-segment ${hasExplicitAttendanceSelection && event.id === attendanceEventId ? "active" : ""} ${
+                    unreadAttendanceEventIds.has(event.id) ? "unread" : ""
+                  }`}
                   href={`/attendance?eventId=${event.id}`}
                   key={event.id}
                 >
+                  {unreadAttendanceEventIds.has(event.id) ? <span className="unread-event-dot" aria-label="새 이벤트" /> : null}
                   {event.title}
                 </Link>
               ))}
@@ -1651,22 +1695,23 @@ export function AttendanceManager({
           <label>
             최신순 이벤트
             <select
-              value={attendanceEventId ?? ""}
+              value={hasExplicitAttendanceSelection ? attendanceEventId ?? "" : ""}
               onChange={(event) => {
                 if (event.target.value) {
                   window.location.href = `/attendance?eventId=${event.target.value}`;
                 }
               }}
             >
+              <option value="">체크할 이벤트 선택</option>
               {filteredAttendanceEvents.map((event) => (
                 <option key={event.id} value={event.id}>
-                  {event.eventDate} · {event.title}
+                  {unreadAttendanceEventIds.has(event.id) ? "● " : ""}{event.eventDate} · {event.title}
                 </option>
               ))}
               {filteredAttendanceEvents.length === 0 ? <option value="">조건에 맞는 이벤트 없음</option> : null}
             </select>
           </label>
-          {selectedAttendanceEvent ? (
+          {hasExplicitAttendanceSelection && selectedAttendanceEvent ? (
             <div className="selected-event-summary">
               <div className="person-block">
                 <strong>{selectedAttendanceEvent.title}</strong>
@@ -1771,7 +1816,12 @@ export function AttendanceManager({
         </form>
       </DisclosurePanel>
 
-      <DisclosurePanel id="attendance-stats" title="출석 통계" meta={`${attendanceTitle} · 출석률 ${displayCurrentAttendanceRate}%`}>
+      <DisclosurePanel
+        defaultOpen
+        id="attendance-stats"
+        title="출석 통계"
+        meta={`${hasExplicitAttendanceSelection ? attendanceTitle : "최근 이벤트 기준"} · 출석률 ${displayCurrentAttendanceRate}%`}
+      >
         <section className="attendance-aggregate-panel" aria-label="통합 출석 통계">
           <div className="panel-heading compact-heading">
             <div>
@@ -1954,6 +2004,7 @@ export function AttendanceManager({
         </section>
       </DisclosurePanel>
 
+      {hasExplicitAttendanceSelection ? (
       <section className="panel" id="attendance-checklist">
         <div className="attendance-check-header">
           <div>
@@ -2043,6 +2094,15 @@ export function AttendanceManager({
           ) : null}
         </div>
       </section>
+      ) : (
+        <section className="panel attendance-selection-empty" id="attendance-checklist">
+          <div className="person-block">
+            <strong>출석 체크할 이벤트를 선택해주세요</strong>
+            <span>위 이벤트 선택에서 주일 예배 또는 순모임을 고르면 멤버 체크리스트가 표시됩니다.</span>
+          </div>
+        </section>
+      )}
+      </div>
     </>
   );
 }
