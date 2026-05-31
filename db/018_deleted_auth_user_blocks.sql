@@ -5,6 +5,8 @@ create table if not exists deleted_auth_users (
   deleted_member_email text,
   deleted_by_member_id uuid references members(id) on delete set null,
   reason text not null default 'member.permanent_delete',
+  restore_requested_at timestamptz,
+  restore_request_note text,
   created_at timestamptz not null default now()
 );
 
@@ -30,6 +32,13 @@ create policy "owners and admins can remove deleted auth blocks"
 on deleted_auth_users for delete
 to authenticated
 using (current_member_role() in ('owner', 'admin'));
+
+drop policy if exists "deleted auth users can request restore" on deleted_auth_users;
+create policy "deleted auth users can request restore"
+on deleted_auth_users for update
+to authenticated
+using (auth_user_id = auth.uid())
+with check (auth_user_id = auth.uid());
 
 insert into deleted_auth_users (
   auth_user_id,

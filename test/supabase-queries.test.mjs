@@ -20,6 +20,7 @@ const attendanceImportNotesCleanupSource = readFileSync(
 );
 const memberEnglishNamesSource = readFileSync(new URL("../db/017_member_english_names.sql", import.meta.url), "utf8");
 const deletedAuthUserBlocksSource = readFileSync(new URL("../db/018_deleted_auth_user_blocks.sql", import.meta.url), "utf8");
+const deletedAuthRestoreRequestsSource = readFileSync(new URL("../db/019_deleted_auth_restore_requests.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -104,6 +105,7 @@ test("link request decisions support rejection and new member creation", () => {
 test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(actionsSource, /deleteMemberPermanently/);
   assert.match(actionsSource, /restoreDeletedAuthUser/);
+  assert.match(actionsSource, /requestDeletedAuthUserRestore/);
   assert.match(actionsSource, /member\.restore_deleted_auth_user/);
   assert.match(actionsSource, /getAuthorizedCurrentMember\("members:write"\)/);
   assert.match(actionsSource, /getAuthorizedCurrentMember\("roles:manage"\)/);
@@ -116,9 +118,15 @@ test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(actionsSource, /deletedCount !== 1/);
   assert.match(dataSource, /getDeletedAuthUserBlock/);
   assert.match(dataSource, /getDeletedAuthUsers/);
+  assert.match(dataSource, /\.not\("restore_requested_at", "is", null\)/);
   assert.match(appPageDataSource, /deletedAuthUsers/);
   assert.match(dashboardSource, /삭제된 계정 복구/);
   assert.match(dashboardSource, /restoreDeletedAuthUser/);
+  assert.match(dashboardSource, /restoreRequestedAt/);
+  assert.match(dashboardSource, /restoreRequestNote/);
+  assert.match(appGateSource, /allowRestoreRequest=\{isDeletedAccountError\}/);
+  assert.match(appGateSource, /isDeletedAccountError/);
+  assert.match(appGateSource, /로그인할 수 없는 계정입니다/);
   assert.match(dashboardSource, /복구/);
   assert.match(dataSource, /이전에 삭제된 멤버 계정/);
   assert.match(dataSource, /다시 활성화가 필요하면 Newavely 운영 관리자에게 연락해주세요/);
@@ -131,6 +139,8 @@ test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(deleteRolePoliciesSource, /leaders can delete groups/);
   assert.match(deletedAuthUserBlocksSource, /member\.permanent_delete\.backfill/);
   assert.match(deletedAuthUserBlocksSource, /deleted_auth_users/);
+  assert.match(deletedAuthRestoreRequestsSource, /restore_requested_at/);
+  assert.match(deletedAuthRestoreRequestsSource, /deleted auth users can request restore/);
   assert.match(memberDeletePolicySource, /owners can delete members/);
   assert.match(dashboardSource, /완전 삭제/);
 });

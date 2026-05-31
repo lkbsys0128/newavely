@@ -71,6 +71,10 @@ const restoreDeletedAuthUserSchema = z.object({
   authUserId: z.string().uuid(),
 });
 
+const requestDeletedAuthUserRestoreSchema = z.object({
+  note: nullableText,
+});
+
 const createMemberLinkRequestSchema = z.object({
   targetMemberId: nullableUuid,
   note: nullableText,
@@ -1595,6 +1599,38 @@ export async function restoreDeletedAuthUser(_previousState: ActionState, formDa
 
     revalidateAppData();
     return `${restoredName} 계정을 복구했습니다. 이제 해당 Google 계정으로 다시 로그인할 수 있습니다.`;
+  });
+}
+
+export async function requestDeletedAuthUserRestore(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("로그인이 필요합니다.");
+
+    const parsed = requestDeletedAuthUserRestoreSchema.parse({
+      note: formData.get("note"),
+    });
+
+    const { count, error } = await supabase
+      .from("deleted_auth_users")
+      .update(
+        {
+          restore_requested_at: new Date().toISOString(),
+          restore_request_note: parsed.note,
+        },
+        { count: "exact" },
+      )
+      .eq("auth_user_id", user.id);
+
+    if (error) throw error;
+    if (count !== 1) throw new Error("복구 요청을 만들 수 없습니다. Newavely 운영 관리자에게 직접 연락해주세요.");
+
+    revalidatePath("/");
+    return "복구 요청을 보냈습니다. Newavely 운영 관리자가 확인 후 계정을 다시 활성화해드립니다.";
   });
 }
 

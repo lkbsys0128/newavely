@@ -105,6 +105,8 @@ type DbDeletedAuthUser = {
   deleted_member_name: string | null;
   deleted_member_email?: string | null;
   created_at?: string;
+  restore_requested_at?: string | null;
+  restore_request_note?: string | null;
 };
 
 async function getDeletedAuthUserBlock(supabase: SupabaseClient, authUserId: string) {
@@ -434,7 +436,8 @@ export async function getAuditLogs(supabase: SupabaseClient) {
 export async function getDeletedAuthUsers(supabase: SupabaseClient): Promise<DeletedAuthUser[]> {
   const { data, error } = await supabase
     .from("deleted_auth_users")
-    .select("auth_user_id, deleted_member_id, deleted_member_name, deleted_member_email, created_at")
+    .select("auth_user_id, deleted_member_id, deleted_member_name, deleted_member_email, created_at, restore_requested_at, restore_request_note")
+    .not("restore_requested_at", "is", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -466,6 +469,8 @@ export async function getDeletedAuthUsers(supabase: SupabaseClient): Promise<Del
     deletedMemberName: user.deleted_member_name ?? "삭제된 멤버",
     deletedMemberEmail: user.deleted_member_email ?? "",
     deletedAt: user.created_at ?? "",
+    restoreRequestedAt: user.restore_requested_at ?? null,
+    restoreRequestNote: user.restore_request_note ?? "",
     restoreData: user.deleted_member_id ? auditBeforeDataByTargetId.get(user.deleted_member_id) ?? null : null,
   }));
 }
