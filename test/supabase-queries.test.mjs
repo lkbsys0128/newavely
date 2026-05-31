@@ -332,6 +332,7 @@ test("attendance event setup supports batch creation and Sunday auto-create in P
   assert.match(dataSource, /timeZone: "America\/Los_Angeles"/);
   assert.match(dataSource, /autoCreateSundayWorship/);
   assert.match(dataSource, /today\.isSunday/);
+  assert.match(dataSource, /for \(const title of \["주일 예배", "순모임"\]\)/);
   assert.match(appPageDataSource, /hasPermission\(currentMember\.role, "attendance:write"\)/);
   assert.match(appPageDataSource, /createdByMemberId: currentMember\.id/);
   assert.match(actionsSource, /titlesToCreate/);
