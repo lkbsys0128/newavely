@@ -144,6 +144,19 @@ a {
   gap: 12px;
 }
 
+.brand {
+  color: inherit;
+  text-decoration: none;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.brand:hover {
+  opacity: 0.86;
+  transform: translateY(-1px);
+}
+
 .signed-in-row {
   justify-content: space-between;
 }
