@@ -1668,7 +1668,7 @@ export function AttendanceManager({
       ? [member.displayName, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery))
       : true;
     const matchesGroup = attendanceGroupId === "all" || member.groupId === attendanceGroupId;
-    if (attendanceFilter === "present") return matchesQuery && matchesGroup && member.present;
+    if (attendanceFilter === "present") return matchesQuery && matchesGroup && status === "present";
     if (attendanceFilter === "absent") return matchesQuery && matchesGroup && status === "absent";
     if (attendanceFilter === "excused") return matchesQuery && matchesGroup && status === "excused";
     return matchesQuery && matchesGroup;
@@ -2089,24 +2089,23 @@ export function AttendanceManager({
             const status = getMemberAttendanceStatus(member, attendanceEventId);
             return (
               <AttendanceRow
+                attendanceDate={attendanceDate}
+                attendanceEvents={sameDateEvents}
                 canManageAttendance={canManageAttendance}
-                eventId={attendanceEventId}
                 isPending={isPending}
                 key={member.id}
                 member={member}
-                onToggle={() => {
-                  if (!attendanceEventId) return;
-                  const nextPresent = !member.present;
+                onToggleEvent={(event, nextPresent) => {
                   setLocalMembers((current) =>
                     current.map((item) =>
                       item.id === member.id
                         ? {
                             ...item,
-                            present: nextPresent,
+                            present: event.id === attendanceEventId ? nextPresent : item.present,
                             attendanceHistory: updateLocalAttendanceHistory({
-                              attendanceDate,
-                              attendanceTitle,
-                              eventId: attendanceEventId,
+                              attendanceDate: event.eventDate,
+                              attendanceTitle: event.title,
+                              eventId: event.id,
                               history: item.attendanceHistory,
                               nextPresent,
                             }),
@@ -2115,7 +2114,7 @@ export function AttendanceManager({
                     ),
                   );
                   startTransition(() => {
-                    void toggleAttendance(member.id, attendanceEventId, nextPresent);
+                    void toggleAttendance(member.id, event.id, nextPresent);
                   });
                 }}
                 status={status}
@@ -2200,85 +2199,101 @@ function GroupMembersModal({
 
 function AttendanceRow({
   member,
-  eventId,
+  attendanceDate,
+  attendanceEvents,
   canManageAttendance,
   isPending,
-  onToggle,
+  onToggleEvent,
   status,
 }: {
   member: Member;
-  eventId?: string;
+  attendanceDate: string;
+  attendanceEvents: AttendanceEvent[];
   canManageAttendance: boolean;
   isPending: boolean;
-  onToggle: () => void;
+  onToggleEvent: (event: AttendanceEvent, nextPresent: boolean) => void;
   status: AttendanceStatus;
 }) {
   const [reasonState, reasonAction, isSavingReason] = useActionState(updateAttendanceReason, initialActionState);
-  const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
-  const visibleNote = currentRecord?.note && !isImportedAttendanceNote(currentRecord.note) ? currentRecord.note : "";
+  const visibleAttendanceEvents = attendanceEvents.length > 0 ? attendanceEvents : [];
+  const visibleNotes = visibleAttendanceEvents
+    .map((event) => {
+      const record = member.attendanceHistory.find((item) => item.eventId === event.id);
+      const note = record?.note && !isImportedAttendanceNote(record.note) ? record.note : "";
+      return note ? `${event.title}: ${note}` : "";
+    })
+    .filter(Boolean);
 
   return (
     <article className={`attendance-row attendance-card ${status}`}>
       <div className="person-block">
         <strong>{member.displayName}</strong>
         <span>{member.groupName}</span>
-        {visibleNote ? <span>사유: {visibleNote}</span> : null}
-        {currentRecord?.excuseStartDate || currentRecord?.excuseEndDate ? (
-          <span>
-            기간: {currentRecord.excuseStartDate || "시작일 미입력"} - {currentRecord.excuseEndDate || "종료일 미입력"}
-          </span>
-        ) : null}
+        {visibleNotes.length > 0 ? <span>사유: {visibleNotes.join(" · ")}</span> : null}
       </div>
       <span className={`attendance-pill ${status}`}>{attendanceStatusLabels[status]}</span>
-      <div className="attendance-actions">
-        <button
-          className={member.present ? "secondary-button" : "primary-button"}
-          disabled={!canManageAttendance || !eventId || isPending}
-          onClick={onToggle}
-          type="button"
-        >
-          {member.present ? "미출석 처리" : "출석 체크"}
-        </button>
-        <details className="reason-details">
-          <summary>사유</summary>
-          <form action={reasonAction} className="reason-form">
-            <input name="memberId" type="hidden" value={member.id} />
-            <input name="eventId" type="hidden" value={eventId ?? ""} />
-            <label>
-              시작일
-              <input
-                name="excuseStartDate"
-                type="date"
-                defaultValue={currentRecord?.excuseStartDate}
-                disabled={!canManageAttendance || !eventId}
-              />
-            </label>
-            <label>
-              종료일
-              <input
-                name="excuseEndDate"
-                type="date"
-                defaultValue={currentRecord?.excuseEndDate}
-                disabled={!canManageAttendance || !eventId}
-              />
-            </label>
-            <label className="full-width">
-              사유
-              <textarea
-                name="note"
-                placeholder="여행, 건강, 가정 일정 등"
-                defaultValue={visibleNote}
-                disabled={!canManageAttendance || !eventId}
-              />
-            </label>
-            <div className="form-actions full-width">
-              <ActionMessage state={reasonState} />
-              <button className="secondary-button" type="submit" disabled={!canManageAttendance || !eventId || isSavingReason}>
-                사유 있음 저장
+      <div className="attendance-actions attendance-type-actions">
+        {visibleAttendanceEvents.map((event) => {
+          const eventStatus = getMemberAttendanceStatus(member, event.id);
+          const currentRecord = member.attendanceHistory.find((record) => record.eventId === event.id);
+          const visibleNote = currentRecord?.note && !isImportedAttendanceNote(currentRecord.note) ? currentRecord.note : "";
+          return (
+            <div className={`attendance-type-action ${eventStatus}`} key={event.id}>
+              <div className="attendance-type-action-heading">
+                <strong>{event.title}</strong>
+                <span className={`attendance-pill ${eventStatus}`}>{attendanceStatusLabels[eventStatus]}</span>
+              </div>
+              <button
+                className={eventStatus === "present" ? "secondary-button" : "primary-button"}
+                disabled={!canManageAttendance || isPending}
+                onClick={() => onToggleEvent(event, eventStatus !== "present")}
+                type="button"
+              >
+                {eventStatus === "present" ? "미출석 처리" : "출석 체크"}
               </button>
+              <details className="reason-details">
+                <summary>사유</summary>
+                <form action={reasonAction} className="reason-form">
+                  <input name="memberId" type="hidden" value={member.id} />
+                  <input name="eventId" type="hidden" value={event.id} />
+                  <label>
+                    시작일
+                    <input
+                      name="excuseStartDate"
+                      type="date"
+                      defaultValue={currentRecord?.excuseStartDate || attendanceDate}
+                      disabled={!canManageAttendance}
+                    />
+                  </label>
+                  <label>
+                    종료일
+                    <input
+                      name="excuseEndDate"
+                      type="date"
+                      defaultValue={currentRecord?.excuseEndDate || attendanceDate}
+                      disabled={!canManageAttendance}
+                    />
+                  </label>
+                  <label className="full-width">
+                    사유
+                    <textarea
+                      name="note"
+                      placeholder="여행, 건강, 가정 일정 등"
+                      defaultValue={visibleNote}
+                      disabled={!canManageAttendance}
+                    />
+                  </label>
+                  <div className="form-actions full-width">
+                    <ActionMessage state={reasonState} />
+                    <button className="secondary-button" type="submit" disabled={!canManageAttendance || isSavingReason}>
+                      저장
+                    </button>
+                  </div>
+                </form>
+              </details>
             </div>
-          </form>
-        </details>
+          );
+        })}
       </div>
     </article>
   );
@@ -2289,9 +2304,8 @@ function isImportedAttendanceNote(note: string) {
 }
 
 function getMemberAttendanceStatus(member: Member, eventId?: string): AttendanceStatus {
-  if (member.present) return "present";
-
   const currentRecord = member.attendanceHistory.find((record) => record.eventId === eventId);
+  if (currentRecord?.status === "present") return "present";
   if (currentRecord?.status === "excused") return "excused";
 
   return "absent";
