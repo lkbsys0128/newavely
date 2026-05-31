@@ -310,6 +310,10 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /선택한 날짜 안에 주일 예배와 순모임 출석 체크가 함께 만들어집니다/);
   assert.match(dashboardSource, /attendance-check-list/);
   assert.match(dashboardSource, /attendance-card/);
+  assert.match(dashboardSource, /attendance-type-actions/);
+  assert.match(dashboardSource, /attendance-type-action/);
+  assert.match(dashboardSource, /onToggleEvent/);
+  assert.match(dashboardSource, /getMemberAttendanceStatus\(member, event\.id\)/);
   assert.match(dashboardSource, /isImportedAttendanceNote/);
   assert.match(dashboardSource, /Imported from 2026 annual attendance CSV/);
   assert.match(actionsSource, /formData\.getAll\("titles"\)/);

@@ -2818,7 +2818,7 @@ tbody tr:hover {
 
 .attendance-card {
   display: grid;
-  grid-template-columns: minmax(180px, 1.3fr) auto minmax(260px, 0.95fr);
+  grid-template-columns: minmax(180px, 0.85fr) auto minmax(420px, 1.4fr);
   align-items: center;
   min-height: 72px;
   gap: 14px;
@@ -2854,11 +2854,45 @@ tbody tr:hover {
 .attendance-card .attendance-actions {
   align-self: stretch;
   display: grid;
-  grid-template-columns: minmax(108px, auto) minmax(130px, 1fr);
   align-items: center;
   justify-content: end;
   gap: 10px;
   min-width: 0;
+}
+
+.attendance-type-actions {
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+}
+
+.attendance-type-action {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.attendance-type-action.present {
+  border-color: rgba(22, 126, 145, 0.34);
+  background: rgba(47, 145, 181, 0.08);
+}
+
+.attendance-type-action.excused {
+  border-color: rgba(72, 152, 128, 0.3);
+  background: rgba(237, 248, 245, 0.8);
+}
+
+.attendance-type-action-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.attendance-type-action-heading strong {
+  color: var(--ink);
+  font-size: 0.9rem;
 }
 
 .attendance-card .attendance-actions > button {
@@ -3428,6 +3462,10 @@ tbody tr:hover {
   }
 
   .attendance-card .attendance-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-type-actions {
     grid-template-columns: 1fr;
   }
 
