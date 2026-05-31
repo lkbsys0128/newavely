@@ -23,6 +23,7 @@ export default async function AttendancePage({
           attendanceEvents={readyData.attendanceEvents}
           members={readyData.members}
           groups={readyData.groups}
+          globalStats={readyData.globalStats}
         />
       )}
     </AppPageGate>

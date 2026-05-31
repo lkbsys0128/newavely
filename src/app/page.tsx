@@ -14,7 +14,9 @@ export default async function HomePage() {
           user={readyData.user}
           members={readyData.members}
           groups={readyData.groups}
+          attendanceEvents={readyData.attendanceEvents}
           dashboardMetrics={readyData.dashboardMetrics}
+          globalStats={readyData.globalStats}
         />
       )}
     </AppPageGate>

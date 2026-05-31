@@ -20,7 +20,8 @@ export function canViewFullMemberDetail({
   ledGroupIds: Set<string>;
   member: Member;
 }) {
-  if (role !== "staff") return true;
+  if (role === "owner" || role === "admin" || role === "leader") return true;
+  if (role === "member") return member.id === currentMemberId;
   if (member.id === currentMemberId) return true;
   return Boolean(member.groupId && ledGroupIds.has(member.groupId));
 }
@@ -56,7 +57,7 @@ export function scopeMembersForRole({
 }) {
   const visibleMembers = members.filter((member) => !isMergedPlaceholderForVisibility(member));
 
-  if (role !== "staff") return visibleMembers;
+  if (role === "owner" || role === "admin" || role === "leader") return visibleMembers;
 
   const ledGroupIds = getLedGroupIds(currentMemberId, groups);
   return visibleMembers.map((member) =>

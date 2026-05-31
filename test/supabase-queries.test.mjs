@@ -158,20 +158,44 @@ test("dashboard exposes roster insight sections for operators", () => {
   assert.match(dashboardSource, /buildMinistryRosters/);
   assert.match(dashboardSource, /buildJobDistribution/);
   assert.match(dashboardSource, /buildAgeDistribution/);
+  assert.match(dashboardSource, /최근 예배/);
+  assert.match(dashboardSource, /평균 예배/);
+  assert.match(dashboardSource, /최근 순모임/);
+  assert.match(dashboardSource, /평균 순모임/);
+  assert.match(dashboardSource, /buildDashboardGroupAttendanceRates/);
   assert.match(globalCssSource, /dashboard-insights/);
   assert.match(globalCssSource, /statistics-panel/);
   assert.match(globalCssSource, /upcoming-birthday-grid/);
   assert.match(globalCssSource, /mini-roster-card/);
+  assert.match(globalCssSource, /group-attendance-metrics/);
 });
 
 test("dashboard metric cards use role-independent server metrics", () => {
   assert.match(appPageDataSource, /export function buildDashboardMetrics/);
-  assert.match(appPageDataSource, /dashboardMetrics = buildDashboardMetrics\(dashboardData\.members, dashboardData\.groups\)/);
+  assert.match(appPageDataSource, /export function buildGlobalAppStats/);
+  assert.match(appPageDataSource, /globalStats = buildGlobalAppStats\(/);
   assert.match(homePageSource, /dashboardMetrics=\{readyData\.dashboardMetrics\}/);
+  assert.match(homePageSource, /globalStats=\{readyData\.globalStats\}/);
   assert.match(dashboardSource, /dashboardMetrics\?: DashboardMetrics/);
+  assert.match(dashboardSource, /globalStats\?: GlobalAppStats/);
   assert.match(dashboardSource, /const metrics = dashboardMetrics \?\?/);
+  assert.match(dashboardSource, /globalStats\?\.statisticsSummary/);
+  assert.match(dashboardSource, /globalStats\?\.groupAttendanceSummary/);
   assert.match(dashboardSource, /metrics\.totalMembers/);
   assert.match(dashboardSource, /metrics\.attendanceEligibleMembers/);
+});
+
+test("common aggregate stats use unscoped server data while pages receive scoped members", () => {
+  assert.match(appPageDataSource, /const scopedMembers = scopeMembersForRole/);
+  assert.match(appPageDataSource, /members: scopedMembers/);
+  assert.match(appPageDataSource, /globalStats,/);
+  assert.match(appPageDataSource, /statisticsSummary: buildStatisticsSummary\(activeMembers\)/);
+  assert.match(appPageDataSource, /groupPage: buildGroupPageStats\(activeMembers, groups\)/);
+  assert.match(appPageDataSource, /attendance: \{/);
+  assert.match(dashboardSource, /globalStats\?\.groupPage/);
+  assert.match(dashboardSource, /globalStats\?\.attendance/);
+  assert.match(dashboardSource, /displayCurrentAttendanceRate/);
+  assert.match(dashboardSource, /displayAggregateGroupStats/);
 });
 
 test("mobile navigation collapses into an expandable dropdown", () => {
@@ -229,6 +253,14 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.doesNotMatch(dashboardSource, /member\.groupName} · {member\.phone/);
 });
 
+test("attendance stats can aggregate all events by group and event type", () => {
+  assert.match(dashboardSource, /statsEventTypeFilter/);
+  assert.match(dashboardSource, /statsGroupId/);
+  assert.match(dashboardSource, /buildAggregateAttendanceStat/);
+  assert.match(dashboardSource, /순별 통합 출석/);
+  assert.match(dashboardSource, /aggregateGroupStats/);
+});
+
 test("group management uses active member choices and supports audited delete", () => {
   assert.match(dashboardSource, /groupLeaderOptions/);
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
@@ -241,6 +273,12 @@ test("group management uses active member choices and supports audited delete", 
   assert.match(dashboardSource, /setGroupPendingDelete\(null\)/);
   assert.match(dashboardSource, /정말 지우시겠습니까/);
   assert.match(dashboardSource, /danger-text-button/);
+  assert.match(dashboardSource, /groupMembersModal/);
+  assert.match(dashboardSource, /GroupMembersModal/);
+  assert.match(dashboardSource, /멤버 보기/);
+  assert.match(dashboardSource, /상세보기/);
+  assert.match(dashboardSource, /group-card-overview/);
+  assert.doesNotMatch(dashboardSource, /group-card-stats/);
   assert.doesNotMatch(dashboardSource, /확인을 위해 순 이름을 입력/);
   assert.doesNotMatch(actionsSource, /const deleteGroupSchema[\s\S]{0,120}confirmName/);
   assert.match(memberDetailSource, /!isMergedPlaceholderMember\(item\)/);

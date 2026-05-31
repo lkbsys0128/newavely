@@ -24,7 +24,7 @@ import {
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import { canDeleteMemberRole, canUseDeleteActions } from "@/lib/role-policy";
-import type { AppUser, DashboardMetrics } from "@/lib/app-page-data";
+import type { AppUser, DashboardMetrics, GlobalAppStats } from "@/lib/app-page-data";
 import type { AttendanceEvent, AuditLog, Group, Member, MemberLinkRequest } from "@/lib/types";
 import {
   defaultMemberFilters,
@@ -42,6 +42,7 @@ import {
   normalizeJobValue,
   normalizeMinistryValue,
 } from "@/lib/member-field-options";
+import { getMemberEnglishName } from "@/lib/member-names";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
 
@@ -49,8 +50,10 @@ type AppDataProps = {
   user: AppUser;
   members: Member[];
   groups: Group[];
+  attendanceEvents?: AttendanceEvent[];
   memberLinkRequests?: MemberLinkRequest[];
   dashboardMetrics?: DashboardMetrics;
+  globalStats?: GlobalAppStats;
 };
 
 type AttendanceFilter = "all" | "present" | "absent" | "excused";
@@ -58,7 +61,7 @@ type AttendanceStatus = "present" | "absent" | "excused";
 
 const initialActionState: ActionState = { ok: false, message: "" };
 
-export function DashboardOverview({ user, members, groups, dashboardMetrics }: AppDataProps) {
+export function DashboardOverview({ user, members, groups, attendanceEvents = [], dashboardMetrics, globalStats }: AppDataProps) {
   const dashboardMembers = members.filter((member) => !isMergedPlaceholderMember(member));
   const activeMembers = dashboardMembers.filter((member) => member.status !== "inactive");
   const localPresentCount = activeMembers.filter((member) => member.present).length;
@@ -74,6 +77,7 @@ export function DashboardOverview({ user, members, groups, dashboardMetrics }: A
     ? Math.round((metrics.presentMembers / metrics.attendanceEligibleMembers) * 100)
     : 0;
   const dashboardInsights = buildDashboardInsights(activeMembers, groups);
+  const statisticsSummary = globalStats?.statisticsSummary ?? dashboardInsights.statisticsSummary;
 
   return (
     <>
@@ -121,11 +125,17 @@ export function DashboardOverview({ user, members, groups, dashboardMetrics }: A
         </article>
       </div>
 
-      <DashboardStatisticsSummary summary={dashboardInsights.statisticsSummary} />
+      <DashboardStatisticsSummary summary={statisticsSummary} />
       <DashboardRosterInsights insights={dashboardInsights} />
 
       <div className="dashboard-layout single-panel-layout">
-        <GroupSummaryPanel members={dashboardMembers} groups={groups} />
+        <GroupSummaryPanel
+          attendanceEvents={attendanceEvents}
+          groupMemberStats={globalStats?.groupPage.groups}
+          groupStats={globalStats?.groupAttendanceSummary}
+          members={activeMembers}
+          groups={groups}
+        />
       </div>
     </>
   );
@@ -1133,10 +1143,11 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
   );
 }
 
-export function GroupsPageContent({ user, members, groups }: AppDataProps) {
+export function GroupsPageContent({ user, members, groups, globalStats }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
   const canDeleteGroups = canUseDeleteActions(user.role);
   const [groupPendingDelete, setGroupPendingDelete] = useState<Group | null>(null);
+  const [groupMembersModal, setGroupMembersModal] = useState<Group | null>(null);
   const [lastUpdatedGroupId, setLastUpdatedGroupId] = useState<string | null>(null);
   const [lastDeletedGroupId, setLastDeletedGroupId] = useState<string | null>(null);
   const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
@@ -1144,8 +1155,9 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
   const [deleteGroupState, deleteGroupAction, isDeletingGroup] = useActionState(deleteGroup, initialActionState);
   const activeMembers = members.filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member));
   const unassignedMembers = activeMembers.filter((member) => !member.groupId);
-  const totalPresent = activeMembers.filter((member) => member.present).length;
-  const totalAttendanceRate = activeMembers.length ? Math.round((totalPresent / activeMembers.length) * 100) : 0;
+  const assignedMembers = activeMembers.filter((member) => member.groupId);
+  const assignedLeaderCount = groups.filter((group) => group.leaderMemberId).length;
+  const groupStats = globalStats?.groupPage;
   const groupLeaderOptions = [...activeMembers].sort((a, b) => a.name.localeCompare(b.name));
 
   useEffect(() => {
@@ -1168,7 +1180,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
       <div className="metric-grid" id="group-metrics">
         <article className="metric-card">
           <span>전체 활동 멤버</span>
-          <strong>{activeMembers.length}</strong>
+          <strong>{groupStats?.activeMembers ?? activeMembers.length}</strong>
           <small>비활성 멤버 제외</small>
         </article>
         <article className="metric-card">
@@ -1178,13 +1190,13 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
         </article>
         <article className="metric-card">
           <span>미배정</span>
-          <strong>{unassignedMembers.length}</strong>
+          <strong>{groupStats?.unassignedMembers ?? unassignedMembers.length}</strong>
           <small>순 배정 필요</small>
         </article>
         <article className="metric-card">
-          <span>최근 출석률</span>
-          <strong>{totalAttendanceRate}%</strong>
-          <small>{totalPresent}명 출석</small>
+          <span>배정 완료</span>
+          <strong>{groupStats?.assignedMembers ?? assignedMembers.length}</strong>
+          <small>리더 {groupStats?.assignedLeaderCount ?? assignedLeaderCount}/{groups.length}명 배정</small>
         </article>
       </div>
 
@@ -1221,8 +1233,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
       <section className="group-grid" id="group-list">
         {groups.map((group) => {
           const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
-          const present = groupMembers.filter((member) => member.present).length;
-          const rate = groupMembers.length ? Math.round((present / groupMembers.length) * 100) : 0;
+          const visibleGroupStats = groupStats?.groups.find((item) => item.id === group.id);
           const careCount = groupMembers.filter(
             (member) =>
               member.status === "care" ||
@@ -1235,34 +1246,21 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                   <h2>{group.name}</h2>
                   <p className="meta">리더 {group.leaderName}</p>
                 </div>
-                <span className="role-pill">{groupMembers.length}명</span>
+                <span className="role-pill">{visibleGroupStats?.memberCount ?? groupMembers.length}명</span>
               </header>
-              <div className="group-card-stats">
+              <div className="group-card-overview">
                 <div>
-                  <strong>{rate}%</strong>
-                  <span>출석률</span>
+                  <strong>{visibleGroupStats?.memberCount ?? groupMembers.length}</strong>
+                  <span>멤버</span>
                 </div>
                 <div>
-                  <strong>{present}</strong>
-                  <span>출석</span>
-                </div>
-                <div>
-                  <strong>{careCount}</strong>
+                  <strong>{visibleGroupStats?.careCount ?? careCount}</strong>
                   <span>돌봄</span>
                 </div>
               </div>
-              <div className="progress" aria-label={`${group.name} 출석률 ${rate}%`}>
-                <span style={{ width: `${rate}%` }} />
-              </div>
-              <div className="group-member-list">
-                {groupMembers.slice(0, 6).map((member) => (
-                  <Link className="member-chip" href={`/members/${member.id}`} key={member.id}>
-                    {member.displayName}
-                  </Link>
-                ))}
-                {groupMembers.length > 6 ? <span className="member-chip muted">+{groupMembers.length - 6}</span> : null}
-                {groupMembers.length === 0 ? <span className="meta">배정된 멤버가 없습니다</span> : null}
-              </div>
+              <button className="secondary-button group-members-button" type="button" onClick={() => setGroupMembersModal(group)}>
+                멤버 보기
+              </button>
               <form
                 action={updateGroupAction}
                 className="management-form group-edit-form"
@@ -1304,6 +1302,13 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
           );
         })}
       </section>
+      {groupMembersModal ? (
+        <GroupMembersModal
+          group={groupMembersModal}
+          members={activeMembers.filter((member) => member.groupId === groupMembersModal.id)}
+          onClose={() => setGroupMembersModal(null)}
+        />
+      ) : null}
       {groupPendingDelete ? (
         <div
           className="confirm-modal-backdrop"
@@ -1367,6 +1372,7 @@ export function AttendanceManager({
   attendanceEvents,
   members,
   groups,
+  globalStats,
 }: AppDataProps & {
   attendanceDate: string;
   attendanceTitle: string;
@@ -1384,6 +1390,8 @@ export function AttendanceManager({
   const [attendanceGroupId, setAttendanceGroupId] = useState("all");
   const [eventSearchQuery, setEventSearchQuery] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState("all");
+  const [statsEventTypeFilter, setStatsEventTypeFilter] = useState("all");
+  const [statsGroupId, setStatsGroupId] = useState("all");
   const [eventPendingDelete, setEventPendingDelete] = useState<AttendanceEvent | null>(null);
 
   useEffect(() => {
@@ -1421,6 +1429,7 @@ export function AttendanceManager({
     return matchesQuery && matchesType;
   });
   const selectedAttendanceEvent = attendanceEvents.find((event) => event.id === attendanceEventId) ?? null;
+  const attendanceStats = globalStats?.attendance;
 
   const activeMembers = localMembers.filter(isAttendanceRosterMember);
   const activeMemberCount = activeMembers.length;
@@ -1454,6 +1463,78 @@ export function AttendanceManager({
     const rate = activeMemberCount ? Math.round((presentCount / activeMemberCount) * 100) : 0;
     return { ...event, presentCount, rate };
   });
+  const aggregateStatsEvents = attendanceEvents.filter((event) => statsEventTypeFilter === "all" || event.title === statsEventTypeFilter);
+  const aggregateEventIds = new Set(aggregateStatsEvents.map((event) => event.id));
+  const aggregateGroupStats = [
+    ...groups.map((group) => {
+      const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
+      return buildAggregateAttendanceStat(
+        statsEventTypeFilter,
+        group.id,
+        group.name,
+        groupMembers,
+        aggregateEventIds,
+        aggregateStatsEvents.length,
+      );
+    }),
+    buildAggregateAttendanceStat(
+      statsEventTypeFilter,
+      "unassigned",
+      "미배정",
+      activeMembers.filter((member) => !member.groupId),
+      aggregateEventIds,
+      aggregateStatsEvents.length,
+    ),
+  ].filter((group) => group.memberCount > 0 && (statsGroupId === "all" || group.id === statsGroupId));
+  const aggregateTotals = aggregateGroupStats.reduce(
+    (totals, group) => ({
+      memberCount: totals.memberCount + group.memberCount,
+      possibleCount: totals.possibleCount + group.possibleCount,
+      presentCount: totals.presentCount + group.presentCount,
+      excusedCount: totals.excusedCount + group.excusedCount,
+    }),
+    { memberCount: 0, possibleCount: 0, presentCount: 0, excusedCount: 0 },
+  );
+  const aggregateRate = aggregateTotals.possibleCount
+    ? Math.round((aggregateTotals.presentCount / aggregateTotals.possibleCount) * 100)
+    : 0;
+  const aggregateAbsentCount = Math.max(aggregateTotals.possibleCount - aggregateTotals.presentCount - aggregateTotals.excusedCount, 0);
+  const displayActiveMemberCount = attendanceStats?.activeMemberCount ?? activeMemberCount;
+  const displayCurrentPresentCount = attendanceStats?.currentPresentCount ?? currentPresentCount;
+  const displayCurrentExcusedCount = attendanceStats?.currentExcusedCount ?? currentExcusedCount;
+  const displayCurrentAbsentCount = attendanceStats?.currentAbsentCount ?? currentAbsentCount;
+  const displayCurrentAttendanceRate = attendanceStats?.currentAttendanceRate ?? currentAttendanceRate;
+  const displayGroupAttendanceStats = attendanceStats?.groupAttendanceStats ?? groupAttendanceStats;
+  const displayUnassignedStats = attendanceStats?.unassigned ?? {
+    id: "unassigned",
+    name: "미배정",
+    presentCount: unassignedPresentCount,
+    totalCount: unassignedMembers.length,
+    rate: unassignedAttendanceRate,
+  };
+  const displayEventTrend = attendanceStats?.eventTrend ?? eventTrend;
+  const displayAggregateGroupStats = (attendanceStats?.aggregateGroupStats ?? aggregateGroupStats).filter(
+    (group) =>
+      group.memberCount > 0 &&
+      (statsEventTypeFilter === "all" ? group.eventType === "all" : group.eventType === statsEventTypeFilter) &&
+      (statsGroupId === "all" || group.id === statsGroupId),
+  );
+  const displayAggregateTotals = displayAggregateGroupStats.reduce(
+    (totals, group) => ({
+      memberCount: totals.memberCount + group.memberCount,
+      possibleCount: totals.possibleCount + group.possibleCount,
+      presentCount: totals.presentCount + group.presentCount,
+      excusedCount: totals.excusedCount + group.excusedCount,
+    }),
+    { memberCount: 0, possibleCount: 0, presentCount: 0, excusedCount: 0 },
+  );
+  const displayAggregateRate = displayAggregateTotals.possibleCount
+    ? Math.round((displayAggregateTotals.presentCount / displayAggregateTotals.possibleCount) * 100)
+    : 0;
+  const displayAggregateAbsentCount = Math.max(
+    displayAggregateTotals.possibleCount - displayAggregateTotals.presentCount - displayAggregateTotals.excusedCount,
+    0,
+  );
   const absenceWatchList = activeMembers
     .map((member) => {
       let streak = 0;
@@ -1658,16 +1739,88 @@ export function AttendanceManager({
         </form>
       </DisclosurePanel>
 
-      <DisclosurePanel id="attendance-stats" title="출석 통계" meta={`${attendanceTitle} · 출석률 ${currentAttendanceRate}%`}>
+      <DisclosurePanel id="attendance-stats" title="출석 통계" meta={`${attendanceTitle} · 출석률 ${displayCurrentAttendanceRate}%`}>
+        <section className="attendance-aggregate-panel" aria-label="통합 출석 통계">
+          <div className="panel-heading compact-heading">
+            <div>
+              <h2>순별 통합 출석</h2>
+              <p className="meta">선택한 범위의 모든 이벤트를 합산해 순별 출석 흐름을 봅니다.</p>
+            </div>
+            <span>{aggregateStatsEvents.length}개 이벤트</span>
+          </div>
+          <div className="attendance-stats-toolbar">
+            <label>
+              이벤트 종류
+              <select value={statsEventTypeFilter} onChange={(event) => setStatsEventTypeFilter(event.target.value)}>
+                <option value="all">전체 이벤트</option>
+                {attendanceEventTypes.map((title) => (
+                  <option key={title} value={title}>
+                    {title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              순
+              <select value={statsGroupId} onChange={(event) => setStatsGroupId(event.target.value)}>
+                <option value="all">전체 순</option>
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+                <option value="unassigned">미배정</option>
+              </select>
+            </label>
+          </div>
+          <div className="attendance-aggregate-summary">
+            <article className="metric-card">
+              <span>통합 출석률</span>
+              <strong>{displayAggregateRate}%</strong>
+              <small>
+                {displayAggregateTotals.presentCount}/{displayAggregateTotals.possibleCount}회 출석 · 사유 있음{" "}
+                {displayAggregateTotals.excusedCount}회 · 미확인 {displayAggregateAbsentCount}회
+              </small>
+              <div className="progress">
+                <span style={{ width: `${displayAggregateRate}%` }} />
+              </div>
+            </article>
+            <div className="aggregate-group-list">
+              {displayAggregateGroupStats.map((group) => (
+                <article className="aggregate-group-row" key={group.id}>
+                  <div className="person-block">
+                    <strong>{group.name}</strong>
+                    <span>
+                      {group.memberCount}명 · {group.presentCount}/{group.possibleCount}회 출석
+                    </span>
+                  </div>
+                  <div className="aggregate-stat-meter">
+                    <div className="progress">
+                      <span style={{ width: `${group.rate}%` }} />
+                    </div>
+                    <strong>{group.rate}%</strong>
+                  </div>
+                  <span className="status-pill">사유 {group.excusedCount}회</span>
+                </article>
+              ))}
+              {displayAggregateGroupStats.length === 0 ? (
+                <article className="empty-table-state">
+                  <strong>표시할 통계가 없습니다</strong>
+                  <span>이벤트 종류나 순 필터를 조정해보세요.</span>
+                </article>
+              ) : null}
+            </div>
+          </div>
+        </section>
         <section className="stats-grid">
           <article className="metric-card">
             <span>선택 이벤트 출석률</span>
-            <strong>{currentAttendanceRate}%</strong>
+            <strong>{displayCurrentAttendanceRate}%</strong>
             <small>
-              {currentPresentCount}명 출석 · {currentAbsentCount}명 미확인 · {currentExcusedCount}명 사유 있음
+              {displayCurrentPresentCount}명 출석 · {displayCurrentAbsentCount}명 미확인 · {displayCurrentExcusedCount}명 사유 있음
             </small>
             <div className="progress">
-              <span style={{ width: `${currentAttendanceRate}%` }} />
+              <span style={{ width: `${displayCurrentAttendanceRate}%` }} />
             </div>
           </article>
           <article className="panel stats-card">
@@ -1676,7 +1829,7 @@ export function AttendanceManager({
               <span>{attendanceTitle}</span>
             </div>
             <div className="stats-list">
-              {groupAttendanceStats.map((group) => (
+              {displayGroupAttendanceStats.map((group) => (
                 <div className="stat-row" key={group.id}>
                   <div className="person-block">
                     <strong>{group.name}</strong>
@@ -1692,19 +1845,19 @@ export function AttendanceManager({
                   </div>
                 </div>
               ))}
-              {unassignedMembers.length > 0 ? (
+              {displayUnassignedStats.totalCount > 0 ? (
                 <div className="stat-row">
                   <div className="person-block">
                     <strong>미배정</strong>
                     <span>
-                      {unassignedPresentCount}/{unassignedMembers.length}명
+                      {displayUnassignedStats.presentCount}/{displayUnassignedStats.totalCount}명
                     </span>
                   </div>
                   <div className="stat-meter">
                     <div className="progress">
-                      <span style={{ width: `${unassignedAttendanceRate}%` }} />
+                      <span style={{ width: `${displayUnassignedStats.rate}%` }} />
                     </div>
-                    <strong>{unassignedAttendanceRate}%</strong>
+                    <strong>{displayUnassignedStats.rate}%</strong>
                   </div>
                 </div>
               ) : null}
@@ -1713,10 +1866,10 @@ export function AttendanceManager({
           <article className="panel stats-card">
             <div className="panel-heading">
               <h2>최근 이벤트 추이</h2>
-              <span>최근 {eventTrend.length}개</span>
+              <span>최근 {displayEventTrend.length}개</span>
             </div>
             <div className="stats-list">
-              {eventTrend.slice(0, 6).map((event) => (
+              {displayEventTrend.slice(0, 6).map((event) => (
                 <div className="stat-row" key={event.id}>
                   <div className="person-block">
                     <strong>{event.title}</strong>
@@ -1738,20 +1891,24 @@ export function AttendanceManager({
               <span>사유 있음 제외</span>
             </div>
             <div className="stats-list">
-              {absenceWatchList.map(({ member, streak }) => (
-                <div className="stat-row" key={member.id}>
-                  <div className="person-block">
-                    <strong>{member.displayName}</strong>
-                    <span>{member.groupName}</span>
+              {absenceWatchList.map(({ member, streak }) => {
+                const englishName = getMemberEnglishName(member);
+                return (
+                  <div className="stat-row absence-watch-row" key={member.id}>
+                    <div className="person-block">
+                      <strong>{member.name}</strong>
+                      {englishName ? <span className="english-name">{englishName}</span> : null}
+                      <span>{member.groupName}</span>
+                    </div>
+                    <div className="row-actions absence-watch-actions">
+                      <span className="status-pill">{streak}회 연속</span>
+                      <Link className="secondary-button table-action" href={`/members/${member.id}`}>
+                        팔로업
+                      </Link>
+                    </div>
                   </div>
-                  <div className="row-actions">
-                    <span className="status-pill">{streak}회 연속</span>
-                    <Link className="secondary-button table-action" href={`/members/${member.id}`}>
-                      팔로업
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {absenceWatchList.length === 0 ? (
                 <article className="care-item">
                   <div className="person-block">
@@ -1858,6 +2015,61 @@ export function AttendanceManager({
   );
 }
 
+function GroupMembersModal({
+  group,
+  members,
+  onClose,
+}: {
+  group: Group;
+  members: Member[];
+  onClose: () => void;
+}) {
+  const sortedMembers = [...members].sort((a, b) => a.name.localeCompare(b.name));
+
+  return (
+    <div className="confirm-modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        aria-labelledby="group-members-modal-title"
+        aria-modal="true"
+        className="confirm-modal group-members-modal"
+        role="dialog"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="panel-heading compact-heading">
+          <div>
+            <h2 id="group-members-modal-title">{group.name} 멤버</h2>
+            <p className="meta">리더 {group.leaderName} · {sortedMembers.length}명</p>
+          </div>
+          <button className="secondary-button table-action" type="button" onClick={onClose}>
+            닫기
+          </button>
+        </div>
+        <div className="group-modal-member-list">
+          {sortedMembers.map((member) => (
+            <article className="group-modal-member-row" key={member.id}>
+              <div className="person-block">
+                <strong>{member.displayName}</strong>
+                <span>
+                  {roleLabels[member.role]} · {statusLabels[member.status]}
+                </span>
+              </div>
+              <Link className="secondary-button table-action" href={`/members/${member.id}`}>
+                상세보기
+              </Link>
+            </article>
+          ))}
+          {sortedMembers.length === 0 ? (
+            <article className="empty-table-state">
+              <strong>배정된 멤버가 없습니다</strong>
+              <span>순 카드에서 리더를 지정하거나 멤버 상세에서 순을 배정해주세요.</span>
+            </article>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AttendanceRow({
   member,
   eventId,
@@ -1955,6 +2167,38 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
   if (currentRecord?.status === "excused") return "excused";
 
   return "absent";
+}
+
+function buildAggregateAttendanceStat(
+  eventType: string,
+  id: string,
+  name: string,
+  members: Member[],
+  eventIds: Set<string>,
+  eventCount: number,
+) {
+  const possibleCount = members.length * eventCount;
+  let presentCount = 0;
+  let excusedCount = 0;
+
+  for (const member of members) {
+    for (const record of member.attendanceHistory) {
+      if (!eventIds.has(record.eventId)) continue;
+      if (record.status === "present") presentCount += 1;
+      if (record.status === "excused") excusedCount += 1;
+    }
+  }
+
+  return {
+    eventType,
+    id,
+    name,
+    memberCount: members.length,
+    possibleCount,
+    presentCount,
+    excusedCount,
+    rate: possibleCount ? Math.round((presentCount / possibleCount) * 100) : 0,
+  };
 }
 
 function isAttendanceRosterMember(member: Member) {
@@ -2495,33 +2739,94 @@ function PageHeader({
   );
 }
 
-function GroupSummaryPanel({ members, groups }: { members: Member[]; groups: Group[] }) {
+function GroupSummaryPanel({
+  attendanceEvents,
+  groupMemberStats,
+  groupStats,
+  members,
+  groups,
+}: {
+  attendanceEvents: AttendanceEvent[];
+  groupMemberStats?: GlobalAppStats["groupPage"]["groups"];
+  groupStats?: GlobalAppStats["groupAttendanceSummary"];
+  members: Member[];
+  groups: Group[];
+}) {
+  const worshipEvents = attendanceEvents.filter((event) => event.title === "주일 예배");
+  const groupMeetingEvents = attendanceEvents.filter((event) => event.title === "순모임");
+
   return (
     <section className="panel" id="group-summary">
       <div className="panel-heading">
         <h2>순 현황</h2>
-        <span>인원과 최근 출석률</span>
+        <span>최근/평균 출석률</span>
       </div>
       <div className="group-summary">
         {groups.map((group) => {
           const groupMembers = members.filter((member) => member.groupName === group.name);
-          const present = groupMembers.filter((member) => member.present).length;
-          const rate = groupMembers.length ? Math.round((present / groupMembers.length) * 100) : 0;
+          const worship = buildDashboardGroupAttendanceRates(groupMembers, worshipEvents);
+          const groupMeeting = buildDashboardGroupAttendanceRates(groupMembers, groupMeetingEvents);
+          const globalMemberStats = groupMemberStats?.find((item) => item.id === group.id);
+          const globalGroupStats = groupStats?.find((item) => item.id === group.id);
           return (
-            <article className="summary-row" key={group.id}>
+            <article className="summary-row group-attendance-summary-row" key={group.id}>
               <div className="person-block">
                 <strong>{group.name}</strong>
                 <span>
-                  리더 {group.leaderName} · {groupMembers.length}명
+                  리더 {group.leaderName} · {globalMemberStats?.memberCount ?? groupMembers.length}명
                 </span>
               </div>
-              <span className={`attendance-pill ${rate >= 70 ? "present" : ""}`}>{rate}%</span>
+              <div className="group-attendance-metrics">
+                <DashboardGroupRate label="최근 예배" value={globalGroupStats?.latestWorshipRate ?? worship.latestRate} />
+                <DashboardGroupRate label="평균 예배" value={globalGroupStats?.averageWorshipRate ?? worship.averageRate} />
+                <DashboardGroupRate label="최근 순모임" value={globalGroupStats?.latestGroupMeetingRate ?? groupMeeting.latestRate} />
+                <DashboardGroupRate label="평균 순모임" value={globalGroupStats?.averageGroupMeetingRate ?? groupMeeting.averageRate} />
+              </div>
             </article>
           );
         })}
       </div>
     </section>
   );
+}
+
+function DashboardGroupRate({ label, value }: { label: string; value: number | null }) {
+  return (
+    <span className={`dashboard-rate-pill ${value !== null && value >= 70 ? "strong" : ""}`}>
+      <small>{label}</small>
+      <strong>{value === null ? "-" : `${value}%`}</strong>
+    </span>
+  );
+}
+
+function buildDashboardGroupAttendanceRates(members: Member[], events: AttendanceEvent[]) {
+  const latestEvent = events[0];
+  const latestRate = latestEvent ? calculateEventAttendanceRate(members, latestEvent.id) : null;
+  const possibleCount = members.length * events.length;
+  if (!possibleCount) {
+    return { latestRate, averageRate: null };
+  }
+
+  const eventIds = new Set(events.map((event) => event.id));
+  let presentCount = 0;
+  for (const member of members) {
+    for (const record of member.attendanceHistory) {
+      if (eventIds.has(record.eventId) && record.status === "present") presentCount += 1;
+    }
+  }
+
+  return {
+    latestRate,
+    averageRate: Math.round((presentCount / possibleCount) * 100),
+  };
+}
+
+function calculateEventAttendanceRate(members: Member[], eventId: string) {
+  if (!members.length) return 0;
+  const presentCount = members.filter((member) =>
+    member.attendanceHistory.some((record) => record.eventId === eventId && record.status === "present"),
+  ).length;
+  return Math.round((presentCount / members.length) * 100);
 }
 
 const roleLabels: Record<Role, string> = {
