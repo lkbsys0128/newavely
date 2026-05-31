@@ -10,6 +10,7 @@
   --accent: #2f91b5;
   --accent-dark: #166783;
   --accent-2: #c65050;
+  --danger: #c65050;
   --accent-3: #0f7b70;
   --soft: #eaf6fa;
   --soft-strong: #d9f0f6;
@@ -1859,6 +1860,48 @@ tbody tr:hover {
   border: 1px solid rgba(47, 145, 181, 0.18);
   border-radius: 6px;
   padding: 16px;
+  background: #fbfeff;
+}
+
+.attendance-page-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.attendance-page-flow #attendance-stats {
+  order: 1;
+}
+
+.attendance-page-flow #attendance-events {
+  order: 2;
+}
+
+.attendance-page-flow #attendance-create {
+  order: 3;
+}
+
+.attendance-page-flow #attendance-checklist {
+  order: 4;
+}
+
+.event-segment.unread,
+.event-selector-panel select {
+  position: relative;
+}
+
+.unread-event-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: var(--accent-2);
+  box-shadow: 0 0 0 3px rgba(210, 83, 80, 0.12);
+}
+
+.attendance-selection-empty {
+  border-style: dashed;
   background: #fbfeff;
 }
 
