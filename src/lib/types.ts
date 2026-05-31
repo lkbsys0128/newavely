@@ -94,5 +94,7 @@ export type DeletedAuthUser = {
   deletedMemberName: string;
   deletedMemberEmail: string;
   deletedAt: string;
+  restoreRequestedAt: string | null;
+  restoreRequestNote: string;
   restoreData: Record<string, unknown> | null;
 };

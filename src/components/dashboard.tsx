@@ -2643,7 +2643,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         <div className="panel-heading">
           <div>
             <h2>삭제된 계정 복구</h2>
-            <p className="meta">완전 삭제된 Google 계정을 다시 사용해야 할 때 차단을 해제하고 교적을 복원합니다.</p>
+            <p className="meta">삭제된 계정 사용자가 다시 로그인해 복구를 요청하면 여기서 승인합니다.</p>
           </div>
           <span>{deletedAuthUsers.length}건</span>
         </div>
@@ -2656,6 +2656,10 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                   {deletedUser.deletedMemberEmail || "이메일 없음"} · 삭제일{" "}
                   {deletedUser.deletedAt ? new Date(deletedUser.deletedAt).toLocaleString("ko-KR") : "기록 없음"}
                 </span>
+                <span>
+                  요청일 · {deletedUser.restoreRequestedAt ? new Date(deletedUser.restoreRequestedAt).toLocaleString("ko-KR") : "기록 없음"}
+                </span>
+                {deletedUser.restoreRequestNote ? <span>메모: {deletedUser.restoreRequestNote}</span> : null}
                 <span>
                   {deletedUser.restoreData
                     ? "삭제 전 교적 정보로 복원할 수 있습니다."
@@ -2675,7 +2679,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
               <span className="request-empty-mark" aria-hidden="true" />
               <div className="person-block">
                 <strong>복구할 삭제 계정이 없습니다</strong>
-                <span>완전 삭제된 Google 계정이 있으면 이곳에 표시됩니다.</span>
+                <span>삭제된 계정 사용자가 복구를 요청하면 이곳에 표시됩니다.</span>
               </div>
             </article>
           ) : null}

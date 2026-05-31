@@ -28,8 +28,8 @@ export function AppPageGate({
   }
 
   if (data.status === "error") {
-    const isAccountAccessError =
-      data.message.includes("이전에 삭제된 멤버 계정") || data.message.includes("현재 비활성화되어 로그인할 수 없습니다");
+    const isDeletedAccountError = data.message.includes("이전에 삭제된 멤버 계정");
+    const isAccountAccessError = isDeletedAccountError || data.message.includes("현재 비활성화되어 로그인할 수 없습니다");
 
     if (isAccountAccessError) {
       return (
@@ -39,6 +39,7 @@ export function AppPageGate({
           message={data.message}
           label="안내"
           context="계정 복구나 재활성화가 필요하면 Newavely 운영 관리자에게 연락해주세요."
+          allowRestoreRequest={isDeletedAccountError}
         />
       );
     }
