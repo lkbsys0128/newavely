@@ -805,6 +805,24 @@ h3 {
   grid-template-columns: 1fr auto;
 }
 
+.event-type-options {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 74px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.event-type-options legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
 .field-note {
   width: max-content;
   border: 1px solid var(--line);

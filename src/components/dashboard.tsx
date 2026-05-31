@@ -615,6 +615,7 @@ function getCustomFieldString(member: Member, key: string) {
 export function MembersManager({ user, members, groups }: AppDataProps) {
   const [filters, setFilters] = useState<MemberFilters>(defaultMemberFilters);
   const [selectedMemberId, setSelectedMemberId] = useState("");
+  const [memberDetailMessageMemberId, setMemberDetailMessageMemberId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [showSheetLinkModal, setShowSheetLinkModal] = useState(false);
   const [createMemberState, createMemberAction, isCreatingMember] = useActionState(createMember, initialActionState);
@@ -668,6 +669,16 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
 
   function updateFilters(nextFilters: Partial<MemberFilters>) {
     setFilters((current) => ({ ...current, ...nextFilters }));
+  }
+
+  function openMemberDetail(memberId: string) {
+    setSelectedMemberId(memberId);
+    setMemberDetailMessageMemberId(null);
+  }
+
+  function closeMemberDetail() {
+    setSelectedMemberId("");
+    setMemberDetailMessageMemberId(null);
   }
 
   return (
@@ -818,7 +829,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   <tr
                     className={selectedMemberId === member.id ? "selected-row" : ""}
                     key={member.id}
-                    onClick={() => setSelectedMemberId(member.id)}
+                    onClick={() => openMemberDetail(member.id)}
                   >
                     <td>
                       <strong>{member.displayName}</strong>
@@ -849,7 +860,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                         className="secondary-button table-action"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setSelectedMemberId(member.id);
+                          openMemberDetail(member.id);
                         }}
                         type="button"
                       >
@@ -877,7 +888,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           <button
             aria-label="멤버 상세 닫기"
             className="member-detail-backdrop"
-            onClick={() => setSelectedMemberId("")}
+            onClick={closeMemberDetail}
             type="button"
           />
         ) : null}
@@ -889,12 +900,17 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         >
           <div className="panel-heading">
             <h2>멤버 상세</h2>
-            <button className="secondary-button table-action" type="button" onClick={() => setSelectedMemberId("")}>
+            <button className="secondary-button table-action" type="button" onClick={closeMemberDetail}>
               닫기
             </button>
           </div>
           {selectedMember ? (
-            <form action={updateMemberAction} className="management-form" key={selectedMember.id}>
+            <form
+              action={updateMemberAction}
+              className="management-form"
+              key={selectedMember.id}
+              onSubmit={() => setMemberDetailMessageMemberId(selectedMember.id)}
+            >
               <input name="id" type="hidden" value={selectedMember.id} />
               <label>
                 한국 이름
@@ -960,7 +976,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 <textarea name="notes" defaultValue={selectedMember.notes} disabled={!canManageMembers} />
               </label>
               <div className="form-actions member-detail-actions full-width">
-                <ActionMessage state={updateMemberState} />
+                {memberDetailMessageMemberId === selectedMember.id ? <ActionMessage state={updateMemberState} /> : null}
                 <button className="primary-button" type="submit" disabled={!canManageMembers || isUpdatingMember}>
                   저장
                 </button>
@@ -968,9 +984,13 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </form>
           ) : null}
           {selectedMember ? (
-            <form action={deactivateMemberAction} className="single-action-form member-detail-actions">
+            <form
+              action={deactivateMemberAction}
+              className="single-action-form member-detail-actions"
+              onSubmit={() => setMemberDetailMessageMemberId(selectedMember.id)}
+            >
               <input name="id" type="hidden" value={selectedMember.id} />
-              <ActionMessage state={deactivateMemberState} />
+              {memberDetailMessageMemberId === selectedMember.id ? <ActionMessage state={deactivateMemberState} /> : null}
               <button
                 className="danger-button"
                 type="submit"
@@ -981,16 +1001,24 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             </form>
           ) : null}
           {selectedMember?.status === "inactive" ? (
-            <form action={reactivateMemberAction} className="single-action-form member-detail-actions">
+            <form
+              action={reactivateMemberAction}
+              className="single-action-form member-detail-actions"
+              onSubmit={() => setMemberDetailMessageMemberId(selectedMember.id)}
+            >
               <input name="id" type="hidden" value={selectedMember.id} />
-              <ActionMessage state={reactivateMemberState} />
+              {memberDetailMessageMemberId === selectedMember.id ? <ActionMessage state={reactivateMemberState} /> : null}
               <button className="primary-button" type="submit" disabled={!canManageMembers || isReactivatingMember}>
                 다시 활성화
               </button>
             </form>
           ) : null}
           {selectedMember && canUseDeleteActions(user.role) ? (
-            <form action={deleteMemberAction} className="danger-zone-form member-delete-zone">
+            <form
+              action={deleteMemberAction}
+              className="danger-zone-form member-delete-zone"
+              onSubmit={() => setMemberDetailMessageMemberId(selectedMember.id)}
+            >
               <input name="id" type="hidden" value={selectedMember.id} />
               <div className="person-block">
                 <strong>완전 삭제</strong>
@@ -1001,7 +1029,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 <input name="confirmName" placeholder="예: 홍길동" />
               </label>
               <div className="member-delete-actions">
-                <ActionMessage state={deleteMemberState} />
+                {memberDetailMessageMemberId === selectedMember.id ? <ActionMessage state={deleteMemberState} /> : null}
                 <button className="danger-button" type="submit" disabled={!canDeleteSelectedMember || isDeletingMember}>
                   완전히 삭제
                 </button>
@@ -1716,20 +1744,24 @@ export function AttendanceManager({
       <DisclosurePanel
         id="attendance-create"
         title="새 출석 이벤트"
-        meta={canManageAttendance ? "날짜와 이름을 입력" : "리더/관리자 권한 필요"}
+        meta={canManageAttendance ? "날짜와 만들 이벤트를 선택" : "리더/관리자 권한 필요"}
       >
         <form action={createEventAction} className="member-form compact-form">
           <label>
             날짜
             <input name="eventDate" type="date" required disabled={!canManageAttendance} />
           </label>
-          <label>
-            이름
-            <select name="title" required defaultValue="주일 예배" disabled={!canManageAttendance}>
-              <option value="주일 예배">주일 예배</option>
-              <option value="순모임">순모임</option>
-            </select>
-          </label>
+          <fieldset className="event-type-options">
+            <legend>이벤트 종류</legend>
+            <label className="toggle-field">
+              <input name="titles" type="checkbox" value="주일 예배" defaultChecked disabled={!canManageAttendance} />
+              주일 예배
+            </label>
+            <label className="toggle-field">
+              <input name="titles" type="checkbox" value="순모임" disabled={!canManageAttendance} />
+              순모임
+            </label>
+          </fieldset>
           <div className="form-actions full-width">
             <ActionMessage state={createEventState} />
             <button className="primary-button" type="submit" disabled={!canManageAttendance || isCreatingEvent}>

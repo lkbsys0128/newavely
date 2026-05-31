@@ -163,18 +163,61 @@ export async function getOrCreateCurrentMember(
   };
 }
 
-export async function ensureAttendanceEvent(supabase: SupabaseClient) {
+function getLosAngelesToday() {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Los_Angeles",
+    weekday: "short",
+    year: "numeric",
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map((part) => [part.type, part.value]));
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    isSunday: parts.weekday === "Sun",
+  };
+}
+
+export async function ensureAttendanceEvent(
+  supabase: SupabaseClient,
+  options: { autoCreateSundayWorship?: boolean; createdByMemberId?: string } = {},
+) {
   const { count: eventCount, error: eventCountError } = await supabase
     .from("attendance_events")
     .select("id", { count: "exact", head: true });
 
   if (eventCountError) throw eventCountError;
 
-  if (!eventCount) {
-    const { error } = await supabase.from("attendance_events").insert({
+  const eventsToEnsure: Array<{ event_date: string; title: string; created_by_member_id?: string }> = [];
+  const today = getLosAngelesToday();
+
+  if (options.autoCreateSundayWorship && today.isSunday) {
+    eventsToEnsure.push({
+      event_date: today.date,
+      title: "주일 예배",
+      created_by_member_id: options.createdByMemberId,
+    });
+  } else if (!eventCount) {
+    eventsToEnsure.push({
       event_date: "2026-05-24",
       title: "주일 예배",
+      created_by_member_id: options.createdByMemberId,
     });
+  }
+
+  for (const event of eventsToEnsure) {
+    const { data: existingEvent, error: existingEventError } = await supabase
+      .from("attendance_events")
+      .select("id")
+      .eq("event_date", event.event_date)
+      .eq("title", event.title)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingEventError) throw existingEventError;
+    if (existingEvent) continue;
+
+    const { error } = await supabase.from("attendance_events").insert(event);
     if (error) throw error;
   }
 }
