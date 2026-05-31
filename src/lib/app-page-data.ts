@@ -476,7 +476,12 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       name: user.user_metadata?.full_name,
     });
 
-    await ensureAttendanceEvent(supabase);
+    if (hasPermission(currentMember.role, "attendance:write")) {
+      await ensureAttendanceEvent(supabase, {
+        autoCreateSundayWorship: true,
+        createdByMemberId: currentMember.id,
+      });
+    }
     const dashboardData = await getDashboardData(supabase, options?.attendanceEventId);
     const currentRosterMember = dashboardData.members.find((member) => member.id === currentMember.id);
     const appUser = {

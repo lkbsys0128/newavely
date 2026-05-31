@@ -31,6 +31,7 @@ const onboardingSource = readFileSync(new URL("../src/components/onboarding-pane
 const profilePageSource = readFileSync(new URL("../src/app/profile/page.tsx", import.meta.url), "utf8");
 const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
 const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+const mobileAwareNavSource = readFileSync(new URL("../src/components/mobile-aware-nav.tsx", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
   assert.match(dataSource, /id, auth_user_id, name/);
@@ -202,6 +203,11 @@ test("mobile navigation collapses into an expandable dropdown", () => {
   assert.match(layoutSource, /<div className="sidebar-menu">/);
   assert.match(layoutSource, /className="mobile-menu-control"[\s\S]*type="checkbox"/);
   assert.match(layoutSource, /<label className="mobile-menu-toggle" htmlFor="mobile-menu-control">/);
+  assert.match(layoutSource, /<MobileAwareNav \/>/);
+  assert.match(mobileAwareNavSource, /"use client"/);
+  assert.match(mobileAwareNavSource, /function closeMobileMenu/);
+  assert.match(mobileAwareNavSource, /control\.checked = false/);
+  assert.match(mobileAwareNavSource, /onClick=\{closeMobileMenu\}/);
   assert.match(globalCssSource, /@media \(max-width: 760px\)[\s\S]*\.mobile-menu-control:not\(:checked\) ~ \.nav-list/);
   assert.match(globalCssSource, /\.mobile-menu-control:checked ~ \.nav-list[\s\S]*mobileMenuReveal/);
 });
@@ -222,6 +228,9 @@ test("member detail opens as a centered modal from the roster", () => {
   assert.match(dashboardSource, /member-delete-zone/);
   assert.match(dashboardSource, /member-delete-actions/);
   assert.match(dashboardSource, /setSelectedMemberId\(""\)/);
+  assert.match(dashboardSource, /memberDetailMessageMemberId/);
+  assert.match(dashboardSource, /setMemberDetailMessageMemberId\(null\)/);
+  assert.match(dashboardSource, /memberDetailMessageMemberId === selectedMember\.id/);
   assert.match(dashboardSource, /selected-row/);
 });
 
@@ -239,11 +248,14 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /event-selector-panel/);
   assert.match(dashboardSource, /최신순 이벤트/);
   assert.match(dashboardSource, /주일 예배[\s\S]*순모임/);
+  assert.match(dashboardSource, /name="titles"[\s\S]*value="주일 예배"/);
+  assert.match(dashboardSource, /name="titles"[\s\S]*value="순모임"/);
   assert.match(dashboardSource, /attendance-check-list/);
   assert.match(dashboardSource, /attendance-card/);
   assert.match(dashboardSource, /isImportedAttendanceNote/);
   assert.match(dashboardSource, /Imported from 2026 annual attendance CSV/);
-  assert.match(actionsSource, /이미 같은 날짜와 이름의 출석 이벤트/);
+  assert.match(actionsSource, /formData\.getAll\("titles"\)/);
+  assert.match(actionsSource, /선택한 출석 이벤트가 이미 모두 있습니다/);
   assert.match(actionsSource, /export async function deleteAttendanceEvent/);
   assert.match(actionsSource, /attendance_event\.delete/);
   assert.match(actionsSource, /canUseDeleteActions\(currentMember\.role\)/);
@@ -251,6 +263,17 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /출석 이벤트를 지울까요/);
   assert.match(dashboardSource, /deleteEventAction/);
   assert.doesNotMatch(dashboardSource, /member\.groupName} · {member\.phone/);
+});
+
+test("attendance event setup supports batch creation and Sunday auto-create in Pacific time", () => {
+  assert.match(dataSource, /timeZone: "America\/Los_Angeles"/);
+  assert.match(dataSource, /autoCreateSundayWorship/);
+  assert.match(dataSource, /today\.isSunday/);
+  assert.match(appPageDataSource, /hasPermission\(currentMember\.role, "attendance:write"\)/);
+  assert.match(appPageDataSource, /createdByMemberId: currentMember\.id/);
+  assert.match(actionsSource, /titlesToCreate/);
+  assert.match(actionsSource, /\.in\("title", parsed\.titles\)/);
+  assert.match(actionsSource, /이미 있던 \$\{skippedCount\}개는 건너뛰었습니다/);
 });
 
 test("attendance stats can aggregate all events by group and event type", () => {

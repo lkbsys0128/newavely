@@ -95,9 +95,11 @@ const deleteGroupSchema = z.object({
   id: z.string().uuid(),
 });
 
+const attendanceEventTitles = ["주일 예배", "순모임"] as const;
+
 const attendanceEventSchema = z.object({
   eventDate: z.string().min(1, "날짜를 선택해주세요."),
-  title: z.string().min(1, "이벤트 이름을 입력해주세요."),
+  titles: z.array(z.enum(attendanceEventTitles)).min(1, "이벤트 종류를 하나 이상 선택해주세요."),
 });
 
 const deleteAttendanceEventSchema = z.object({
@@ -1239,44 +1241,52 @@ export async function deleteCustomFieldDefinition(_previousState: ActionState, f
 export async function createAttendanceEvent(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
+    const submittedTitles = formData.getAll("titles");
+    const legacyTitle = formData.get("title");
     const parsed = attendanceEventSchema.parse({
       eventDate: formData.get("eventDate"),
-      title: formData.get("title"),
+      titles: submittedTitles.length > 0 ? submittedTitles : [legacyTitle],
     });
 
-    const { data: existingEvent, error: existingEventError } = await supabase
+    const { data: existingEvents, error: existingEventError } = await supabase
       .from("attendance_events")
-      .select("id")
+      .select("id, title")
       .eq("event_date", parsed.eventDate)
-      .eq("title", parsed.title)
-      .limit(1)
-      .maybeSingle();
+      .in("title", parsed.titles);
 
     if (existingEventError) throw existingEventError;
-    if (existingEvent) {
-      return "이미 같은 날짜와 이름의 출석 이벤트가 있습니다.";
+    const existingTitles = new Set((existingEvents ?? []).map((event) => String(event.title)));
+    const titlesToCreate = parsed.titles.filter((title) => !existingTitles.has(title));
+
+    if (titlesToCreate.length === 0) {
+      return "선택한 출석 이벤트가 이미 모두 있습니다.";
     }
 
-    const { data: inserted, error } = await supabase
+    const { data: insertedEvents, error } = await supabase
       .from("attendance_events")
-      .insert({
+      .insert(titlesToCreate.map((title) => ({
         event_date: parsed.eventDate,
-        title: parsed.title,
+        title,
         created_by_member_id: currentMember.id,
-      })
+      })))
       .select("*")
-      .single();
+      .order("title", { ascending: true });
 
     if (error) throw error;
-    await writeAuditLog({
-      supabase,
-      action: "attendance_event.create",
-      targetTable: "attendance_events",
-      targetId: inserted.id as string,
-      afterData: inserted as Record<string, unknown>,
-    });
+    for (const inserted of insertedEvents ?? []) {
+      await writeAuditLog({
+        supabase,
+        action: "attendance_event.create",
+        targetTable: "attendance_events",
+        targetId: inserted.id as string,
+        afterData: inserted as Record<string, unknown>,
+      });
+    }
     revalidateAppData();
-    return "출석 이벤트를 만들었습니다.";
+    const skippedCount = parsed.titles.length - titlesToCreate.length;
+    return skippedCount > 0
+      ? `${titlesToCreate.join(", ")} 이벤트를 만들었습니다. 이미 있던 ${skippedCount}개는 건너뛰었습니다.`
+      : `${titlesToCreate.join(", ")} 이벤트를 만들었습니다.`;
   });
 }
 

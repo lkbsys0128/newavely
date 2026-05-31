@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+import { MobileAwareNav } from "@/components/mobile-aware-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import "./globals.css";
@@ -32,15 +32,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 메뉴
               </label>
 
-              <nav className="nav-list" aria-label="앱 섹션">
-                <Link href="/">대시보드</Link>
-                <Link href="/profile">내 프로필</Link>
-                <Link href="/members">멤버</Link>
-                <Link href="/groups">순</Link>
-                <Link href="/attendance">출석</Link>
-                <Link href="/permissions">권한</Link>
-                <Link href="/audit">감사 로그</Link>
-              </nav>
+              <MobileAwareNav />
 
               <div className="auth-card" aria-label="계정 메뉴">
                 <SignOutButton enabled={authEnabled} />
