@@ -2670,6 +2670,26 @@ tbody tr:hover {
   font-weight: 700;
 }
 
+.attendance-check-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.attendance-mode-switcher {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.attendance-mode-switcher > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
 .attendance-toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
@@ -3231,6 +3251,28 @@ tbody tr:hover {
 
   .section-nav-links {
     flex-wrap: nowrap;
+  }
+
+  .attendance-check-controls,
+  .attendance-mode-switcher {
+    align-items: stretch;
+    justify-items: stretch;
+    width: 100%;
+  }
+
+  .attendance-check-controls {
+    flex-direction: column;
+  }
+
+  .attendance-mode-switcher .segmented,
+  .attendance-check-controls > .segmented {
+    display: flex;
+    width: 100%;
+  }
+
+  .attendance-mode-switcher .segment,
+  .attendance-check-controls > .segmented .segment {
+    flex: 1 1 0;
   }
 
   .member-detail-backdrop,

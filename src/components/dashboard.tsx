@@ -2026,11 +2026,28 @@ export function AttendanceManager({
       <section className="panel" id="attendance-checklist">
         <div className="attendance-check-header">
           <div>
-            <h2>{attendanceTitle}</h2>
+            <h2>출석 체크</h2>
             <span>
-              {attendanceDate} · {attendanceMembers.length}/{activeMemberCount}명 표시
+              {attendanceDate} · {attendanceTitle} · {attendanceMembers.length}/{activeMemberCount}명 표시
             </span>
           </div>
+          <div className="attendance-check-controls">
+            {sameDateEvents.length > 1 ? (
+              <div className="attendance-mode-switcher" aria-label="출석 종류 선택">
+                <span>출석 종류</span>
+                <div className="segmented">
+                  {sameDateEvents.map((event) => (
+                    <Link
+                      className={`segment event-segment ${event.id === attendanceEventId ? "active" : ""}`}
+                      href={`/attendance?eventId=${event.id}`}
+                      key={event.id}
+                    >
+                      {event.title}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           <div className="segmented">
             {(["all", "present", "absent", "excused"] as const).map((filter) => (
               <button
@@ -2042,6 +2059,7 @@ export function AttendanceManager({
                 {attendanceFilterLabels[filter]}
               </button>
             ))}
+          </div>
           </div>
         </div>
         <div className="attendance-toolbar">
