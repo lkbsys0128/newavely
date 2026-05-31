@@ -1443,19 +1443,19 @@ export async function deleteMemberPermanently(_previousState: ActionState, formD
 
     const deletedAuthUserId = typeof member.auth_user_id === "string" ? member.auth_user_id : null;
     if (deletedAuthUserId) {
-      const { error: deletedAuthUserError } = await supabase.from("deleted_auth_users").upsert(
-        {
-          auth_user_id: deletedAuthUserId,
-          deleted_member_id: parsed.id,
-          deleted_member_name: memberName,
-          deleted_member_email: typeof member.email === "string" ? member.email : null,
-          deleted_by_member_id: currentMember.id,
-          reason: "member.permanent_delete",
-        },
-        { onConflict: "auth_user_id" },
-      );
+      const deletedAuthBlockPayload = {
+        auth_user_id: deletedAuthUserId,
+        deleted_member_id: parsed.id,
+        deleted_member_name: memberName,
+        deleted_member_email: typeof member.email === "string" ? member.email : null,
+        deleted_by_member_id: currentMember.id,
+        reason: "member.permanent_delete",
+      };
+      const { error: deletedAuthUserError } = await supabase.from("deleted_auth_users").insert(deletedAuthBlockPayload);
 
-      if (deletedAuthUserError && deletedAuthUserError.code !== "42P01") throw deletedAuthUserError;
+      if (deletedAuthUserError && deletedAuthUserError.code !== "42P01" && deletedAuthUserError.code !== "23505") {
+        throw deletedAuthUserError;
+      }
     }
 
     await writeAuditLog({

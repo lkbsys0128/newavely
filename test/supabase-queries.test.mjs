@@ -115,6 +115,9 @@ test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(actionsSource, /closedPendingLinkRequests/);
   assert.match(actionsSource, /deleted_auth_users/);
   assert.match(actionsSource, /member\.auth_user_id/);
+  assert.match(actionsSource, /deletedAuthBlockPayload/);
+  assert.match(actionsSource, /deletedAuthUserError\.code !== "23505"/);
+  assert.doesNotMatch(actionsSource, /\.from\("deleted_auth_users"\)\.upsert/);
   assert.match(actionsSource, /deletedCount !== 1/);
   assert.match(dataSource, /getDeletedAuthUserBlock/);
   assert.match(dataSource, /getDeletedAuthUsers/);
