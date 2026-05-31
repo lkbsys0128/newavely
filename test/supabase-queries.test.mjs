@@ -316,6 +316,12 @@ test("permissions page exposes member search for role management", () => {
   assert.match(dashboardSource, /visiblePermissionEntries/);
   assert.match(dashboardSource, /role !== "owner"/);
   assert.match(dashboardSource, /<h2>역할 기반 권한<\/h2>/);
+  assert.match(dashboardSource, /visibleRoleMembers/);
+  assert.match(dashboardSource, /roleMembers\.slice\(0, 12\)/);
+  assert.match(dashboardSource, /className="role-member-overlay"/);
+  assert.match(dashboardSource, /role="tooltip"/);
+  assert.match(globalCssSource, /\.permission-row:hover \.role-member-overlay/);
+  assert.match(globalCssSource, /\.permission-row:focus-within \.role-member-overlay/);
   assert.doesNotMatch(dashboardSource, /<DisclosurePanel id="permission-matrix"/);
   assert.match(dashboardSource, /link-request-section/);
   assert.match(dashboardSource, /request-count-pill/);

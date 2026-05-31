@@ -2288,6 +2288,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
   const visiblePermissionEntries = (Object.entries(permissionsByRole) as Array<[Role, (typeof permissionsByRole)[Role]]>).filter(
     ([role]) => role !== "owner",
   );
+  const visibleRoleMembers = members.filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member));
   const unlinkedActiveMembers = members
     .filter((member) => !member.authUserId && member.status !== "inactive" && !isMergedPlaceholderMember(member))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -2345,21 +2346,40 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           </div>
         </div>
         <div className="permission-matrix">
-          {visiblePermissionEntries.map(([role, permissions]) => (
-            <article className="permission-row" key={role}>
-              <div className="person-block">
-                <strong>{roleLabels[role]}</strong>
-                <span>{members.filter((member) => member.role === role).length}명 배정</span>
-              </div>
-              <div className="permission-list">
-                {permissions.map((permission) => (
-                  <span className="permission-chip" key={permission}>
-                    {permissionLabels[permission]}
-                  </span>
-                ))}
-              </div>
-            </article>
-          ))}
+          {visiblePermissionEntries.map(([role, permissions]) => {
+            const roleMembers = visibleRoleMembers.filter((member) => member.role === role).sort((a, b) => a.name.localeCompare(b.name));
+            return (
+              <article className="permission-row" key={role} tabIndex={0}>
+                <div className="person-block permission-role-summary">
+                  <strong>{roleLabels[role]}</strong>
+                  <span>{roleMembers.length}명 배정</span>
+                  <div className="role-member-overlay" role="tooltip">
+                    <div className="role-member-overlay-heading">
+                      <strong>{roleLabels[role]} 멤버</strong>
+                      <span>{roleMembers.length}명</span>
+                    </div>
+                    <div className="role-member-overlay-list">
+                      {roleMembers.slice(0, 12).map((member) => (
+                        <span className="role-member-overlay-item" key={member.id}>
+                          <strong>{member.displayName}</strong>
+                          <small>{member.groupName}</small>
+                        </span>
+                      ))}
+                      {roleMembers.length > 12 ? <span className="role-member-overlay-more">+{roleMembers.length - 12}명 더 있음</span> : null}
+                      {roleMembers.length === 0 ? <span className="role-member-overlay-empty">배정된 멤버가 없습니다</span> : null}
+                    </div>
+                  </div>
+                </div>
+                <div className="permission-list">
+                  {permissions.map((permission) => (
+                    <span className="permission-chip" key={permission}>
+                      {permissionLabels[permission]}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
