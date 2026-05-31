@@ -16,6 +16,7 @@ import {
   rejectMemberLinkRequest,
   reopenMemberLinkRequest,
   reactivateMember,
+  restoreDeletedAuthUser,
   toggleAttendance,
   updateAttendanceReason,
   updateGroup,
@@ -26,7 +27,7 @@ import {
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import { canDeleteMemberRole, canUseDeleteActions } from "@/lib/role-policy";
 import type { AppUser, DashboardMetrics, GlobalAppStats } from "@/lib/app-page-data";
-import type { AttendanceEvent, AuditLog, Group, Member, MemberLinkRequest } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, DeletedAuthUser, Group, Member, MemberLinkRequest } from "@/lib/types";
 import {
   defaultMemberFilters,
   filterMembers,
@@ -53,6 +54,7 @@ type AppDataProps = {
   groups: Group[];
   attendanceEvents?: AttendanceEvent[];
   memberLinkRequests?: MemberLinkRequest[];
+  deletedAuthUsers?: DeletedAuthUser[];
   dashboardMetrics?: DashboardMetrics;
   globalStats?: GlobalAppStats;
 };
@@ -2345,12 +2347,13 @@ function updateLocalAttendanceHistory({
   return currentRecord ? history.map((record) => (record.eventId === eventId ? nextRecord : record)) : [nextRecord, ...history];
 }
 
-export function PermissionsPageContent({ user, members, groups, memberLinkRequests = [] }: AppDataProps) {
+export function PermissionsPageContent({ user, members, groups, memberLinkRequests = [], deletedAuthUsers = [] }: AppDataProps) {
   const [roleSearchQuery, setRoleSearchQuery] = useState("");
   const [roleState, roleAction, isUpdatingRole] = useActionState(updateMemberRole, initialActionState);
   const [approveState, approveAction, isApprovingRequest] = useActionState(approveMemberLinkRequest, initialActionState);
   const [rejectState, rejectAction, isRejectingRequest] = useActionState(rejectMemberLinkRequest, initialActionState);
   const [reopenState, reopenAction, isReopeningRequest] = useActionState(reopenMemberLinkRequest, initialActionState);
+  const [restoreState, restoreAction, isRestoringDeletedUser] = useActionState(restoreDeletedAuthUser, initialActionState);
   const canManageRoles = hasPermission(user.role, "roles:manage");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
   const pendingLinkRequests = memberLinkRequests.filter(isActionableLinkRequest);
@@ -2393,6 +2396,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           { href: "#permission-matrix", label: "권한표" },
           { href: "#admin-checks", label: "관리자 체크" },
           { href: "#link-requests", label: "연결 요청" },
+          { href: "#deleted-account-restore", label: "계정 복구" },
           { href: "#role-management", label: "역할 변경" },
         ]}
       />
@@ -2633,6 +2637,50 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
             <ActionMessage state={reopenState} />
           </div>
         ) : null}
+      </section>
+
+      <section className="panel form-panel" id="deleted-account-restore">
+        <div className="panel-heading">
+          <div>
+            <h2>삭제된 계정 복구</h2>
+            <p className="meta">완전 삭제된 Google 계정을 다시 사용해야 할 때 차단을 해제하고 교적을 복원합니다.</p>
+          </div>
+          <span>{deletedAuthUsers.length}건</span>
+        </div>
+        <div className="role-management-list">
+          {deletedAuthUsers.map((deletedUser) => (
+            <article className="definition-row" key={deletedUser.authUserId}>
+              <div className="person-block">
+                <strong>{deletedUser.deletedMemberName}</strong>
+                <span>
+                  {deletedUser.deletedMemberEmail || "이메일 없음"} · 삭제일{" "}
+                  {deletedUser.deletedAt ? new Date(deletedUser.deletedAt).toLocaleString("ko-KR") : "기록 없음"}
+                </span>
+                <span>
+                  {deletedUser.restoreData
+                    ? "삭제 전 교적 정보로 복원할 수 있습니다."
+                    : "삭제 전 교적 스냅샷이 없어 차단 해제만 가능합니다."}
+                </span>
+              </div>
+              <form action={restoreAction}>
+                <input name="authUserId" type="hidden" value={deletedUser.authUserId} />
+                <button className="secondary-button" type="submit" disabled={!canManageRoles || isRestoringDeletedUser}>
+                  복구
+                </button>
+              </form>
+            </article>
+          ))}
+          {deletedAuthUsers.length === 0 ? (
+            <article className="request-empty-state">
+              <span className="request-empty-mark" aria-hidden="true" />
+              <div className="person-block">
+                <strong>복구할 삭제 계정이 없습니다</strong>
+                <span>완전 삭제된 Google 계정이 있으면 이곳에 표시됩니다.</span>
+              </div>
+            </article>
+          ) : null}
+        </div>
+        <ActionMessage state={restoreState} />
       </section>
 
       <section className="panel form-panel" id="role-management">

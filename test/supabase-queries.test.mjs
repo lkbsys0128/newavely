@@ -103,7 +103,10 @@ test("link request decisions support rejection and new member creation", () => {
 
 test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(actionsSource, /deleteMemberPermanently/);
+  assert.match(actionsSource, /restoreDeletedAuthUser/);
+  assert.match(actionsSource, /member\.restore_deleted_auth_user/);
   assert.match(actionsSource, /getAuthorizedCurrentMember\("members:write"\)/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("roles:manage"\)/);
   assert.match(actionsSource, /canDeleteMemberRole/);
   assert.match(actionsSource, /member\.permanent_delete/);
   assert.match(actionsSource, /cascadingRecords/);
@@ -112,6 +115,11 @@ test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(actionsSource, /member\.auth_user_id/);
   assert.match(actionsSource, /deletedCount !== 1/);
   assert.match(dataSource, /getDeletedAuthUserBlock/);
+  assert.match(dataSource, /getDeletedAuthUsers/);
+  assert.match(appPageDataSource, /deletedAuthUsers/);
+  assert.match(dashboardSource, /삭제된 계정 복구/);
+  assert.match(dashboardSource, /restoreDeletedAuthUser/);
+  assert.match(dashboardSource, /복구/);
   assert.match(dataSource, /이전에 삭제된 멤버 계정/);
   assert.match(dataSource, /다시 활성화가 필요하면 Newavely 운영 관리자에게 연락해주세요/);
   assert.match(dataSource, /현재 비활성화되어 로그인할 수 없습니다/);
@@ -347,8 +355,11 @@ test("permissions page exposes member search for role management", () => {
   assert.match(dashboardSource, /roleSearchQuery/);
   assert.match(dashboardSource, /멤버 검색/);
   assert.match(dashboardSource, /filteredRoleManagedMembers/);
-  assert.match(dashboardSource, /#permission-matrix[\s\S]*#admin-checks[\s\S]*#link-requests[\s\S]*#role-management/);
-  assert.match(dashboardSource, /id="permission-matrix"[\s\S]*id="admin-checks"[\s\S]*id="link-requests"[\s\S]*id="role-management"/);
+  assert.match(dashboardSource, /#permission-matrix[\s\S]*#admin-checks[\s\S]*#link-requests[\s\S]*#deleted-account-restore[\s\S]*#role-management/);
+  assert.match(
+    dashboardSource,
+    /id="permission-matrix"[\s\S]*id="admin-checks"[\s\S]*id="link-requests"[\s\S]*id="deleted-account-restore"[\s\S]*id="role-management"/,
+  );
   assert.match(dashboardSource, /visiblePermissionEntries/);
   assert.match(dashboardSource, /role !== "owner"/);
   assert.match(dashboardSource, /<h2>역할 기반 권한<\/h2>/);

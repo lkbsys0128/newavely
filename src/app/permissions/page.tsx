@@ -15,6 +15,7 @@ export default async function PermissionsPage() {
           members={readyData.members}
           groups={readyData.groups}
           memberLinkRequests={readyData.memberLinkRequests}
+          deletedAuthUsers={readyData.deletedAuthUsers}
         />
       )}
     </AppPageGate>

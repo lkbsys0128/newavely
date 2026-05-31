@@ -67,6 +67,10 @@ const deleteMemberSchema = z.object({
   confirmName: z.string().min(1, "삭제할 멤버 이름을 입력해주세요."),
 });
 
+const restoreDeletedAuthUserSchema = z.object({
+  authUserId: z.string().uuid(),
+});
+
 const createMemberLinkRequestSchema = z.object({
   targetMemberId: nullableUuid,
   note: nullableText,
@@ -1477,6 +1481,120 @@ export async function deleteMemberPermanently(_previousState: ActionState, formD
 
     revalidateAppData();
     return "멤버를 완전히 삭제했습니다. 감사 로그에는 삭제 전 정보가 남아 있습니다.";
+  });
+}
+
+export async function restoreDeletedAuthUser(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = restoreDeletedAuthUserSchema.parse({
+      authUserId: formData.get("authUserId"),
+    });
+
+    const { data: deletedUser, error: deletedUserError } = await supabase
+      .from("deleted_auth_users")
+      .select("auth_user_id, deleted_member_id, deleted_member_name, deleted_member_email")
+      .eq("auth_user_id", parsed.authUserId)
+      .maybeSingle();
+
+    if (deletedUserError) throw deletedUserError;
+    if (!deletedUser) throw new Error("복구할 삭제 계정 기록을 찾을 수 없습니다.");
+
+    const deletedMemberId = typeof deletedUser.deleted_member_id === "string" ? deletedUser.deleted_member_id : null;
+    const { data: auditLog, error: auditLogError } = deletedMemberId
+      ? await supabase
+          .from("audit_logs")
+          .select("before_data")
+          .eq("action", "member.permanent_delete")
+          .eq("target_id", deletedMemberId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : { data: null, error: null };
+
+    if (auditLogError) throw auditLogError;
+
+    const beforeData = (auditLog?.before_data ?? null) as Record<string, unknown> | null;
+    const restoredRole = (beforeData?.role === "owner" ||
+    beforeData?.role === "admin" ||
+    beforeData?.role === "leader" ||
+    beforeData?.role === "staff" ||
+    beforeData?.role === "member"
+      ? beforeData.role
+      : "member") as Role;
+
+    if (restoredRole === "owner" && currentMember.role !== "owner") {
+      throw new Error("최고 관리자 계정은 최고 관리자만 복구할 수 있습니다.");
+    }
+
+    const restoredMemberId = typeof beforeData?.id === "string" ? beforeData.id : deletedMemberId;
+    const restoredEmail =
+      typeof beforeData?.email === "string" && beforeData.email.trim()
+        ? beforeData.email.trim().toLowerCase()
+        : typeof deletedUser.deleted_member_email === "string" && deletedUser.deleted_member_email.trim()
+          ? deletedUser.deleted_member_email.trim().toLowerCase()
+          : null;
+    const restoredName =
+      typeof beforeData?.name === "string" && beforeData.name.trim()
+        ? beforeData.name.trim()
+        : typeof deletedUser.deleted_member_name === "string" && deletedUser.deleted_member_name.trim()
+          ? deletedUser.deleted_member_name.trim()
+          : "복구된 멤버";
+
+    const { data: existingMember, error: existingMemberError } = await supabase
+      .from("members")
+      .select("id")
+      .or(`auth_user_id.eq.${parsed.authUserId}${restoredEmail ? `,email.eq.${restoredEmail}` : ""}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingMemberError) throw existingMemberError;
+    if (existingMember) {
+      throw new Error("이미 같은 Google 계정이나 이메일을 가진 멤버가 있습니다. 먼저 중복 멤버를 정리해주세요.");
+    }
+
+    const restoredMemberPayload = {
+      ...(restoredMemberId ? { id: restoredMemberId } : {}),
+      auth_user_id: parsed.authUserId,
+      group_id: typeof beforeData?.group_id === "string" ? beforeData.group_id : null,
+      name: restoredName,
+      email: restoredEmail,
+      phone: typeof beforeData?.phone === "string" ? beforeData.phone : null,
+      address: typeof beforeData?.address === "string" ? beforeData.address : null,
+      baptism_status: typeof beforeData?.baptism_status === "string" ? beforeData.baptism_status : null,
+      role: restoredRole,
+      status: "active",
+      custom_fields: beforeData?.custom_fields && typeof beforeData.custom_fields === "object" ? beforeData.custom_fields : {},
+      care_notes: typeof beforeData?.care_notes === "string" ? beforeData.care_notes : null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: restoredMember, error: restoreError } = await supabase
+      .from("members")
+      .insert(restoredMemberPayload)
+      .select("*")
+      .single();
+
+    if (restoreError) throw restoreError;
+
+    const { error: unblockError } = await supabase.from("deleted_auth_users").delete().eq("auth_user_id", parsed.authUserId);
+    if (unblockError) throw unblockError;
+
+    await writeAuditLog({
+      supabase,
+      action: "member.restore_deleted_auth_user",
+      targetTable: "members",
+      targetId: restoredMember.id as string,
+      afterData: restoredMember as Record<string, unknown>,
+      metadata: {
+        restoredAuthUserId: parsed.authUserId,
+        restoredFromDeletedMemberId: deletedMemberId,
+        restoredByMemberId: currentMember.id,
+      },
+    });
+
+    revalidateAppData();
+    return `${restoredName} 계정을 복구했습니다. 이제 해당 Google 계정으로 다시 로그인할 수 있습니다.`;
   });
 }
 
