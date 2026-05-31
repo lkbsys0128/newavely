@@ -237,11 +237,13 @@ export async function ensureAttendanceEvent(
   const today = getLosAngelesToday();
 
   if (options.autoCreateSundayWorship && today.isSunday) {
-    eventsToEnsure.push({
-      event_date: today.date,
-      title: "주일 예배",
-      created_by_member_id: options.createdByMemberId,
-    });
+    for (const title of ["주일 예배", "순모임"]) {
+      eventsToEnsure.push({
+        event_date: today.date,
+        title,
+        created_by_member_id: options.createdByMemberId,
+      });
+    }
   } else if (!eventCount) {
     eventsToEnsure.push({
       event_date: "2026-05-24",
