@@ -51,7 +51,7 @@ export function AppPageGate({
           <div className="panel-heading">
             <div>
               <p className="eyebrow">기본 멤버 권한</p>
-              <h1>{member?.name ?? data.user.name}</h1>
+              <h1>{member?.displayName ?? data.user.name}</h1>
               <p className="meta">관리 기능 접근이 필요한 경우 관리자에게 리더/순장 권한을 요청해주세요.</p>
             </div>
             <span className="status-pill active">승인 완료</span>

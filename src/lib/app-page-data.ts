@@ -98,9 +98,10 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
 
     await ensureAttendanceEvent(supabase);
     const dashboardData = await getDashboardData(supabase, options?.attendanceEventId);
+    const currentRosterMember = dashboardData.members.find((member) => member.id === currentMember.id);
     const appUser = {
       id: user.id,
-      name: user.user_metadata?.full_name ?? user.email ?? "새 로그인 사용자",
+      name: currentRosterMember?.displayName ?? user.user_metadata?.full_name ?? user.email ?? "새 로그인 사용자",
       email: user.email ?? "",
       role: currentMember.role,
     };

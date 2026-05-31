@@ -18,6 +18,7 @@ const attendanceImportNotesCleanupSource = readFileSync(
   new URL("../db/016_clear_attendance_import_notes.sql", import.meta.url),
   "utf8",
 );
+const memberEnglishNamesSource = readFileSync(new URL("../db/017_member_english_names.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -304,4 +305,14 @@ test("attendance import marker notes can be cleaned from the database", () => {
   assert.match(attendanceImportNotesCleanupSource, /update attendance_records/);
   assert.match(attendanceImportNotesCleanupSource, /set note = null/);
   assert.match(attendanceImportNotesCleanupSource, /Imported from 2026 annual attendance CSV/);
+});
+
+test("member English names are stored separately and displayed consistently", () => {
+  assert.match(memberEnglishNamesSource, /'english_name', '영어 이름'/);
+  assert.match(memberEnglishNamesSource, /regexp_match\(name/);
+  assert.match(memberEnglishNamesSource, /jsonb_build_object\('english_name'/);
+  assert.match(dataSource, /formatMemberDisplayName/);
+  assert.match(actionsSource, /splitCompositeMemberName/);
+  assert.match(dashboardSource, /name="englishName"/);
+  assert.match(memberDetailSource, /name="englishName"/);
 });

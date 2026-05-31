@@ -34,7 +34,7 @@ export function OnboardingPanel({
         .filter((member) => member.id !== currentMemberId)
         .filter((member) => !member.authUserId && member.status !== "inactive" && !isMergedPlaceholderMember(member))
         .filter((member) =>
-          [member.name, member.email, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery)),
+          [member.displayName, member.name, member.email, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery)),
         )
         .slice(0, 12);
     },
@@ -111,7 +111,7 @@ export function OnboardingPanel({
                       value={`첫 로그인 계정 ${user.name} (${user.email || "이메일 없음"})의 교적 연결 요청`}
                     />
                     <div className="person-block">
-                      <strong>{member.name}</strong>
+                      <strong>{member.displayName}</strong>
                       <span>{member.groupName || "미배정"}</span>
                     </div>
                     <button className="primary-button" type="submit" disabled={isSubmitting}>

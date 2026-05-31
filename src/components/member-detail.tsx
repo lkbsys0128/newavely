@@ -63,6 +63,7 @@ export function MemberDetailPageContent({
   const canManageRoles = hasPermission(user.role, "roles:manage");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
   const assignableMembers = members.filter((item) => item.status !== "inactive" && !isMergedPlaceholderMember(item));
+  const additionalFieldDefinitions = customFieldDefinitions.filter((field) => field.key !== "english_name");
   const currentMemberId =
     assignableMembers.find((item) => item.authUserId === user.id)?.id ??
     assignableMembers.find((item) => item.email === user.email)?.id ??
@@ -116,7 +117,7 @@ export function MemberDetailPageContent({
       <header className="topbar">
         <div>
           <p className="eyebrow">{eyebrow}</p>
-          <h1>{member.name}</h1>
+          <h1>{member.displayName}</h1>
           <p className="meta">
             {member.groupName} · {statusLabels[member.status]}
             {googleAccountName ? ` · Google 이름 ${googleAccountName}` : ""}
@@ -162,7 +163,7 @@ export function MemberDetailPageContent({
                 <select name="targetMemberId" disabled={linkableMembers.length === 0}>
                   {linkableMembers.map((candidate) => (
                     <option key={candidate.id} value={candidate.id}>
-                      {candidate.name} · {candidate.groupName} · {candidate.email || "이메일 없음"}
+                      {candidate.displayName} · {candidate.groupName} · {candidate.email || "이메일 없음"}
                     </option>
                   ))}
                 </select>
@@ -191,8 +192,17 @@ export function MemberDetailPageContent({
           <form action={profileAction} className="management-form">
             <input name="id" type="hidden" value={member.id} />
             <label>
-              이름
+              한국 이름
               <input name="name" required defaultValue={member.name} disabled={!canManageMembers} />
+            </label>
+            <label>
+              영어 이름
+              <input
+                name="englishName"
+                defaultValue={typeof member.customFields.english_name === "string" ? member.customFields.english_name : ""}
+                disabled={!canManageMembers}
+                placeholder="예: Daniel"
+              />
             </label>
             <label>
               이메일
@@ -256,11 +266,11 @@ export function MemberDetailPageContent({
         <section className="panel" id="custom-fields">
           <div className="panel-heading">
             <h2>추가 정보</h2>
-            <span>{customFieldDefinitions.length}개 항목</span>
+            <span>{additionalFieldDefinitions.length}개 항목</span>
           </div>
           <form action={customFieldsAction} className="management-form">
             <input name="id" type="hidden" value={member.id} />
-            {customFieldDefinitions.map((field) => (
+            {additionalFieldDefinitions.map((field) => (
               <label key={field.id} className={field.fieldType === "boolean" ? "checkbox-label" : undefined}>
                 {field.label}
                 {field.isSensitive ? <span className="field-note">민감</span> : null}
@@ -272,7 +282,7 @@ export function MemberDetailPageContent({
                 />
               </label>
             ))}
-            {customFieldDefinitions.length === 0 ? (
+            {additionalFieldDefinitions.length === 0 ? (
               <article className="care-item full-width">
                 <div className="person-block">
                   <strong>아직 추가 정보 항목이 없습니다</strong>
@@ -285,7 +295,7 @@ export function MemberDetailPageContent({
               <button
                 className="primary-button"
                 type="submit"
-                disabled={!canManageMembers || isSavingCustomFields || customFieldDefinitions.length === 0}
+                disabled={!canManageMembers || isSavingCustomFields || additionalFieldDefinitions.length === 0}
               >
                 추가 정보 저장
               </button>
@@ -355,7 +365,7 @@ export function MemberDetailPageContent({
                     <option value="">미배정</option>
                     {assignableMembers.map((assignee) => (
                       <option key={assignee.id} value={assignee.id}>
-                        {assignee.name}
+                        {assignee.displayName}
                       </option>
                     ))}
                   </select>
@@ -410,7 +420,7 @@ export function MemberDetailPageContent({
               <option value="">미배정</option>
               {assignableMembers.map((assignee) => (
                 <option key={assignee.id} value={assignee.id}>
-                  {assignee.name}
+                  {assignee.displayName}
                 </option>
               ))}
             </select>

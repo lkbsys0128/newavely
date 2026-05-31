@@ -46,6 +46,8 @@ export function filterMembers(members: Member[], filters: MemberFilters) {
 
     return [
       member.name,
+      member.displayName,
+      typeof member.customFields.english_name === "string" ? member.customFields.english_name : "",
       member.email,
       member.phone,
       member.groupName,

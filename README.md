@@ -96,11 +96,12 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 14. `db/014_delete_role_policies.sql`
 15. `db/015_attendance_observability.sql`
 16. `db/016_clear_attendance_import_notes.sql`
+17. `db/017_member_english_names.sql`
 
 주요 테이블:
 
 - `groups`: 순과 리더
-- `members`: 멤버 프로필, Supabase Auth 연결, 역할, 상태, 순, 커스텀 정보
+- `members`: 멤버 프로필, Supabase Auth 연결, 역할, 상태, 순, 커스텀 정보. 한국 이름은 `name`, 영어 이름은 `custom_fields.english_name`에 분리 저장하고 화면에서는 함께 표기합니다.
 - `attendance_events`: 출석 이벤트 날짜와 제목
 - `attendance_records`: 이벤트별 멤버 출석 상태
 - `care_followups`: 멤버별 돌봄/연락 팔로업 기록

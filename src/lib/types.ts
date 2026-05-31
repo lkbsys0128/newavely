@@ -11,6 +11,7 @@ export type Member = {
   id: string;
   authUserId: string | null;
   name: string;
+  displayName: string;
   phone: string;
   groupId: string | null;
   groupName: string;
