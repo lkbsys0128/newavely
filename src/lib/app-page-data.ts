@@ -105,6 +105,18 @@ export type AttendanceEventTrendStat = AttendanceEvent & {
   rate: number;
 };
 
+export type AttendanceEventGroupTrendStat = {
+  eventId: string;
+  eventDate: string;
+  eventType: string;
+  groupId: string;
+  groupName: string;
+  totalCount: number;
+  presentCount: number;
+  excusedCount: number;
+  rate: number;
+};
+
 export type AttendancePageStats = {
   activeMemberCount: number;
   currentPresentCount: number;
@@ -115,6 +127,7 @@ export type AttendancePageStats = {
   unassigned: AttendanceGroupStat;
   eventTrend: AttendanceEventTrendStat[];
   aggregateGroupStats: AttendanceAggregateGroupStat[];
+  eventGroupTrend: AttendanceEventGroupTrendStat[];
 };
 
 export type GlobalAppStats = {
@@ -185,6 +198,7 @@ export function buildGlobalAppStats(members: Member[], groups: Group[], attendan
       ),
       eventTrend: buildEventTrendStats(attendanceMembers, attendanceEvents, selectedEvent?.id, currentPresentCount),
       aggregateGroupStats: buildAggregateAttendanceGroupStats(attendanceMembers, groups, attendanceEvents),
+      eventGroupTrend: buildEventGroupTrendStats(attendanceMembers, groups, attendanceEvents),
     },
   };
 }
@@ -327,6 +341,41 @@ function buildAggregateAttendanceGroupStats(members: Member[], groups: Group[], 
       ),
     ];
   });
+}
+
+function buildEventGroupTrendStats(members: Member[], groups: Group[], attendanceEvents: AttendanceEvent[]): AttendanceEventGroupTrendStat[] {
+  const groupEntries = [
+    ...groups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      members: members.filter((member) => member.groupId === group.id),
+    })),
+    {
+      id: "unassigned",
+      name: "미배정",
+      members: members.filter((member) => !member.groupId),
+    },
+  ];
+
+  return attendanceEvents.flatMap((event) =>
+    groupEntries
+      .filter((group) => group.members.length > 0)
+      .map((group) => {
+        const presentCount = group.members.filter((member) => isPresentForEvent(member, event.id)).length;
+        const excusedCount = group.members.filter((member) => getAttendanceStatusForEvent(member, event.id) === "excused").length;
+        return {
+          eventId: event.id,
+          eventDate: event.eventDate,
+          eventType: event.title,
+          groupId: group.id,
+          groupName: group.name,
+          totalCount: group.members.length,
+          presentCount,
+          excusedCount,
+          rate: group.members.length ? Math.round((presentCount / group.members.length) * 100) : 0,
+        };
+      }),
+  );
 }
 
 function buildAggregateAttendanceStat(
