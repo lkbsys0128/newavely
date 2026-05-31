@@ -1420,7 +1420,6 @@ export function AttendanceManager({
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
   const [attendanceGroupId, setAttendanceGroupId] = useState("all");
   const [eventSearchQuery, setEventSearchQuery] = useState("");
-  const [eventTypeFilter, setEventTypeFilter] = useState("all");
   const [statsEventTypeFilter, setStatsEventTypeFilter] = useState("all");
   const [statsGroupId, setStatsGroupId] = useState("all");
   const [absenceMinimumStreak, setAbsenceMinimumStreak] = useState(3);
@@ -1460,10 +1459,14 @@ export function AttendanceManager({
 
   useEffect(() => {
     if (!explicitAttendanceEventId) return;
+    const selectedEvent = attendanceEvents.find((event) => event.id === explicitAttendanceEventId);
+    const readEventIds = selectedEvent
+      ? attendanceEvents.filter((event) => event.eventDate === selectedEvent.eventDate).map((event) => event.id)
+      : [explicitAttendanceEventId];
     setReadAttendanceEventIds((current) => {
-      if (current.has(explicitAttendanceEventId)) return current;
       const next = new Set(current);
-      next.add(explicitAttendanceEventId);
+      for (const eventId of readEventIds) next.add(eventId);
+      if (next.size === current.size) return current;
       try {
         window.localStorage.setItem(readEventsStorageKey, JSON.stringify([...next]));
       } catch {
@@ -1471,7 +1474,7 @@ export function AttendanceManager({
       }
       return next;
     });
-  }, [explicitAttendanceEventId, readEventsStorageKey]);
+  }, [attendanceEvents, explicitAttendanceEventId, readEventsStorageKey]);
 
   const attendanceEventTypes = useMemo(() => {
     const preferredOrder = ["주일 예배", "순모임"];
@@ -1488,16 +1491,16 @@ export function AttendanceManager({
   const sameDateEvents = attendanceEvents
     .filter((event) => event.eventDate === attendanceDate)
     .sort((a, b) => attendanceEventTypes.indexOf(a.title) - attendanceEventTypes.indexOf(b.title));
-  const filteredAttendanceEvents = attendanceEvents.filter((event) => {
+  const eventDateOptions = [...new Set(attendanceEvents.map((event) => event.eventDate))].sort((a, b) => b.localeCompare(a));
+  const filteredEventDateOptions = eventDateOptions.filter((eventDate) => {
     const normalizedQuery = eventSearchQuery.trim().toLowerCase();
-    const matchesQuery = normalizedQuery
-      ? [event.title, event.eventDate].some((value) => value.toLowerCase().includes(normalizedQuery))
-      : true;
-    const matchesType = eventTypeFilter === "all" || event.title === eventTypeFilter;
-    return matchesQuery && matchesType;
+    if (!normalizedQuery) return true;
+    const dateEvents = attendanceEvents.filter((event) => event.eventDate === eventDate);
+    return [eventDate, ...dateEvents.map((event) => event.title)].some((value) => value.toLowerCase().includes(normalizedQuery));
   });
   const selectedAttendanceEvent = attendanceEvents.find((event) => event.id === attendanceEventId) ?? null;
   const unreadAttendanceEventIds = new Set(attendanceEvents.filter((event) => !readAttendanceEventIds.has(event.id)).map((event) => event.id));
+  const currentDateHasUnread = sameDateEvents.some((event) => unreadAttendanceEventIds.has(event.id));
   const attendanceStats = globalStats?.attendance;
 
   const activeMembers = localMembers.filter(isAttendanceRosterMember);
@@ -1684,14 +1687,17 @@ export function AttendanceManager({
       <section className="panel form-panel" id="attendance-events">
         <div className="panel-heading">
           <div>
-            <h2>출석 이벤트 선택</h2>
-            <p className="meta">예배와 순모임 이벤트를 같은 날짜 안에서 빠르게 전환할 수 있습니다.</p>
+            <h2>출석 날짜 선택</h2>
+            <p className="meta">날짜를 고른 뒤 주일 예배와 순모임 출석을 따로 체크합니다.</p>
           </div>
-          <span>{attendanceEvents.length}개 전체 이벤트</span>
+          <span>{eventDateOptions.length}개 날짜</span>
         </div>
         {sameDateEvents.length > 1 ? (
           <div className="event-switcher" aria-label={`${attendanceDate} 이벤트 전환`}>
-            <span>{attendanceDate}</span>
+            <span>
+              {currentDateHasUnread ? <span className="unread-event-dot" aria-label="새 이벤트" /> : null}
+              {attendanceDate}
+            </span>
             <div className="segmented">
               {sameDateEvents.map((event) => (
                 <Link
@@ -1710,51 +1716,51 @@ export function AttendanceManager({
         ) : null}
         <div className="event-toolbar">
           <label>
-            이벤트 검색
+            날짜 검색
             <input
               type="search"
-              placeholder="날짜 또는 이름"
+              placeholder="날짜"
               value={eventSearchQuery}
               onChange={(event) => setEventSearchQuery(event.target.value)}
             />
           </label>
-          <label>
-            종류
-            <select value={eventTypeFilter} onChange={(event) => setEventTypeFilter(event.target.value)}>
-              <option value="all">전체 이벤트</option>
-              {attendanceEventTypes.map((title) => (
-                <option key={title} value={title}>
-                  {title}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
         <div className="event-selector-panel">
           <label>
-            최신순 이벤트
+            출석 날짜
             <select
-              value={hasExplicitAttendanceSelection ? attendanceEventId ?? "" : ""}
+              value={hasExplicitAttendanceSelection ? attendanceDate : ""}
               onChange={(event) => {
-                if (event.target.value) {
-                  window.location.href = `/attendance?eventId=${event.target.value}`;
+                const selectedDate = event.target.value;
+                if (selectedDate) {
+                  const eventForDate =
+                    attendanceEvents.find((item) => item.eventDate === selectedDate && item.title === "주일 예배") ??
+                    attendanceEvents.find((item) => item.eventDate === selectedDate);
+                  if (eventForDate) {
+                    window.location.href = `/attendance?eventId=${eventForDate.id}`;
+                  }
                 }
               }}
             >
-              <option value="">체크할 이벤트 선택</option>
-              {filteredAttendanceEvents.map((event) => (
-                <option key={event.id} value={event.id}>
-                  {unreadAttendanceEventIds.has(event.id) ? "● " : ""}{event.eventDate} · {event.title}
-                </option>
-              ))}
-              {filteredAttendanceEvents.length === 0 ? <option value="">조건에 맞는 이벤트 없음</option> : null}
+              <option value="">체크할 날짜 선택</option>
+              {filteredEventDateOptions.map((eventDate) => {
+                const dateEvents = attendanceEvents.filter((event) => event.eventDate === eventDate);
+                const hasUnread = dateEvents.some((event) => unreadAttendanceEventIds.has(event.id));
+                return (
+                  <option key={eventDate} value={eventDate}>
+                    {hasUnread ? "● " : ""}
+                    {eventDate}
+                  </option>
+                );
+              })}
+              {filteredEventDateOptions.length === 0 ? <option value="">조건에 맞는 날짜 없음</option> : null}
             </select>
           </label>
           {hasExplicitAttendanceSelection && selectedAttendanceEvent ? (
             <div className="selected-event-summary">
               <div className="person-block">
-                <strong>{selectedAttendanceEvent.title}</strong>
-                <span>{selectedAttendanceEvent.eventDate}</span>
+                <strong>{selectedAttendanceEvent.eventDate}</strong>
+                <span>{sameDateEvents.map((event) => event.title).join(" · ")}</span>
               </div>
               <button
                 className="danger-text-button"
@@ -1774,11 +1780,11 @@ export function AttendanceManager({
               </div>
             </article>
           ) : null}
-          {attendanceEvents.length > 0 && filteredAttendanceEvents.length === 0 ? (
+          {attendanceEvents.length > 0 && filteredEventDateOptions.length === 0 ? (
             <article className="care-item">
               <div className="person-block">
-                <strong>조건에 맞는 이벤트가 없습니다</strong>
-                <span>검색어나 이벤트 종류를 조정해보세요.</span>
+                <strong>조건에 맞는 날짜가 없습니다</strong>
+                <span>검색어를 조정해보세요.</span>
               </div>
             </article>
           ) : null}
@@ -1828,24 +1834,17 @@ export function AttendanceManager({
       <DisclosurePanel
         id="attendance-create"
         title="새 출석 이벤트"
-        meta={canManageAttendance ? "날짜와 만들 이벤트를 선택" : "리더/관리자 권한 필요"}
+        meta={canManageAttendance ? "날짜를 선택하면 주일 예배와 순모임이 함께 준비됩니다" : "리더/관리자 권한 필요"}
       >
         <form action={createEventAction} className="member-form compact-form">
           <label>
             날짜
             <input name="eventDate" type="date" required disabled={!canManageAttendance} />
           </label>
-          <fieldset className="event-type-options">
-            <legend>이벤트 종류</legend>
-            <label className="toggle-field">
-              <input name="titles" type="checkbox" value="주일 예배" defaultChecked disabled={!canManageAttendance} />
-              주일 예배
-            </label>
-            <label className="toggle-field">
-              <input name="titles" type="checkbox" value="순모임" disabled={!canManageAttendance} />
-              순모임
-            </label>
-          </fieldset>
+          <div className="event-create-note">
+            <strong>생성되는 출석</strong>
+            <span>선택한 날짜 안에 주일 예배와 순모임 출석 체크가 함께 만들어집니다.</span>
+          </div>
           <div className="form-actions full-width">
             <ActionMessage state={createEventState} />
             <button className="primary-button" type="submit" disabled={!canManageAttendance || isCreatingEvent}>
@@ -1856,7 +1855,6 @@ export function AttendanceManager({
       </DisclosurePanel>
 
       <DisclosurePanel
-        defaultOpen
         id="attendance-stats"
         title="출석 통계"
         meta={`${hasExplicitAttendanceSelection ? attendanceTitle : "최근 이벤트 기준"} · 출석률 ${displayCurrentAttendanceRate}%`}
@@ -1983,53 +1981,7 @@ export function AttendanceManager({
             </article>
           </div>
 
-          <div className="attendance-bottom-grid">
-            <article className="panel stats-card compact-stat-card">
-            <div className="panel-heading">
-              <h2>선택 이벤트</h2>
-              <span>{attendanceTitle}</span>
-            </div>
-            <div className="attendance-mini-summary">
-              <strong>{displayCurrentAttendanceRate}%</strong>
-              <span>
-                {displayCurrentPresentCount}명 출석 · {displayCurrentAbsentCount}명 미확인 · {displayCurrentExcusedCount}명 사유
-              </span>
-            </div>
-            <div className="stats-list compact-scroll-list">
-              {displayGroupAttendanceStats.map((group) => (
-                <div className="stat-row" key={group.id}>
-                  <div className="person-block">
-                    <strong>{group.name}</strong>
-                    <span>
-                      {group.presentCount}/{group.totalCount}명
-                    </span>
-                  </div>
-                  <div className="stat-meter">
-                    <div className="progress">
-                      <span style={{ width: `${group.rate}%` }} />
-                    </div>
-                    <strong>{group.rate}%</strong>
-                  </div>
-                </div>
-              ))}
-              {displayUnassignedStats.totalCount > 0 ? (
-                <div className="stat-row">
-                  <div className="person-block">
-                    <strong>미배정</strong>
-                    <span>
-                      {displayUnassignedStats.presentCount}/{displayUnassignedStats.totalCount}명
-                    </span>
-                  </div>
-                  <div className="stat-meter">
-                    <div className="progress">
-                      <span style={{ width: `${displayUnassignedStats.rate}%` }} />
-                    </div>
-                    <strong>{displayUnassignedStats.rate}%</strong>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </article>
+          <div className="attendance-bottom-grid single">
           <article className="panel stats-card compact-stat-card">
             <div className="panel-heading">
               <h2>미확인 연속 결석</h2>
@@ -2161,8 +2113,8 @@ export function AttendanceManager({
       ) : (
         <section className="panel attendance-selection-empty" id="attendance-checklist">
           <div className="person-block">
-            <strong>출석 체크할 이벤트를 선택해주세요</strong>
-            <span>위 이벤트 선택에서 주일 예배 또는 순모임을 고르면 멤버 체크리스트가 표시됩니다.</span>
+            <strong>출석 체크할 날짜를 선택해주세요</strong>
+            <span>날짜를 고른 뒤 주일 예배 또는 순모임 출석을 체크할 수 있습니다.</span>
           </div>
         </section>
       )}

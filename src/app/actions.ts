@@ -1245,7 +1245,7 @@ export async function createAttendanceEvent(_previousState: ActionState, formDat
     const legacyTitle = formData.get("title");
     const parsed = attendanceEventSchema.parse({
       eventDate: formData.get("eventDate"),
-      titles: submittedTitles.length > 0 ? submittedTitles : [legacyTitle],
+      titles: submittedTitles.length > 0 ? submittedTitles : legacyTitle ? [legacyTitle] : ["주일 예배", "순모임"],
     });
 
     const { data: existingEvents, error: existingEventError } = await supabase
