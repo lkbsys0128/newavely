@@ -28,6 +28,21 @@ export function AppPageGate({
   }
 
   if (data.status === "error") {
+    const isAccountAccessError =
+      data.message.includes("이전에 삭제된 멤버 계정") || data.message.includes("현재 비활성화되어 로그인할 수 없습니다");
+
+    if (isAccountAccessError) {
+      return (
+        <ErrorPanel
+          eyebrow="계정 확인 필요"
+          title="로그인할 수 없는 계정입니다"
+          message={data.message}
+          label="안내"
+          context="계정 복구나 재활성화가 필요하면 Newavely 운영 관리자에게 연락해주세요."
+        />
+      );
+    }
+
     return <ErrorPanel title="Supabase 데이터 연결 실패" message={data.message} />;
   }
 

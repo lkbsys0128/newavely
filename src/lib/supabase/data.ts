@@ -117,7 +117,7 @@ export async function getOrCreateCurrentMember(
   const deletedAuthUser = await getDeletedAuthUserBlock(supabase, user.id);
   if (deletedAuthUser) {
     throw new Error(
-      `${deletedAuthUser.deleted_member_name ?? "삭제된 계정"}의 Google 로그인은 관리자에 의해 삭제되어 사용할 수 없습니다. Newavely 운영 관리자에게 문의해주세요.`,
+      `이 Google 계정은 이전에 삭제된 멤버 계정과 연결되어 있어 지금은 로그인할 수 없습니다. 다시 활성화가 필요하면 Newavely 운영 관리자에게 연락해주세요.`,
     );
   }
 
@@ -130,7 +130,7 @@ export async function getOrCreateCurrentMember(
   if (existingError) throw existingError;
   if (existing) {
     if (existing.status === "inactive") {
-      throw new Error("비활성화된 계정입니다. 다시 사용하려면 Newavely 운영 관리자에게 문의해주세요.");
+      throw new Error("이 계정은 현재 비활성화되어 로그인할 수 없습니다. 다시 활성화가 필요하면 Newavely 운영 관리자에게 연락해주세요.");
     }
 
     return {
