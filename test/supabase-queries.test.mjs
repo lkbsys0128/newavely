@@ -14,6 +14,10 @@ const attendanceObservabilitySource = readFileSync(
   new URL("../db/015_attendance_observability.sql", import.meta.url),
   "utf8",
 );
+const attendanceImportNotesCleanupSource = readFileSync(
+  new URL("../db/016_clear_attendance_import_notes.sql", import.meta.url),
+  "utf8",
+);
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -210,8 +214,10 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /event-selector-panel/);
   assert.match(dashboardSource, /최신순 이벤트/);
   assert.match(dashboardSource, /주일 예배[\s\S]*순모임/);
-  assert.match(dashboardSource, /attendance-check-grid/);
+  assert.match(dashboardSource, /attendance-check-list/);
   assert.match(dashboardSource, /attendance-card/);
+  assert.match(dashboardSource, /isImportedAttendanceNote/);
+  assert.match(dashboardSource, /Imported from 2026 annual attendance CSV/);
   assert.match(actionsSource, /이미 같은 날짜와 이름의 출석 이벤트/);
   assert.match(actionsSource, /export async function deleteAttendanceEvent/);
   assert.match(actionsSource, /attendance_event\.delete/);
@@ -292,4 +298,10 @@ test("attendance observability migration exposes summary views", () => {
   assert.match(attendanceObservabilitySource, /create or replace view attendance_member_yearly_summary/);
   assert.match(attendanceObservabilitySource, /with \(security_invoker = true\)/);
   assert.match(attendanceObservabilitySource, /attendance_rate/);
+});
+
+test("attendance import marker notes can be cleaned from the database", () => {
+  assert.match(attendanceImportNotesCleanupSource, /update attendance_records/);
+  assert.match(attendanceImportNotesCleanupSource, /set note = null/);
+  assert.match(attendanceImportNotesCleanupSource, /Imported from 2026 annual attendance CSV/);
 });
