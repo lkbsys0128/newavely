@@ -253,6 +253,16 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /defaultOpen[\s\S]*id="attendance-stats"/);
   assert.match(globalCssSource, /attendance-page-flow/);
   assert.match(globalCssSource, /\.attendance-page-flow #attendance-stats/);
+  assert.match(appPageDataSource, /eventGroupTrend/);
+  assert.match(dashboardSource, /absenceMinimumStreak/);
+  assert.match(dashboardSource, /compactTrendRows/);
+  assert.match(dashboardSource, /attendance-trend-chart/);
+  assert.match(dashboardSource, /attendance-hover-card/);
+  assert.match(dashboardSource, /attendance-compare-row/);
+  assert.match(dashboardSource, /onClick=\{\(\) => setStatsGroupId\(group\.id\)\}/);
+  assert.match(globalCssSource, /attendance-kpi-strip/);
+  assert.match(globalCssSource, /attendance-insight-grid/);
+  assert.match(globalCssSource, /attendance-trend-track:hover \.attendance-hover-card/);
   assert.match(dashboardSource, /sameDateEvents/);
   assert.match(dashboardSource, /event-selector-panel/);
   assert.match(dashboardSource, /최신순 이벤트/);
@@ -290,7 +300,8 @@ test("attendance stats can aggregate all events by group and event type", () => 
   assert.match(dashboardSource, /statsEventTypeFilter/);
   assert.match(dashboardSource, /statsGroupId/);
   assert.match(dashboardSource, /buildAggregateAttendanceStat/);
-  assert.match(dashboardSource, /순별 통합 출석/);
+  assert.match(dashboardSource, /날짜별 출석률/);
+  assert.match(dashboardSource, /순별 비교/);
   assert.match(dashboardSource, /aggregateGroupStats/);
 });
 

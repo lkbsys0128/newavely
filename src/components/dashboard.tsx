@@ -1423,6 +1423,7 @@ export function AttendanceManager({
   const [eventTypeFilter, setEventTypeFilter] = useState("all");
   const [statsEventTypeFilter, setStatsEventTypeFilter] = useState("all");
   const [statsGroupId, setStatsGroupId] = useState("all");
+  const [absenceMinimumStreak, setAbsenceMinimumStreak] = useState(3);
   const [eventPendingDelete, setEventPendingDelete] = useState<AttendanceEvent | null>(null);
   const [readAttendanceEventIds, setReadAttendanceEventIds] = useState<Set<string>>(new Set());
   const readEventsStorageKey = `newavely:read-attendance-events:${user.id}`;
@@ -1603,17 +1604,55 @@ export function AttendanceManager({
     displayAggregateTotals.possibleCount - displayAggregateTotals.presentCount - displayAggregateTotals.excusedCount,
     0,
   );
+  const trendSource = attendanceStats?.eventGroupTrend ?? [];
+  const filteredTrendRows = trendSource
+    .filter((row) => statsEventTypeFilter === "all" || row.eventType === statsEventTypeFilter)
+    .filter((row) => statsGroupId === "all" || row.groupId === statsGroupId)
+    .slice(0, 48);
+  const compactTrendRows = Object.values(
+    filteredTrendRows.reduce<Record<string, { eventDate: string; eventType: string; rateSum: number; presentCount: number; totalCount: number; rowCount: number }>>(
+      (rows, row) => {
+        const key = `${row.eventDate}-${row.eventType}`;
+        const current = rows[key] ?? {
+          eventDate: row.eventDate,
+          eventType: row.eventType,
+          rateSum: 0,
+          presentCount: 0,
+          totalCount: 0,
+          rowCount: 0,
+        };
+        rows[key] = {
+          ...current,
+          rateSum: current.rateSum + row.rate,
+          presentCount: current.presentCount + row.presentCount,
+          totalCount: current.totalCount + row.totalCount,
+          rowCount: current.rowCount + 1,
+        };
+        return rows;
+      },
+      {},
+    ),
+  )
+    .map((row) => ({
+      ...row,
+      rate: row.rowCount ? Math.round(row.rateSum / row.rowCount) : 0,
+    }))
+    .sort((a, b) => b.eventDate.localeCompare(a.eventDate))
+    .slice(0, 10);
+  const comparisonRows = [...displayAggregateGroupStats].sort((a, b) => b.rate - a.rate).slice(0, 8);
   const absenceWatchList = activeMembers
     .map((member) => {
       let streak = 0;
-      for (const event of attendanceEvents.slice(0, 6)) {
+      const scopedEvents = attendanceEvents.filter((event) => statsEventTypeFilter === "all" || event.title === statsEventTypeFilter).slice(0, 10);
+      for (const event of scopedEvents) {
         const record = member.attendanceHistory.find((item) => item.eventId === event.id);
         if (record?.status === "present" || record?.status === "excused") break;
         streak += 1;
       }
       return { member, streak };
     })
-    .filter((item) => item.streak >= 3)
+    .filter((item) => statsGroupId === "all" || item.member.groupId === statsGroupId || (!item.member.groupId && statsGroupId === "unassigned"))
+    .filter((item) => item.streak >= absenceMinimumStreak)
     .sort((a, b) => b.streak - a.streak)
     .slice(0, 8);
 
@@ -1822,14 +1861,7 @@ export function AttendanceManager({
         title="출석 통계"
         meta={`${hasExplicitAttendanceSelection ? attendanceTitle : "최근 이벤트 기준"} · 출석률 ${displayCurrentAttendanceRate}%`}
       >
-        <section className="attendance-aggregate-panel" aria-label="통합 출석 통계">
-          <div className="panel-heading compact-heading">
-            <div>
-              <h2>순별 통합 출석</h2>
-              <p className="meta">선택한 범위의 모든 이벤트를 합산해 순별 출석 흐름을 봅니다.</p>
-            </div>
-            <span>{aggregateStatsEvents.length}개 이벤트</span>
-          </div>
+        <section className="attendance-insight-panel" aria-label="상호작용 출석 통계">
           <div className="attendance-stats-toolbar">
             <label>
               이벤트 종류
@@ -1854,63 +1886,116 @@ export function AttendanceManager({
                 <option value="unassigned">미배정</option>
               </select>
             </label>
+            <label>
+              연속 결석
+              <select value={absenceMinimumStreak} onChange={(event) => setAbsenceMinimumStreak(Number(event.target.value))}>
+                <option value={2}>2회 이상</option>
+                <option value={3}>3회 이상</option>
+                <option value={4}>4회 이상</option>
+                <option value={5}>5회 이상</option>
+              </select>
+            </label>
           </div>
-          <div className="attendance-aggregate-summary">
-            <article className="metric-card">
-              <span>통합 출석률</span>
+
+          <div className="attendance-kpi-strip">
+            <article>
+              <span>출석률</span>
               <strong>{displayAggregateRate}%</strong>
-              <small>
-                {displayAggregateTotals.presentCount}/{displayAggregateTotals.possibleCount}회 출석 · 사유 있음{" "}
-                {displayAggregateTotals.excusedCount}회 · 미확인 {displayAggregateAbsentCount}회
-              </small>
-              <div className="progress">
-                <span style={{ width: `${displayAggregateRate}%` }} />
+              <small>{displayAggregateTotals.presentCount}/{displayAggregateTotals.possibleCount}회</small>
+            </article>
+            <article>
+              <span>사유 있음</span>
+              <strong>{displayAggregateTotals.excusedCount}</strong>
+              <small>필터 범위 전체</small>
+            </article>
+            <article>
+              <span>미확인</span>
+              <strong>{displayAggregateAbsentCount}</strong>
+              <small>출석/사유 없음</small>
+            </article>
+            <article>
+              <span>대상 순</span>
+              <strong>{displayAggregateGroupStats.length}</strong>
+              <small>{aggregateStatsEvents.length}개 이벤트</small>
+            </article>
+          </div>
+
+          <div className="attendance-insight-grid">
+            <article className="attendance-trend-card">
+              <div className="panel-heading compact-heading">
+                <div>
+                  <h2>날짜별 출석률</h2>
+                  <p className="meta">필터에 맞는 주일 예배와 순모임 흐름을 한 그래프에서 봅니다.</p>
+                </div>
+                <span>{compactTrendRows.length}개</span>
+              </div>
+              <div className="attendance-trend-chart">
+                {compactTrendRows.map((event) => (
+                  <div className="attendance-trend-row" key={`${event.eventDate}-${event.eventType}`}>
+                    <div className="attendance-trend-label">
+                      <strong>{event.eventDate}</strong>
+                      <span>{event.eventType}</span>
+                    </div>
+                    <div className="attendance-trend-track">
+                      <span
+                        className={event.eventType === "순모임" ? "group-meeting" : "worship"}
+                        style={{ width: `${event.rate}%` }}
+                      />
+                      <div className="attendance-hover-card">
+                        <strong>{event.rate}%</strong>
+                        <span>{event.presentCount}/{event.totalCount}회 출석</span>
+                      </div>
+                    </div>
+                    <strong>{event.rate}%</strong>
+                  </div>
+                ))}
+                {compactTrendRows.length === 0 ? (
+                  <article className="empty-table-state">
+                    <strong>표시할 추이가 없습니다</strong>
+                    <span>이벤트 종류나 순 필터를 조정해보세요.</span>
+                  </article>
+                ) : null}
               </div>
             </article>
-            <div className="aggregate-group-list">
-              {displayAggregateGroupStats.map((group) => (
-                <article className="aggregate-group-row" key={group.id}>
-                  <div className="person-block">
-                    <strong>{group.name}</strong>
-                    <span>
-                      {group.memberCount}명 · {group.presentCount}/{group.possibleCount}회 출석
-                    </span>
-                  </div>
-                  <div className="aggregate-stat-meter">
+
+            <article className="attendance-compare-card">
+              <div className="panel-heading compact-heading">
+                <h2>순별 비교</h2>
+                <span>상위 {comparisonRows.length}개</span>
+              </div>
+              <div className="attendance-compare-list">
+                {comparisonRows.map((group) => (
+                  <button className="attendance-compare-row" key={group.id} type="button" onClick={() => setStatsGroupId(group.id)}>
+                    <span>{group.name}</span>
                     <div className="progress">
                       <span style={{ width: `${group.rate}%` }} />
                     </div>
                     <strong>{group.rate}%</strong>
-                  </div>
-                  <span className="status-pill">사유 {group.excusedCount}회</span>
-                </article>
-              ))}
-              {displayAggregateGroupStats.length === 0 ? (
-                <article className="empty-table-state">
-                  <strong>표시할 통계가 없습니다</strong>
-                  <span>이벤트 종류나 순 필터를 조정해보세요.</span>
-                </article>
-              ) : null}
-            </div>
+                  </button>
+                ))}
+                {comparisonRows.length === 0 ? (
+                  <article className="empty-table-state">
+                    <strong>비교할 순이 없습니다</strong>
+                    <span>필터 조건을 넓혀보세요.</span>
+                  </article>
+                ) : null}
+              </div>
+            </article>
           </div>
-        </section>
-        <section className="stats-grid">
-          <article className="metric-card">
-            <span>선택 이벤트 출석률</span>
-            <strong>{displayCurrentAttendanceRate}%</strong>
-            <small>
-              {displayCurrentPresentCount}명 출석 · {displayCurrentAbsentCount}명 미확인 · {displayCurrentExcusedCount}명 사유 있음
-            </small>
-            <div className="progress">
-              <span style={{ width: `${displayCurrentAttendanceRate}%` }} />
-            </div>
-          </article>
-          <article className="panel stats-card">
+
+          <div className="attendance-bottom-grid">
+            <article className="panel stats-card compact-stat-card">
             <div className="panel-heading">
-              <h2>순별 출석률</h2>
+              <h2>선택 이벤트</h2>
               <span>{attendanceTitle}</span>
             </div>
-            <div className="stats-list">
+            <div className="attendance-mini-summary">
+              <strong>{displayCurrentAttendanceRate}%</strong>
+              <span>
+                {displayCurrentPresentCount}명 출석 · {displayCurrentAbsentCount}명 미확인 · {displayCurrentExcusedCount}명 사유
+              </span>
+            </div>
+            <div className="stats-list compact-scroll-list">
               {displayGroupAttendanceStats.map((group) => (
                 <div className="stat-row" key={group.id}>
                   <div className="person-block">
@@ -1945,34 +2030,12 @@ export function AttendanceManager({
               ) : null}
             </div>
           </article>
-          <article className="panel stats-card">
-            <div className="panel-heading">
-              <h2>최근 이벤트 추이</h2>
-              <span>최근 {displayEventTrend.length}개</span>
-            </div>
-            <div className="stats-list">
-              {displayEventTrend.slice(0, 6).map((event) => (
-                <div className="stat-row" key={event.id}>
-                  <div className="person-block">
-                    <strong>{event.title}</strong>
-                    <span>{event.eventDate}</span>
-                  </div>
-                  <div className="stat-meter">
-                    <div className="progress">
-                      <span style={{ width: `${event.rate}%` }} />
-                    </div>
-                    <strong>{event.rate}%</strong>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-          <article className="panel stats-card">
+          <article className="panel stats-card compact-stat-card">
             <div className="panel-heading">
               <h2>미확인 연속 결석</h2>
-              <span>사유 있음 제외</span>
+              <span>{absenceMinimumStreak}회 이상</span>
             </div>
-            <div className="stats-list">
+            <div className="stats-list compact-scroll-list">
               {absenceWatchList.map(({ member, streak }) => {
                 const englishName = getMemberEnglishName(member);
                 return (
@@ -1994,13 +2057,14 @@ export function AttendanceManager({
               {absenceWatchList.length === 0 ? (
                 <article className="care-item">
                   <div className="person-block">
-                    <strong>3회 이상 미확인 결석자가 없습니다</strong>
-                    <span>사유가 저장된 결석은 이 목록에서 제외됩니다.</span>
+                    <strong>조건에 맞는 미확인 결석자가 없습니다</strong>
+                    <span>순, 이벤트 종류, 연속 횟수 필터를 조정해보세요.</span>
                   </div>
                 </article>
               ) : null}
             </div>
           </article>
+          </div>
         </section>
       </DisclosurePanel>
 
