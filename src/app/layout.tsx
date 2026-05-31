@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { MobileAwareNav } from "@/components/mobile-aware-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -18,13 +19,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <div className="app-shell">
           <aside className="sidebar" aria-label="주요 메뉴">
-            <div className="brand">
+            <Link className="brand" href="/" aria-label="대시보드로 이동">
               <Image alt="" className="brand-mark" height={44} src="/newave-icon.png" width={34} />
               <div>
                 <strong>Newavely</strong>
                 <span>Newave 공동체</span>
               </div>
-            </div>
+            </Link>
 
             <div className="sidebar-menu">
               <input className="mobile-menu-control" id="mobile-menu-control" type="checkbox" />
