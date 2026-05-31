@@ -112,8 +112,11 @@ test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(actionsSource, /member\.auth_user_id/);
   assert.match(actionsSource, /deletedCount !== 1/);
   assert.match(dataSource, /getDeletedAuthUserBlock/);
-  assert.match(dataSource, /삭제된 계정/);
-  assert.match(dataSource, /비활성화된 계정입니다/);
+  assert.match(dataSource, /이전에 삭제된 멤버 계정/);
+  assert.match(dataSource, /다시 활성화가 필요하면 Newavely 운영 관리자에게 연락해주세요/);
+  assert.match(dataSource, /현재 비활성화되어 로그인할 수 없습니다/);
+  assert.match(appGateSource, /로그인할 수 없는 계정입니다/);
+  assert.match(appGateSource, /계정 확인 필요/);
   assert.match(schemaSource, /create table deleted_auth_users/);
   assert.match(schemaSource, /authorized users can delete lower role members/);
   assert.match(deleteRolePoliciesSource, /authorized users can delete lower role members/);
