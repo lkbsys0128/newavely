@@ -1,5 +1,14 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
-import type { AttendanceEvent, AuditLog, CareFollowup, CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
+import type {
+  AttendanceEvent,
+  AuditLog,
+  CareFollowup,
+  CustomFieldDefinition,
+  DeletedAuthUser,
+  Group,
+  Member,
+  MemberLinkRequest,
+} from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 import { formatMemberDisplayName } from "@/lib/member-names";
 
@@ -92,7 +101,10 @@ type DbMemberLinkRequest = {
 
 type DbDeletedAuthUser = {
   auth_user_id: string;
+  deleted_member_id?: string | null;
   deleted_member_name: string | null;
+  deleted_member_email?: string | null;
+  created_at?: string;
 };
 
 async function getDeletedAuthUserBlock(supabase: SupabaseClient, authUserId: string) {
@@ -417,6 +429,45 @@ export async function getAuditLogs(supabase: SupabaseClient) {
       createdAt: log.created_at,
     };
   });
+}
+
+export async function getDeletedAuthUsers(supabase: SupabaseClient): Promise<DeletedAuthUser[]> {
+  const { data, error } = await supabase
+    .from("deleted_auth_users")
+    .select("auth_user_id, deleted_member_id, deleted_member_name, deleted_member_email, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  const deletedUsers = data as unknown as DbDeletedAuthUser[];
+  const deletedMemberIds = deletedUsers.map((user) => user.deleted_member_id).filter((id): id is string => Boolean(id));
+  const auditBeforeDataByTargetId = new Map<string, Record<string, unknown>>();
+
+  if (deletedMemberIds.length > 0) {
+    const { data: auditData, error: auditError } = await supabase
+      .from("audit_logs")
+      .select("target_id, before_data")
+      .eq("action", "member.permanent_delete")
+      .in("target_id", deletedMemberIds);
+
+    if (auditError && auditError.code !== "42P01") throw auditError;
+
+    for (const log of (auditData ?? []) as Array<{ target_id: string | null; before_data: Record<string, unknown> | null }>) {
+      if (log.target_id && log.before_data) auditBeforeDataByTargetId.set(log.target_id, log.before_data);
+    }
+  }
+
+  return deletedUsers.map((user) => ({
+    authUserId: user.auth_user_id,
+    deletedMemberId: user.deleted_member_id ?? null,
+    deletedMemberName: user.deleted_member_name ?? "삭제된 멤버",
+    deletedMemberEmail: user.deleted_member_email ?? "",
+    deletedAt: user.created_at ?? "",
+    restoreData: user.deleted_member_id ? auditBeforeDataByTargetId.get(user.deleted_member_id) ?? null : null,
+  }));
 }
 
 export async function getMemberLinkRequests(supabase: SupabaseClient, currentMemberId: string, includeAll: boolean) {

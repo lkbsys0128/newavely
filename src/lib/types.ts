@@ -87,3 +87,12 @@ export type AuditLog = {
   metadata: Record<string, unknown>;
   createdAt: string;
 };
+
+export type DeletedAuthUser = {
+  authUserId: string;
+  deletedMemberId: string | null;
+  deletedMemberName: string;
+  deletedMemberEmail: string;
+  deletedAt: string;
+  restoreData: Record<string, unknown> | null;
+};
