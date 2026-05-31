@@ -10,7 +10,12 @@ export default async function GroupsPage() {
   return (
     <AppPageGate data={data}>
       {(readyData) => (
-        <GroupsPageContent user={readyData.user} members={readyData.members} groups={readyData.groups} />
+        <GroupsPageContent
+          user={readyData.user}
+          members={readyData.members}
+          groups={readyData.groups}
+          globalStats={readyData.globalStats}
+        />
       )}
     </AppPageGate>
   );
