@@ -824,6 +824,28 @@ h3 {
   font-weight: 900;
 }
 
+.event-create-note {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  min-height: 74px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+  background: #fbfeff;
+}
+
+.event-create-note strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.event-create-note span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .field-note {
   width: max-content;
   border: 1px solid var(--line);
@@ -2093,6 +2115,10 @@ tbody tr:hover {
   gap: 12px;
 }
 
+.attendance-bottom-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .compact-stat-card {
   padding: 14px;
   box-shadow: none;
@@ -3066,6 +3092,10 @@ tbody tr:hover {
 }
 
 @media (max-width: 760px) {
+  html {
+    scroll-padding-top: 118px;
+  }
+
   .main-content,
   .sidebar {
     padding: 18px;
@@ -3188,6 +3218,47 @@ tbody tr:hover {
 
   .section-nav-links {
     flex-wrap: nowrap;
+  }
+
+  .member-detail-backdrop,
+  .confirm-modal-backdrop {
+    overscroll-behavior: contain;
+  }
+
+  .member-detail-modal {
+    top: auto;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: auto;
+    max-height: min(86dvh, calc(100dvh - 24px));
+    padding: 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    transform: translateY(22px) scale(0.98);
+  }
+
+  .member-detail-modal.open {
+    transform: translateY(0) scale(1);
+  }
+
+  .member-detail-modal .management-form {
+    gap: 10px;
+  }
+
+  .confirm-modal-backdrop {
+    align-items: end;
+    justify-items: stretch;
+    padding: 12px;
+  }
+
+  .confirm-modal {
+    width: 100%;
+    max-height: min(86dvh, calc(100dvh - 24px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .nav-list,
