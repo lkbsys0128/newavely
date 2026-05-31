@@ -1,6 +1,7 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
 import type { AttendanceEvent, AuditLog, CareFollowup, CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
+import { formatMemberDisplayName } from "@/lib/member-names";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -264,10 +265,12 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
         };
       })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return {
+    const customFields = member.custom_fields ?? {};
+    const mappedMember = {
       id: member.id,
       authUserId: member.auth_user_id,
       name: member.name,
+      displayName: member.name,
       phone: member.phone ?? "미입력",
       groupId: member.group_id,
       groupName: group?.name ?? "미배정",
@@ -277,10 +280,14 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
       address: member.address ?? "미입력",
       baptismStatus: member.baptism_status ?? "미입력",
       notes: member.care_notes ?? "메모 없음",
-      customFields: member.custom_fields ?? {},
+      customFields,
       present: Boolean(member.attendance_records?.some((record) => record.event_id === selectedEvent?.id && record.status === "present")),
       attendanceHistory,
       careFollowups,
+    };
+    return {
+      ...mappedMember,
+      displayName: formatMemberDisplayName(mappedMember),
     };
   });
 

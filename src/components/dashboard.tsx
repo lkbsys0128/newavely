@@ -429,7 +429,7 @@ function buildBirthdayMonths(members: Member[]): BirthdayMonthBucket[] {
 
       monthMembers.push({
         id: member.id,
-        name: member.name,
+        name: member.displayName,
         day: birthDay,
         meta: `${birthDay}일${member.groupName ? ` · ${member.groupName}` : ""}`,
       });
@@ -448,14 +448,14 @@ function buildGroupRosters(members: Member[], groups: Group[]): InsightBucket[] 
       .filter((member) => member.groupId === group.id)
       .map((member) => ({
         id: member.id,
-        name: member.name,
+        name: member.displayName,
         meta: member.id === group.leaderMemberId ? "리더" : undefined,
       })),
   }));
 
   const unassignedMembers = members
     .filter((member) => !member.groupId)
-    .map((member) => ({ id: member.id, name: member.name, meta: "미배정" }));
+    .map((member) => ({ id: member.id, name: member.displayName, meta: "미배정" }));
 
   return [...groupBuckets, { label: "미배정", members: unassignedMembers }];
 }
@@ -472,13 +472,13 @@ function buildMinistryRosters(members: Member[]): InsightBucket[] {
     const uniqueMinistries = [...new Set(ministries)];
 
     if (uniqueMinistries.length === 0) {
-      buckets.get("미입력")?.push({ id: member.id, name: member.name, meta: member.groupName || undefined });
+      buckets.get("미입력")?.push({ id: member.id, name: member.displayName, meta: member.groupName || undefined });
       continue;
     }
 
     for (const ministry of uniqueMinistries) {
       if (!buckets.has(ministry)) buckets.set(ministry, []);
-      buckets.get(ministry)?.push({ id: member.id, name: member.name, meta: member.groupName || undefined });
+      buckets.get(ministry)?.push({ id: member.id, name: member.displayName, meta: member.groupName || undefined });
     }
   }
 
@@ -494,7 +494,7 @@ function buildJobDistribution(members: Member[]): InsightBucket[] {
     const bucketLabel = getJobBucketLabel(member);
     buckets.get(bucketLabel)?.push({
       id: member.id,
-      name: member.name,
+      name: member.displayName,
       meta: bucketLabel === "기타" && normalizedJob !== "기타" ? normalizedJob : member.groupName || undefined,
     });
   }
@@ -512,7 +512,7 @@ function buildAgeDistribution(members: Member[]): InsightBucket[] {
 
     buckets.get(label)?.push({
       id: member.id,
-      name: member.name,
+      name: member.displayName,
       meta: label === "미입력" ? member.groupName || undefined : `만 ${age}세`,
     });
   }
@@ -811,7 +811,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                     onClick={() => setSelectedMemberId(member.id)}
                   >
                     <td>
-                      <strong>{member.name}</strong>
+                      <strong>{member.displayName}</strong>
                     </td>
                     <td>{member.groupName}</td>
                     {!isSoonjang ? (
@@ -887,8 +887,17 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <form action={updateMemberAction} className="management-form" key={selectedMember.id}>
               <input name="id" type="hidden" value={selectedMember.id} />
               <label>
-                이름
+                한국 이름
                 <input name="name" required defaultValue={selectedMember.name} disabled={!canManageMembers} />
+              </label>
+              <label>
+                영어 이름
+                <input
+                  name="englishName"
+                  defaultValue={typeof selectedMember.customFields.english_name === "string" ? selectedMember.customFields.english_name : ""}
+                  disabled={!canManageMembers}
+                  placeholder="예: Daniel"
+                />
               </label>
               <label>
                 이메일
@@ -1010,7 +1019,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   {candidate.members.map((member) => (
                     <div className="detail-row" key={member.id}>
                       <div className="person-block">
-                        <strong>{member.name}</strong>
+                        <strong>{member.displayName}</strong>
                         <span>
                           {member.groupName} · {member.email || "이메일 없음"} · {member.phone}
                         </span>
@@ -1056,8 +1065,12 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
       >
         <form action={createMemberAction} className="member-form">
           <label>
-            이름
+            한국 이름
             <input name="name" required placeholder="예: 김하은" disabled={!canManageMembers} />
+          </label>
+          <label>
+            영어 이름
+            <input name="englishName" placeholder="예: Grace" disabled={!canManageMembers} />
           </label>
           <label>
             연락처
@@ -1191,7 +1204,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
               <option value="">미배정</option>
               {groupLeaderOptions.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.name} · {member.groupName}
+                  {member.displayName} · {member.groupName}
                 </option>
               ))}
             </select>
@@ -1244,7 +1257,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
               <div className="group-member-list">
                 {groupMembers.slice(0, 6).map((member) => (
                   <Link className="member-chip" href={`/members/${member.id}`} key={member.id}>
-                    {member.name}
+                    {member.displayName}
                   </Link>
                 ))}
                 {groupMembers.length > 6 ? <span className="member-chip muted">+{groupMembers.length - 6}</span> : null}
@@ -1266,7 +1279,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
                     <option value="">미배정</option>
                     {groupLeaderOptions.map((member) => (
                       <option key={member.id} value={member.id}>
-                        {member.name} · {member.groupName}
+                        {member.displayName} · {member.groupName}
                       </option>
                     ))}
                   </select>
@@ -1336,7 +1349,7 @@ export function GroupsPageContent({ user, members, groups }: AppDataProps) {
           <div className="group-member-list">
             {unassignedMembers.map((member) => (
               <Link className="member-chip" href={`/members/${member.id}`} key={member.id}>
-                {member.name}
+                {member.displayName}
               </Link>
             ))}
           </div>
@@ -1459,7 +1472,7 @@ export function AttendanceManager({
     const status = getMemberAttendanceStatus(member, attendanceEventId);
     const normalizedQuery = attendanceSearchQuery.trim().toLowerCase();
     const matchesQuery = normalizedQuery
-      ? [member.name, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery))
+      ? [member.displayName, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery))
       : true;
     const matchesGroup = attendanceGroupId === "all" || member.groupId === attendanceGroupId;
     if (attendanceFilter === "present") return matchesQuery && matchesGroup && member.present;
@@ -1728,7 +1741,7 @@ export function AttendanceManager({
               {absenceWatchList.map(({ member, streak }) => (
                 <div className="stat-row" key={member.id}>
                   <div className="person-block">
-                    <strong>{member.name}</strong>
+                    <strong>{member.displayName}</strong>
                     <span>{member.groupName}</span>
                   </div>
                   <div className="row-actions">
@@ -1867,7 +1880,7 @@ function AttendanceRow({
   return (
     <article className={`attendance-row attendance-card ${status}`}>
       <div className="person-block">
-        <strong>{member.name}</strong>
+        <strong>{member.displayName}</strong>
         <span>{member.groupName}</span>
         {visibleNote ? <span>사유: {visibleNote}</span> : null}
         {currentRecord?.excuseStartDate || currentRecord?.excuseEndDate ? (
@@ -2010,7 +2023,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
     if (!normalizedRoleSearchQuery) return true;
 
     return [
-      member.name,
+      member.displayName,
       member.email,
       member.groupName,
       roleLabels[member.role],
@@ -2136,7 +2149,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                           <option value="">선택</option>
                           {unlinkedActiveMembers.map((member) => (
                             <option key={member.id} value={member.id}>
-                              {member.name} · {member.groupName} · {member.email || "이메일 없음"}
+                              {member.displayName} · {member.groupName} · {member.email || "이메일 없음"}
                             </option>
                           ))}
                         </select>
@@ -2281,7 +2294,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
             <form action={roleAction} className="role-management-row" key={member.id}>
               <input name="id" type="hidden" value={member.id} />
               <div className="person-block">
-                <strong>{member.name}</strong>
+                <strong>{member.displayName}</strong>
                 <span>
                   {member.groupName} · {member.email || "이메일 없음"} · {member.authUserId ? "Google 연결" : "미연결"}
                 </span>

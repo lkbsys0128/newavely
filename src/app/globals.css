@@ -2563,7 +2563,16 @@ tbody tr:hover {
   }
 
   .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
     gap: 14px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(47, 145, 181, 0.18);
+    background: rgba(247, 252, 253, 0.92);
+    box-shadow: 0 16px 34px rgba(23, 51, 59, 0.1);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   .brand {

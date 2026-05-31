@@ -13,6 +13,7 @@ import {
   normalizeJobValue,
   normalizeMinistryValue,
 } from "@/lib/member-field-options";
+import { splitCompositeMemberName } from "@/lib/member-names";
 
 const nullableUuid = z.preprocess((value) => {
   const normalized = String(value ?? "").trim();
@@ -26,6 +27,7 @@ const nullableText = z.preprocess((value) => {
 
 const memberSchema = z.object({
   name: z.string().min(1),
+  englishName: nullableText,
   phone: z.string().min(1),
   groupId: nullableUuid,
   email: nullableText,
@@ -364,6 +366,7 @@ export async function createMember(_previousState: ActionState, formData: FormDa
 
     const parsed = memberSchema.parse({
       name: formData.get("name"),
+      englishName: formData.get("englishName"),
       phone: formData.get("phone"),
       groupId: formData.get("groupId"),
       email: formData.get("email"),
@@ -375,6 +378,8 @@ export async function createMember(_previousState: ActionState, formData: FormDa
     });
 
     const requestedRole = parsed.role;
+    const splitName = splitCompositeMemberName(parsed.name);
+    const englishName = parsed.englishName ?? splitName.englishName;
     const canManageRoles = hasPermission(currentMember.role, "roles:manage");
     if (requestedRole === "owner" && !hasPermission(currentMember.role, "owner:manage")) {
       throw new Error("최고 관리자 권한은 최고 관리자만 지정할 수 있습니다.");
@@ -382,15 +387,16 @@ export async function createMember(_previousState: ActionState, formData: FormDa
     const nextRole = canManageRoles ? requestedRole : "member";
 
     const insertPayload = {
-      name: parsed.name,
+      name: splitName.koreanName,
       phone: parsed.phone,
       group_id: parsed.groupId,
       role: nextRole,
       status: parsed.status,
-      email: parsed.email ?? `${parsed.name.replace(/\s/g, "").toLowerCase()}-${Date.now()}@placeholder.local`,
+      email: parsed.email ?? `${splitName.koreanName.replace(/\s/g, "").toLowerCase()}-${Date.now()}@placeholder.local`,
       address: parsed.address,
       baptism_status: parsed.baptismStatus,
       care_notes: parsed.notes ?? "추가 정보 입력 필요",
+      custom_fields: englishName ? { english_name: englishName } : {},
     };
 
     const { data: inserted, error } = await supabase.from("members").insert(insertPayload).select("*").single();
@@ -415,6 +421,7 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     const parsed = updateMemberSchema.parse({
       id: formData.get("id"),
       name: formData.get("name"),
+      englishName: formData.get("englishName"),
       phone: formData.get("phone"),
       groupId: formData.get("groupId"),
       email: formData.get("email"),
@@ -432,6 +439,16 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
       .single();
 
     if (beforeError) throw beforeError;
+    const splitName = splitCompositeMemberName(parsed.name);
+    const existingCustomFields =
+      beforeData && typeof beforeData === "object" && "custom_fields" in beforeData
+        ? ((beforeData.custom_fields as Record<string, unknown> | null) ?? {})
+        : {};
+    const nextEnglishName = parsed.englishName ?? splitName.englishName;
+    const nextCustomFields = normalizeSubmittedCustomFields({
+      ...existingCustomFields,
+      english_name: nextEnglishName,
+    });
     const currentRole = beforeData.role as Role;
     const requestedRole = parsed.role as Role;
     const canManageRoles = hasPermission(currentMember.role, "roles:manage");
@@ -465,7 +482,7 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     const { data: afterData, error } = await supabase
       .from("members")
       .update({
-        name: parsed.name,
+        name: splitName.koreanName,
         phone: parsed.phone,
         group_id: parsed.groupId,
         role: nextRole,
@@ -474,6 +491,7 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
         address: parsed.address,
         baptism_status: parsed.baptismStatus,
         care_notes: parsed.notes,
+        custom_fields: nextCustomFields,
         updated_at: new Date().toISOString(),
       })
       .eq("id", parsed.id)
