@@ -29,6 +29,16 @@ create table members (
   updated_at timestamptz not null default now()
 );
 
+create table deleted_auth_users (
+  auth_user_id uuid primary key references auth.users(id) on delete cascade,
+  deleted_member_id uuid,
+  deleted_member_name text,
+  deleted_member_email text,
+  deleted_by_member_id uuid references members(id) on delete set null,
+  reason text not null default 'member.permanent_delete',
+  created_at timestamptz not null default now()
+);
+
 alter table groups
   add constraint groups_leader_member_id_fkey
   foreign key (leader_member_id) references members(id) on delete set null;
@@ -89,6 +99,8 @@ create table member_link_requests (
 create index members_group_idx on members(group_id);
 create index members_role_idx on members(role);
 create index members_auth_user_idx on members(auth_user_id);
+create index deleted_auth_users_created_at_idx on deleted_auth_users(created_at desc);
+create index deleted_auth_users_deleted_member_id_idx on deleted_auth_users(deleted_member_id);
 create index attendance_records_event_idx on attendance_records(event_id);
 create index attendance_records_member_idx on attendance_records(member_id);
 create index care_followups_member_idx on care_followups(member_id);
@@ -101,6 +113,7 @@ create index member_link_requests_status_idx on member_link_requests(status);
 
 alter table groups enable row level security;
 alter table members enable row level security;
+alter table deleted_auth_users enable row level security;
 alter table attendance_events enable row level security;
 alter table attendance_records enable row level security;
 alter table member_custom_field_definitions enable row level security;
@@ -251,6 +264,21 @@ using (
     else 0
   end
 );
+
+create policy "deleted auth users can read own block"
+on deleted_auth_users for select
+to authenticated
+using (auth_user_id = auth.uid() or current_member_role() in ('owner', 'admin'));
+
+create policy "authorized users can create deleted auth blocks"
+on deleted_auth_users for insert
+to authenticated
+with check (current_member_role() in ('owner', 'admin', 'leader'));
+
+create policy "owners and admins can remove deleted auth blocks"
+on deleted_auth_users for delete
+to authenticated
+using (current_member_role() in ('owner', 'admin'));
 
 create policy "leaders can delete groups"
 on groups for delete

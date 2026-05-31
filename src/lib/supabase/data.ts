@@ -90,10 +90,37 @@ type DbMemberLinkRequest = {
   target?: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
 };
 
+type DbDeletedAuthUser = {
+  auth_user_id: string;
+  deleted_member_name: string | null;
+};
+
+async function getDeletedAuthUserBlock(supabase: SupabaseClient, authUserId: string) {
+  const { data, error } = await supabase
+    .from("deleted_auth_users")
+    .select("auth_user_id, deleted_member_name")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "42P01") return null;
+    throw error;
+  }
+
+  return data as DbDeletedAuthUser | null;
+}
+
 export async function getOrCreateCurrentMember(
   supabase: SupabaseClient,
   user: { id: string; email?: string; name?: string },
 ) {
+  const deletedAuthUser = await getDeletedAuthUserBlock(supabase, user.id);
+  if (deletedAuthUser) {
+    throw new Error(
+      `${deletedAuthUser.deleted_member_name ?? "삭제된 계정"}의 Google 로그인은 관리자에 의해 삭제되어 사용할 수 없습니다. Newavely 운영 관리자에게 문의해주세요.`,
+    );
+  }
+
   const { data: existing, error: existingError } = await supabase
     .from("members")
     .select("id, role, status")
@@ -102,6 +129,10 @@ export async function getOrCreateCurrentMember(
 
   if (existingError) throw existingError;
   if (existing) {
+    if (existing.status === "inactive") {
+      throw new Error("비활성화된 계정입니다. 다시 사용하려면 Newavely 운영 관리자에게 문의해주세요.");
+    }
+
     return {
       id: existing.id as string,
       role: existing.role as Role,

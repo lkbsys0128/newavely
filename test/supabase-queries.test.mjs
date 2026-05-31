@@ -19,6 +19,7 @@ const attendanceImportNotesCleanupSource = readFileSync(
   "utf8",
 );
 const memberEnglishNamesSource = readFileSync(new URL("../db/017_member_english_names.sql", import.meta.url), "utf8");
+const deletedAuthUserBlocksSource = readFileSync(new URL("../db/018_deleted_auth_user_blocks.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -107,10 +108,18 @@ test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(actionsSource, /member\.permanent_delete/);
   assert.match(actionsSource, /cascadingRecords/);
   assert.match(actionsSource, /closedPendingLinkRequests/);
+  assert.match(actionsSource, /deleted_auth_users/);
+  assert.match(actionsSource, /member\.auth_user_id/);
   assert.match(actionsSource, /deletedCount !== 1/);
+  assert.match(dataSource, /getDeletedAuthUserBlock/);
+  assert.match(dataSource, /삭제된 계정/);
+  assert.match(dataSource, /비활성화된 계정입니다/);
+  assert.match(schemaSource, /create table deleted_auth_users/);
   assert.match(schemaSource, /authorized users can delete lower role members/);
   assert.match(deleteRolePoliciesSource, /authorized users can delete lower role members/);
   assert.match(deleteRolePoliciesSource, /leaders can delete groups/);
+  assert.match(deletedAuthUserBlocksSource, /member\.permanent_delete\.backfill/);
+  assert.match(deletedAuthUserBlocksSource, /deleted_auth_users/);
   assert.match(memberDeletePolicySource, /owners can delete members/);
   assert.match(dashboardSource, /완전 삭제/);
 });

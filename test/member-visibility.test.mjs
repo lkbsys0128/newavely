@@ -58,6 +58,7 @@ test("soonjang sees full detail only for members in led groups", () => {
   assert.equal(scopedMembers.find((item) => item.id === "other-group").authUserId, null);
   assert.equal(scopedMembers.find((item) => item.id === "other-group").role, "member");
   assert.equal(scopedMembers.find((item) => item.id === "other-group").status, "active");
+  assert.equal(scopedMembers.find((item) => item.id === "inactive").status, "inactive");
   assert.equal(scopedMembers.find((item) => item.id === "other-group").present, false);
   assert.equal(scopedMembers.find((item) => item.id === "other-group").notes, "");
   assert.deepEqual({ ...scopedMembers.find((item) => item.id === "other-group").customFields }, {});

@@ -32,7 +32,7 @@ export function maskMemberToDirectoryEntry(member: Member): Member {
     authUserId: null,
     phone: "비공개",
     role: "member",
-    status: "active",
+    status: member.status,
     email: "",
     address: "비공개",
     baptismStatus: "비공개",
