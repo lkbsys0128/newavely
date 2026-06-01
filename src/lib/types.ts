@@ -108,3 +108,11 @@ export type ImportantLink = {
   createdByName: string;
   createdAt: string;
 };
+
+export type MemberStatusMessage = {
+  memberId: string;
+  memberName: string;
+  groupName: string;
+  message: string;
+  updatedAt: string;
+};

@@ -9,6 +9,7 @@ import type {
   ImportantLink,
   Member,
   MemberLinkRequest,
+  MemberStatusMessage,
 } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 import { formatMemberDisplayName } from "@/lib/member-names";
@@ -93,6 +94,17 @@ type DbImportantLink = {
   icon_key: ImportantLink["iconKey"] | null;
   created_at: string;
   creator?: { name: string | null } | Array<{ name: string | null }> | null;
+};
+
+type DbMemberStatusMessage = {
+  member_id: string;
+  message: string;
+  updated_at: string;
+  members?: { name: string | null; custom_fields: Record<string, unknown> | null; groups?: { name: string | null } | Array<{ name: string | null }> | null } | Array<{
+    name: string | null;
+    custom_fields: Record<string, unknown> | null;
+    groups?: { name: string | null } | Array<{ name: string | null }> | null;
+  }> | null;
 };
 
 type DbMemberLinkRequest = {
@@ -468,6 +480,34 @@ export async function getImportantLinks(supabase: SupabaseClient): Promise<Impor
       iconKey: link.icon_key ?? "default",
       createdByName: creator?.name ?? "알 수 없음",
       createdAt: link.created_at,
+    };
+  });
+}
+
+export async function getMemberStatusMessages(supabase: SupabaseClient): Promise<MemberStatusMessage[]> {
+  const { data, error } = await supabase
+    .from("member_status_messages")
+    .select("member_id, message, updated_at, members!member_status_messages_member_id_fkey(name, custom_fields, groups!members_group_id_fkey(name))")
+    .order("updated_at", { ascending: false })
+    .limit(24);
+
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  return ((data ?? []) as unknown as DbMemberStatusMessage[]).map((status) => {
+    const member = Array.isArray(status.members) ? status.members[0] : status.members;
+    const group = Array.isArray(member?.groups) ? member?.groups[0] : member?.groups;
+    return {
+      memberId: status.member_id,
+      memberName: formatMemberDisplayName({
+        name: member?.name ?? "알 수 없음",
+        customFields: member?.custom_fields ?? {},
+      }),
+      groupName: group?.name ?? "미배정",
+      message: status.message,
+      updatedAt: status.updated_at,
     };
   });
 }

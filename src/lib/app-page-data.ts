@@ -8,6 +8,7 @@ import type {
   ImportantLink,
   Member,
   MemberLinkRequest,
+  MemberStatusMessage,
 } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { scopeMembersForRole } from "@/lib/member-visibility";
@@ -23,6 +24,7 @@ import {
   getDeletedAuthUsers,
   getImportantLinks,
   getMemberLinkRequests,
+  getMemberStatusMessages,
   getOrCreateCurrentMember,
 } from "@/lib/supabase/data";
 
@@ -46,6 +48,7 @@ export type ReadyAppPageData = {
   auditLogs?: AuditLog[];
   deletedAuthUsers: DeletedAuthUser[];
   importantLinks: ImportantLink[];
+  memberStatusMessages: MemberStatusMessage[];
   customFieldDefinitions: CustomFieldDefinition[];
   dashboardMetrics: DashboardMetrics;
   globalStats: GlobalAppStats;
@@ -574,6 +577,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
     const auditLogs = hasPermission(currentMember.role, "roles:manage") ? await getAuditLogs(supabase) : undefined;
     const deletedAuthUsers = hasPermission(currentMember.role, "roles:manage") ? await getDeletedAuthUsers(supabase) : [];
     const importantLinks = hasPermission(currentMember.role, "links:read") ? await getImportantLinks(supabase) : [];
+    const memberStatusMessages = await getMemberStatusMessages(supabase);
     const memberLinkRequests = await getMemberLinkRequests(
       supabase,
       currentMember.id,
@@ -605,6 +609,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       auditLogs,
       deletedAuthUsers,
       importantLinks,
+      memberStatusMessages,
       customFieldDefinitions,
       dashboardMetrics: globalStats.dashboardMetrics,
       globalStats,

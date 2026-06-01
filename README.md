@@ -101,6 +101,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 19. `db/019_deleted_auth_restore_requests.sql`
 20. `db/020_backfill_2026_05_31_attendance_types.sql`
 21. `db/021_important_links.sql`
+22. `db/022_member_status_messages.sql`
 
 주요 테이블:
 
@@ -112,6 +113,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 - `member_link_requests`: 첫 로그인 계정과 기존 교적 멤버 연결 승인 요청
 - `member_custom_field_definitions`: 멤버별 커스텀 필드 정의
 - `important_links`: 공동체 공식 홈페이지/소셜/신청 링크 등 중요 사이트 모음
+- `member_status_messages`: 멤버별 짧은 상태 메시지/오늘의 한마디
 - `audit_logs`: 멤버/순/출석 변경에 대한 append-only 감사 로그
 
 중요한 관계:

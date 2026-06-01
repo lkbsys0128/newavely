@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
+import { MemberStatusComposer } from "@/components/member-status-composer";
 import {
   createCareFollowup,
   createCustomFieldDefinition,
@@ -31,7 +32,7 @@ import {
   normalizeMinistryValue,
 } from "@/lib/member-field-options";
 import type { AppUser } from "@/lib/app-page-data";
-import type { CustomFieldDefinition, Group, Member, MemberLinkRequest } from "@/lib/types";
+import type { CustomFieldDefinition, Group, Member, MemberLinkRequest, MemberStatusMessage } from "@/lib/types";
 
 const initialActionState: ActionState = { ok: false, message: "" };
 
@@ -42,6 +43,7 @@ export function MemberDetailPageContent({
   members,
   customFieldDefinitions,
   memberLinkRequests = [],
+  memberStatusMessages = [],
   eyebrow = "멤버 상세",
   backHref = "/members",
   backLabel = "목록",
@@ -53,6 +55,7 @@ export function MemberDetailPageContent({
   members: Member[];
   customFieldDefinitions: CustomFieldDefinition[];
   memberLinkRequests?: MemberLinkRequest[];
+  memberStatusMessages?: MemberStatusMessage[];
   eyebrow?: string;
   backHref?: string;
   backLabel?: string;
@@ -100,11 +103,14 @@ export function MemberDetailPageContent({
   const googleAccountName =
     typeof member.customFields.google_account_name === "string" ? member.customFields.google_account_name : "";
   const currentMemberLinkRequests = memberLinkRequests.filter((request) => request.requesterMemberId === member.id);
+  const currentStatusMessage = memberStatusMessages.find((message) => message.memberId === member.id)?.message ?? "";
+  const isOwnProfile = member.authUserId === user.id || Boolean(member.email && member.email === user.email);
   const pendingLinkRequest = currentMemberLinkRequests.find(isActionableLinkRequest);
   const rejectedLinkRequest = currentMemberLinkRequests.find((request) => request.status === "rejected");
   const linkableMembers = assignableMembers.filter((item) => item.id !== member.id && !item.authUserId);
   const sectionItems = [
     ...(showLinkRequest ? [{ href: "#account-link", label: "계정 연결" }] : []),
+    ...(isOwnProfile ? [{ href: "#today-message", label: "오늘의 한마디" }] : []),
     { href: "#basic-info", label: "기본 정보" },
     { href: "#custom-fields", label: "추가 정보" },
     { href: "#attendance-history", label: "출석 기록" },
@@ -130,6 +136,8 @@ export function MemberDetailPageContent({
         </div>
       </header>
       <SectionNav items={sectionItems} />
+
+      {isOwnProfile ? <MemberStatusComposer initialMessage={currentStatusMessage} /> : null}
 
       {showLinkRequest ? (
         <section className="panel form-panel" id="account-link">

@@ -15,6 +15,7 @@ export default async function HomePage() {
           members={readyData.members}
           groups={readyData.groups}
           attendanceEvents={readyData.attendanceEvents}
+          memberStatusMessages={readyData.memberStatusMessages}
           dashboardMetrics={readyData.dashboardMetrics}
           globalStats={readyData.globalStats}
         />

@@ -110,6 +110,12 @@ create table important_links (
   updated_at timestamptz not null default now()
 );
 
+create table member_status_messages (
+  member_id uuid primary key references members(id) on delete cascade,
+  message text not null check (char_length(message) <= 80),
+  updated_at timestamptz not null default now()
+);
+
 create index members_group_idx on members(group_id);
 create index members_role_idx on members(role);
 create index members_auth_user_idx on members(auth_user_id);
@@ -125,6 +131,7 @@ where status = 'pending';
 create index member_link_requests_target_idx on member_link_requests(target_member_id);
 create index member_link_requests_status_idx on member_link_requests(status);
 create index important_links_display_order_idx on important_links(display_order, created_at);
+create index member_status_messages_updated_at_idx on member_status_messages(updated_at desc);
 
 alter table groups enable row level security;
 alter table members enable row level security;
@@ -135,6 +142,7 @@ alter table member_custom_field_definitions enable row level security;
 alter table care_followups enable row level security;
 alter table member_link_requests enable row level security;
 alter table important_links enable row level security;
+alter table member_status_messages enable row level security;
 
 create or replace function current_member_role()
 returns member_role
@@ -389,3 +397,24 @@ create policy "owners and admins can delete important links"
 on important_links for delete
 to authenticated
 using (current_member_role() in ('owner', 'admin'));
+
+create policy "authenticated users can read member status messages"
+on member_status_messages for select
+to authenticated
+using (true);
+
+create policy "users can create their own member status message"
+on member_status_messages for insert
+to authenticated
+with check (member_id = current_member_id());
+
+create policy "users can update their own member status message"
+on member_status_messages for update
+to authenticated
+using (member_id = current_member_id())
+with check (member_id = current_member_id());
+
+create policy "users can delete their own member status message"
+on member_status_messages for delete
+to authenticated
+using (member_id = current_member_id());

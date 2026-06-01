@@ -22,6 +22,7 @@ const memberEnglishNamesSource = readFileSync(new URL("../db/017_member_english_
 const deletedAuthUserBlocksSource = readFileSync(new URL("../db/018_deleted_auth_user_blocks.sql", import.meta.url), "utf8");
 const deletedAuthRestoreRequestsSource = readFileSync(new URL("../db/019_deleted_auth_restore_requests.sql", import.meta.url), "utf8");
 const importantLinksSource = readFileSync(new URL("../db/021_important_links.sql", import.meta.url), "utf8");
+const memberStatusMessagesSource = readFileSync(new URL("../db/022_member_status_messages.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -471,4 +472,22 @@ test("important links page is backed by audited role-gated data", () => {
   assert.match(actionsSource, /important_link\.delete/);
   assert.match(mobileAwareNavSource, /href: "\/links"/);
   assert.match(globalCssSource, /link-grid/);
+});
+
+test("member status messages are short self-managed dashboard updates", () => {
+  assert.match(schemaSource, /create table member_status_messages/);
+  assert.match(memberStatusMessagesSource, /char_length\(message\) <= 80/);
+  assert.match(memberStatusMessagesSource, /member_id = current_member_id\(\)/);
+  assert.match(dataSource, /export async function getMemberStatusMessages/);
+  assert.match(dataSource, /member_status_messages/);
+  assert.match(appPageDataSource, /memberStatusMessages/);
+  assert.match(actionsSource, /export async function updateMyStatusMessage/);
+  assert.match(actionsSource, /max\(80/);
+  assert.match(homePageSource, /memberStatusMessages=\{readyData\.memberStatusMessages\}/);
+  assert.match(dashboardSource, /MemberStatusBoard/);
+  assert.match(dashboardSource, /오늘의 한마디/);
+  assert.match(memberDetailSource, /MemberStatusComposer/);
+  assert.match(appGateSource, /MemberStatusComposer/);
+  assert.match(globalCssSource, /member-status-board/);
+  assert.match(globalCssSource, /status-composer-panel/);
 });
