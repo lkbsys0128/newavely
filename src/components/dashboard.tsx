@@ -213,13 +213,12 @@ function MemberStatusBoard({ messages }: { messages: MemberStatusMessage[] }) {
       <div className="member-status-list">
         {messages.slice(0, 8).map((message) => (
           <article className="member-status-card" key={message.memberId}>
-            <p>{message.message}</p>
-            <div>
+            <div className="member-status-person">
               <strong>{message.memberName}</strong>
-              <span>
-                {message.groupName} · {formatStatusUpdatedAt(message.updatedAt)}
-              </span>
+              <span>{message.groupName}</span>
             </div>
+            <p>{message.message}</p>
+            <time dateTime={message.updatedAt}>{formatStatusUpdatedAt(message.updatedAt)}</time>
           </article>
         ))}
       </div>
