@@ -116,6 +116,20 @@ create table member_status_messages (
   updated_at timestamptz not null default now()
 );
 
+create table admin_feedback_messages (
+  id uuid primary key default gen_random_uuid(),
+  reporter_member_id uuid not null references members(id) on delete cascade,
+  category text not null default 'other' check (category in ('feature', 'bug', 'question', 'other')),
+  title text not null check (char_length(title) <= 80),
+  message text not null check (char_length(message) <= 1000),
+  status text not null default 'open' check (status in ('open', 'reviewing', 'resolved', 'closed')),
+  admin_note text,
+  resolved_by_member_id uuid references members(id) on delete set null,
+  resolved_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index members_group_idx on members(group_id);
 create index members_role_idx on members(role);
 create index members_auth_user_idx on members(auth_user_id);
@@ -132,6 +146,8 @@ create index member_link_requests_target_idx on member_link_requests(target_memb
 create index member_link_requests_status_idx on member_link_requests(status);
 create index important_links_display_order_idx on important_links(display_order, created_at);
 create index member_status_messages_updated_at_idx on member_status_messages(updated_at desc);
+create index admin_feedback_messages_status_idx on admin_feedback_messages(status, created_at desc);
+create index admin_feedback_messages_reporter_idx on admin_feedback_messages(reporter_member_id, created_at desc);
 
 alter table groups enable row level security;
 alter table members enable row level security;
@@ -143,6 +159,7 @@ alter table care_followups enable row level security;
 alter table member_link_requests enable row level security;
 alter table important_links enable row level security;
 alter table member_status_messages enable row level security;
+alter table admin_feedback_messages enable row level security;
 
 create or replace function current_member_role()
 returns member_role
@@ -420,3 +437,22 @@ create policy "users can delete their own member status message"
 on member_status_messages for delete
 to authenticated
 using (member_id = current_member_id());
+
+create policy "users can read own feedback messages"
+on admin_feedback_messages for select
+to authenticated
+using (
+  reporter_member_id = current_member_id()
+  or current_member_role() in ('owner', 'admin')
+);
+
+create policy "users can create own feedback messages"
+on admin_feedback_messages for insert
+to authenticated
+with check (reporter_member_id = current_member_id());
+
+create policy "owners and admins can update feedback messages"
+on admin_feedback_messages for update
+to authenticated
+using (current_member_role() in ('owner', 'admin'))
+with check (current_member_role() in ('owner', 'admin'));

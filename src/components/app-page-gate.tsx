@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { AuthPanel } from "@/components/auth-panel";
+import { FeedbackPageContent } from "@/components/dashboard";
 import { ErrorPanel } from "@/components/error-panel";
 import { OnboardingPanel } from "@/components/onboarding-panel";
 import { SetupPanel } from "@/components/setup-panel";
@@ -90,6 +91,12 @@ export function AppPageGate({
           </div>
         </section>
         <MemberStatusComposer initialMessage={currentStatusMessage} />
+        <FeedbackPageContent
+          user={data.user}
+          members={data.members}
+          groups={data.groups}
+          adminFeedbackMessages={data.adminFeedbackMessages}
+        />
       </main>
     );
   }
@@ -106,12 +113,20 @@ function AdminNotificationBar({ data }: { data: ReadyAppPageData }) {
   if (!hasPermission(data.user.role, "roles:manage")) return null;
 
   const pendingLinkRequests = data.memberLinkRequests.filter(isActionableLinkRequest);
-  if (pendingLinkRequests.length === 0) return null;
+  const activeFeedbackMessages = data.adminFeedbackMessages.filter(
+    (message) => message.status === "open" || message.status === "reviewing",
+  );
+  if (pendingLinkRequests.length === 0 && activeFeedbackMessages.length === 0) return null;
 
   return (
     <details className="notification-bar">
       <summary>
-        <span>{pendingLinkRequests.length}개의 교적 연결 요청이 대기 중입니다</span>
+        <span>
+          {pendingLinkRequests.length > 0 ? `${pendingLinkRequests.length}개의 교적 연결 요청` : ""}
+          {pendingLinkRequests.length > 0 && activeFeedbackMessages.length > 0 ? " · " : ""}
+          {activeFeedbackMessages.length > 0 ? `${activeFeedbackMessages.length}개의 피드백` : ""}
+          이 확인을 기다립니다
+        </span>
         <strong>확인</strong>
       </summary>
       <div className="notification-list">
@@ -123,9 +138,24 @@ function AdminNotificationBar({ data }: { data: ReadyAppPageData }) {
             </span>
           </article>
         ))}
-        <Link className="secondary-button" href="/permissions#link-requests">
-          요청 관리로 이동
-        </Link>
+        {pendingLinkRequests.length > 0 ? (
+          <Link className="secondary-button" href="/permissions#link-requests">
+            요청 관리로 이동
+          </Link>
+        ) : null}
+        {activeFeedbackMessages.slice(0, 5).map((message) => (
+          <article className="notification-item" key={message.id}>
+            <strong>{message.title}</strong>
+            <span>
+              {message.reporterName} · {message.status === "open" ? "접수" : "검토 중"}
+            </span>
+          </article>
+        ))}
+        {activeFeedbackMessages.length > 0 ? (
+          <Link className="secondary-button" href="/feedback#feedback-list">
+            피드백 접수함으로 이동
+          </Link>
+        ) : null}
       </div>
     </details>
   );

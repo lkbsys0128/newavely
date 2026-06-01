@@ -89,6 +89,18 @@ const memberStatusMessageSchema = z.object({
   message: z.string().trim().max(80, "한마디는 80자 이내로 적어주세요."),
 });
 
+const adminFeedbackSchema = z.object({
+  category: z.enum(["feature", "bug", "question", "other"]),
+  title: z.string().trim().min(2, "제목을 2자 이상 입력해주세요.").max(80, "제목은 80자 이내로 적어주세요."),
+  message: z.string().trim().min(5, "내용을 5자 이상 입력해주세요.").max(1000, "내용은 1000자 이내로 적어주세요."),
+});
+
+const updateAdminFeedbackSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["open", "reviewing", "resolved", "closed"]),
+  adminNote: nullableText,
+});
+
 const createMemberLinkRequestSchema = z.object({
   targetMemberId: nullableUuid,
   note: nullableText,
@@ -309,6 +321,7 @@ function revalidateAppData() {
   revalidatePath("/groups");
   revalidatePath("/attendance");
   revalidatePath("/links");
+  revalidatePath("/feedback");
   revalidatePath("/permissions");
   revalidatePath("/audit");
 }
@@ -1763,6 +1776,94 @@ export async function updateMyStatusMessage(_previousState: ActionState, formDat
     if (error) throw error;
     revalidateAppData();
     return "오늘의 한마디를 저장했습니다.";
+  });
+}
+
+export async function createAdminFeedbackMessage(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("로그인이 필요합니다.");
+
+    const currentMember = await getOrCreateCurrentMember(supabase, {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.full_name,
+    });
+    const parsed = adminFeedbackSchema.parse({
+      category: formData.get("category"),
+      title: formData.get("title"),
+      message: formData.get("message"),
+    });
+
+    const { data: inserted, error } = await supabase
+      .from("admin_feedback_messages")
+      .insert({
+        reporter_member_id: currentMember.id,
+        category: parsed.category,
+        title: parsed.title,
+        message: parsed.message,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "admin_feedback.create",
+      targetTable: "admin_feedback_messages",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "관리자에게 메시지를 보냈습니다.";
+  });
+}
+
+export async function updateAdminFeedbackMessage(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = updateAdminFeedbackSchema.parse({
+      id: formData.get("id"),
+      status: formData.get("status"),
+      adminNote: formData.get("adminNote"),
+    });
+    const resolvedAt = parsed.status === "resolved" || parsed.status === "closed" ? new Date().toISOString() : null;
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("admin_feedback_messages")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+    if (beforeError) throw beforeError;
+
+    const { data: updated, error } = await supabase
+      .from("admin_feedback_messages")
+      .update({
+        status: parsed.status,
+        admin_note: parsed.adminNote,
+        updated_at: new Date().toISOString(),
+        resolved_at: resolvedAt,
+        resolved_by_member_id: resolvedAt ? currentMember.id : null,
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "admin_feedback.update",
+      targetTable: "admin_feedback_messages",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: updated as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "피드백 상태를 업데이트했습니다.";
   });
 }
 

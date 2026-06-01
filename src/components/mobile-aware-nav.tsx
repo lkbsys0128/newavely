@@ -10,6 +10,7 @@ const navItems = [
   { href: "/groups", label: "순" },
   { href: "/attendance", label: "출석" },
   { href: "/links", label: "링크" },
+  { href: "/feedback", label: "피드백" },
   { href: "/permissions", label: "권한" },
   { href: "/audit", label: "감사 로그" },
 ];

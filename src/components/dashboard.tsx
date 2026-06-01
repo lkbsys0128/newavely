@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   createAttendanceEvent,
+  createAdminFeedbackMessage,
   createGroup,
   createImportantLink,
   createMember,
@@ -21,6 +22,7 @@ import {
   restoreDeletedAuthUser,
   toggleAttendance,
   updateAttendanceReason,
+  updateAdminFeedbackMessage,
   updateGroup,
   updateMember,
   updateMemberRole,
@@ -36,6 +38,7 @@ import type {
   Group,
   ImportantLink,
   Member,
+  AdminFeedbackMessage,
   MemberLinkRequest,
   MemberStatusMessage,
 } from "@/lib/types";
@@ -68,6 +71,7 @@ type AppDataProps = {
   deletedAuthUsers?: DeletedAuthUser[];
   importantLinks?: ImportantLink[];
   memberStatusMessages?: MemberStatusMessage[];
+  adminFeedbackMessages?: AdminFeedbackMessage[];
   dashboardMetrics?: DashboardMetrics;
   globalStats?: GlobalAppStats;
 };
@@ -1577,6 +1581,148 @@ export function LinksPageContent({ user, importantLinks = [] }: AppDataProps) {
           <ActionMessage state={createLinkState} />
         </section>
       ) : null}
+    </>
+  );
+}
+
+const feedbackCategoryLabels: Record<AdminFeedbackMessage["category"], string> = {
+  feature: "기능 제안",
+  bug: "버그 제보",
+  question: "문의",
+  other: "기타",
+};
+
+const feedbackStatusLabels: Record<AdminFeedbackMessage["status"], string> = {
+  open: "접수",
+  reviewing: "검토 중",
+  resolved: "완료",
+  closed: "보류",
+};
+
+export function FeedbackPageContent({ user, adminFeedbackMessages = [] }: AppDataProps) {
+  const canManageFeedback = hasPermission(user.role, "roles:manage");
+  const [createFeedbackState, createFeedbackAction, isCreatingFeedback] = useActionState(
+    createAdminFeedbackMessage,
+    initialActionState,
+  );
+  const [updateFeedbackState, updateFeedbackAction, isUpdatingFeedback] = useActionState(
+    updateAdminFeedbackMessage,
+    initialActionState,
+  );
+  const openCount = adminFeedbackMessages.filter((message) => message.status === "open").length;
+  const reviewingCount = adminFeedbackMessages.filter((message) => message.status === "reviewing").length;
+
+  return (
+    <>
+      <PageHeader eyebrow="운영 피드백" title="피드백" user={user}>
+        <span className="status-pill">{canManageFeedback ? `${openCount + reviewingCount}건 진행 중` : "관리자에게 전달"}</span>
+      </PageHeader>
+      <SectionNav
+        items={[
+          { href: "#feedback-create", label: "메시지 보내기" },
+          { href: "#feedback-list", label: canManageFeedback ? "접수함" : "내 요청" },
+        ]}
+      />
+
+      <section className="feedback-hero panel" id="feedback-create">
+        <div>
+          <p className="eyebrow">Newavely Inbox</p>
+          <h2>기능 제안이나 버그를 관리자에게 알려주세요</h2>
+          <p className="meta">짧게 남겨도 괜찮습니다. 운영자가 확인하고 상태를 업데이트합니다.</p>
+        </div>
+      </section>
+
+      <section className="panel form-panel feedback-compose-panel">
+        <form action={createFeedbackAction} className="member-form feedback-form">
+          <label>
+            종류
+            <select name="category" defaultValue="feature">
+              <option value="feature">기능 제안</option>
+              <option value="bug">버그 제보</option>
+              <option value="question">문의</option>
+              <option value="other">기타</option>
+            </select>
+          </label>
+          <label>
+            제목
+            <input name="title" placeholder="예: 출석 화면에서 순 필터가 있으면 좋겠어요" required />
+          </label>
+          <label className="full-width">
+            내용
+            <textarea
+              name="message"
+              placeholder="어떤 상황에서 필요하거나 문제가 생겼는지 적어주세요."
+              required
+              rows={4}
+            />
+          </label>
+          <div className="form-actions full-width">
+            <button className="primary-button" type="submit" disabled={isCreatingFeedback}>
+              {isCreatingFeedback ? "보내는 중" : "관리자에게 보내기"}
+            </button>
+          </div>
+        </form>
+        <ActionMessage state={createFeedbackState} />
+      </section>
+
+      <section className="panel feedback-inbox-panel" id="feedback-list">
+        <div className="panel-heading">
+          <div>
+            <h2>{canManageFeedback ? "피드백 접수함" : "내가 보낸 메시지"}</h2>
+            <p className="meta">
+              {canManageFeedback ? "관리자가 접수된 제안과 문제를 확인하고 처리 상태를 남깁니다." : "내가 보낸 요청의 처리 상태를 확인할 수 있습니다."}
+            </p>
+          </div>
+          <span className="status-pill">{adminFeedbackMessages.length}건</span>
+        </div>
+
+        <div className="feedback-list">
+          {adminFeedbackMessages.map((message) => (
+            <article className="feedback-item" key={message.id}>
+              <div className="feedback-item-main">
+                <div className="feedback-item-kicker">
+                  <span className={`feedback-category ${message.category}`}>{feedbackCategoryLabels[message.category]}</span>
+                  <span className={`feedback-status ${message.status}`}>{feedbackStatusLabels[message.status]}</span>
+                </div>
+                <h3>{message.title}</h3>
+                <p>{message.message}</p>
+                <span className="meta">
+                  {message.reporterName} · {message.reporterGroupName} · {formatStatusUpdatedAt(message.createdAt)}
+                </span>
+                {message.adminNote ? <p className="feedback-admin-note">관리자 메모: {message.adminNote}</p> : null}
+              </div>
+              {canManageFeedback ? (
+                <form action={updateFeedbackAction} className="feedback-admin-form">
+                  <input name="id" type="hidden" value={message.id} />
+                  <label>
+                    상태
+                    <select name="status" defaultValue={message.status}>
+                      <option value="open">접수</option>
+                      <option value="reviewing">검토 중</option>
+                      <option value="resolved">완료</option>
+                      <option value="closed">보류</option>
+                    </select>
+                  </label>
+                  <label>
+                    관리자 메모
+                    <input name="adminNote" placeholder="처리 메모" defaultValue={message.adminNote} />
+                  </label>
+                  <button className="secondary-button" type="submit" disabled={isUpdatingFeedback}>
+                    업데이트
+                  </button>
+                </form>
+              ) : null}
+            </article>
+          ))}
+          {adminFeedbackMessages.length === 0 ? (
+            <article className="empty-state">
+              <strong>{canManageFeedback ? "접수된 피드백이 없습니다" : "아직 보낸 메시지가 없습니다"}</strong>
+              <span>필요한 기능이나 불편한 점이 생기면 위에서 바로 남겨주세요.</span>
+            </article>
+          ) : null}
+        </div>
+        <ActionMessage state={updateFeedbackState} />
+      </section>
     </>
   );
 }
