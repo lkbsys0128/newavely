@@ -98,6 +98,18 @@ create table member_link_requests (
   constraint member_link_requests_distinct_members check (target_member_id is null or requester_member_id <> target_member_id)
 );
 
+create table important_links (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  url text not null unique,
+  icon_key text not null default 'default' check (icon_key in ('website', 'links', 'youtube', 'instagram', 'default')),
+  display_order integer not null default 100,
+  created_by_member_id uuid references members(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index members_group_idx on members(group_id);
 create index members_role_idx on members(role);
 create index members_auth_user_idx on members(auth_user_id);
@@ -112,6 +124,7 @@ on member_link_requests(requester_member_id)
 where status = 'pending';
 create index member_link_requests_target_idx on member_link_requests(target_member_id);
 create index member_link_requests_status_idx on member_link_requests(status);
+create index important_links_display_order_idx on important_links(display_order, created_at);
 
 alter table groups enable row level security;
 alter table members enable row level security;
@@ -121,6 +134,7 @@ alter table attendance_records enable row level security;
 alter table member_custom_field_definitions enable row level security;
 alter table care_followups enable row level security;
 alter table member_link_requests enable row level security;
+alter table important_links enable row level security;
 
 create or replace function current_member_role()
 returns member_role
@@ -360,3 +374,18 @@ on member_link_requests for update
 to authenticated
 using (current_member_role() in ('owner', 'admin'))
 with check (current_member_role() in ('owner', 'admin'));
+
+create policy "authenticated users can read important links"
+on important_links for select
+to authenticated
+using (true);
+
+create policy "soonjang and above can create important links"
+on important_links for insert
+to authenticated
+with check (current_member_role() in ('owner', 'admin', 'leader', 'staff'));
+
+create policy "owners and admins can delete important links"
+on important_links for delete
+to authenticated
+using (current_member_role() in ('owner', 'admin'));

@@ -1,5 +1,14 @@
 import { hasPermission, type Role } from "@/lib/rbac";
-import type { AttendanceEvent, AuditLog, CustomFieldDefinition, DeletedAuthUser, Group, Member, MemberLinkRequest } from "@/lib/types";
+import type {
+  AttendanceEvent,
+  AuditLog,
+  CustomFieldDefinition,
+  DeletedAuthUser,
+  Group,
+  ImportantLink,
+  Member,
+  MemberLinkRequest,
+} from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { scopeMembersForRole } from "@/lib/member-visibility";
 import { isMergedPlaceholderMember } from "@/lib/member-filters";
@@ -12,6 +21,7 @@ import {
   getCustomFieldDefinitions,
   getDashboardData,
   getDeletedAuthUsers,
+  getImportantLinks,
   getMemberLinkRequests,
   getOrCreateCurrentMember,
 } from "@/lib/supabase/data";
@@ -35,6 +45,7 @@ export type ReadyAppPageData = {
   memberLinkRequests: MemberLinkRequest[];
   auditLogs?: AuditLog[];
   deletedAuthUsers: DeletedAuthUser[];
+  importantLinks: ImportantLink[];
   customFieldDefinitions: CustomFieldDefinition[];
   dashboardMetrics: DashboardMetrics;
   globalStats: GlobalAppStats;
@@ -562,6 +573,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       : allCustomFieldDefinitions.filter((field) => !field.isSensitive);
     const auditLogs = hasPermission(currentMember.role, "roles:manage") ? await getAuditLogs(supabase) : undefined;
     const deletedAuthUsers = hasPermission(currentMember.role, "roles:manage") ? await getDeletedAuthUsers(supabase) : [];
+    const importantLinks = hasPermission(currentMember.role, "links:read") ? await getImportantLinks(supabase) : [];
     const memberLinkRequests = await getMemberLinkRequests(
       supabase,
       currentMember.id,
@@ -592,6 +604,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       memberLinkRequests,
       auditLogs,
       deletedAuthUsers,
+      importantLinks,
       customFieldDefinitions,
       dashboardMetrics: globalStats.dashboardMetrics,
       globalStats,

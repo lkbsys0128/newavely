@@ -16,3 +16,11 @@ test("owner sits above admin for privileged operations", () => {
   assert(permissionsByRole.admin.includes("roles:manage"));
   assert.equal(permissionsByRole.admin.includes("owner:manage"), false);
 });
+
+test("important links can be added by soonjang and deleted by admins", () => {
+  assert(permissionsByRole.staff.includes("links:write"));
+  assert(permissionsByRole.leader.includes("links:write"));
+  assert(permissionsByRole.admin.includes("links:write"));
+  assert(permissionsByRole.member.includes("links:read"));
+  assert.equal(permissionsByRole.member.includes("links:write"), false);
+});

@@ -6,6 +6,7 @@ import type {
   CustomFieldDefinition,
   DeletedAuthUser,
   Group,
+  ImportantLink,
   Member,
   MemberLinkRequest,
 } from "@/lib/types";
@@ -82,6 +83,16 @@ type DbAuditLog = {
   metadata: Record<string, unknown> | null;
   created_at: string;
   actor?: { name: string | null } | Array<{ name: string | null }> | null;
+};
+
+type DbImportantLink = {
+  id: string;
+  title: string;
+  description: string | null;
+  url: string;
+  icon_key: ImportantLink["iconKey"] | null;
+  created_at: string;
+  creator?: { name: string | null } | Array<{ name: string | null }> | null;
 };
 
 type DbMemberLinkRequest = {
@@ -431,6 +442,32 @@ export async function getAuditLogs(supabase: SupabaseClient) {
       afterData: log.after_data,
       metadata: log.metadata ?? {},
       createdAt: log.created_at,
+    };
+  });
+}
+
+export async function getImportantLinks(supabase: SupabaseClient): Promise<ImportantLink[]> {
+  const { data, error } = await supabase
+    .from("important_links")
+    .select("id, title, description, url, icon_key, created_at, creator:members!important_links_created_by_member_id_fkey(name)")
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  return ((data ?? []) as unknown as DbImportantLink[]).map((link) => {
+    const creator = Array.isArray(link.creator) ? link.creator[0] : link.creator;
+    return {
+      id: link.id,
+      title: link.title,
+      description: link.description ?? "",
+      url: link.url,
+      iconKey: link.icon_key ?? "default",
+      createdByName: creator?.name ?? "알 수 없음",
+      createdAt: link.created_at,
     };
   });
 }

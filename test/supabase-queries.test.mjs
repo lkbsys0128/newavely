@@ -21,6 +21,7 @@ const attendanceImportNotesCleanupSource = readFileSync(
 const memberEnglishNamesSource = readFileSync(new URL("../db/017_member_english_names.sql", import.meta.url), "utf8");
 const deletedAuthUserBlocksSource = readFileSync(new URL("../db/018_deleted_auth_user_blocks.sql", import.meta.url), "utf8");
 const deletedAuthRestoreRequestsSource = readFileSync(new URL("../db/019_deleted_auth_restore_requests.sql", import.meta.url), "utf8");
+const importantLinksSource = readFileSync(new URL("../db/021_important_links.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -450,4 +451,24 @@ test("member English names are stored separately and displayed consistently", ()
   assert.match(actionsSource, /splitCompositeMemberName/);
   assert.match(dashboardSource, /name="englishName"/);
   assert.match(memberDetailSource, /name="englishName"/);
+});
+
+test("important links page is backed by audited role-gated data", () => {
+  assert.match(schemaSource, /create table important_links/);
+  assert.match(dataSource, /important_links_created_by_member_id_fkey/);
+  assert.match(importantLinksSource, /https:\/\/www\.ccsnewave\.org\//);
+  assert.match(importantLinksSource, /https:\/\/linktr\.ee\/ccsnewave/);
+  assert.match(importantLinksSource, /https:\/\/www\.youtube\.com\/@ccsnewave/);
+  assert.match(importantLinksSource, /https:\/\/www\.instagram\.com\/ccsnewave\//);
+  assert.match(importantLinksSource, /current_member_role\(\) in \('owner', 'admin', 'leader', 'staff'\)/);
+  assert.match(importantLinksSource, /current_member_role\(\) in \('owner', 'admin'\)/);
+  assert.match(dataSource, /export async function getImportantLinks/);
+  assert.match(appPageDataSource, /importantLinks/);
+  assert.match(dashboardSource, /export function LinksPageContent/);
+  assert.match(dashboardSource, /createImportantLink/);
+  assert.match(dashboardSource, /deleteImportantLink/);
+  assert.match(actionsSource, /important_link\.create/);
+  assert.match(actionsSource, /important_link\.delete/);
+  assert.match(mobileAwareNavSource, /href: "\/links"/);
+  assert.match(globalCssSource, /link-grid/);
 });

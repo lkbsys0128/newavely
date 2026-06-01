@@ -75,6 +75,16 @@ const requestDeletedAuthUserRestoreSchema = z.object({
   note: nullableText,
 });
 
+const importantLinkSchema = z.object({
+  title: z.string().trim().min(1, "링크 이름을 입력해주세요."),
+  description: nullableText,
+  url: z.string().trim().url("올바른 URL을 입력해주세요."),
+});
+
+const deleteImportantLinkSchema = z.object({
+  id: z.string().uuid(),
+});
+
 const createMemberLinkRequestSchema = z.object({
   targetMemberId: nullableUuid,
   note: nullableText,
@@ -224,7 +234,14 @@ async function runAction(
 }
 
 async function getAuthorizedCurrentMember(
-  permission: "members:read" | "members:write" | "groups:write" | "attendance:write" | "roles:manage" | "owner:manage",
+  permission:
+    | "members:read"
+    | "members:write"
+    | "groups:write"
+    | "attendance:write"
+    | "roles:manage"
+    | "owner:manage"
+    | "links:write",
 ) {
   const supabase = await createClient();
   const {
@@ -287,6 +304,7 @@ function revalidateAppData() {
   revalidatePath("/members");
   revalidatePath("/groups");
   revalidatePath("/attendance");
+  revalidatePath("/links");
   revalidatePath("/permissions");
   revalidatePath("/audit");
 }
@@ -1631,6 +1649,76 @@ export async function requestDeletedAuthUserRestore(_previousState: ActionState,
 
     revalidatePath("/");
     return "복구 요청을 보냈습니다. Newavely 운영 관리자가 확인 후 계정을 다시 활성화해드립니다.";
+  });
+}
+
+function inferImportantLinkIconKey(url: string) {
+  const hostname = new URL(url).hostname.replace(/^www\./, "");
+  if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) return "youtube";
+  if (hostname.includes("instagram.com")) return "instagram";
+  if (hostname.includes("linktr.ee")) return "links";
+  if (hostname.includes("ccsnewave.org")) return "website";
+  return "default";
+}
+
+export async function createImportantLink(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("links:write");
+    const parsed = importantLinkSchema.parse({
+      title: formData.get("title"),
+      description: formData.get("description"),
+      url: formData.get("url"),
+    });
+
+    const { data: inserted, error } = await supabase
+      .from("important_links")
+      .insert({
+        title: parsed.title,
+        description: parsed.description,
+        url: parsed.url,
+        icon_key: inferImportantLinkIconKey(parsed.url),
+        created_by_member_id: currentMember.id,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "important_link.create",
+      targetTable: "important_links",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "링크를 추가했습니다.";
+  });
+}
+
+export async function deleteImportantLink(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("links:write");
+    if (!["owner", "admin"].includes(currentMember.role)) {
+      throw new Error("관리자 이상만 링크를 삭제할 수 있습니다.");
+    }
+    const parsed = deleteImportantLinkSchema.parse({
+      id: formData.get("id"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase.from("important_links").select("*").eq("id", parsed.id).single();
+    if (beforeError) throw beforeError;
+
+    const { error } = await supabase.from("important_links").delete().eq("id", parsed.id);
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "important_link.delete",
+      targetTable: "important_links",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "링크를 삭제했습니다.";
   });
 }
 
