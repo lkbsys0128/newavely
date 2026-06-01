@@ -38,6 +38,7 @@ export default async function ProfilePage() {
             members={readyData.members}
             customFieldDefinitions={readyData.customFieldDefinitions}
             memberLinkRequests={readyData.memberLinkRequests}
+            memberStatusMessages={readyData.memberStatusMessages}
             eyebrow="내 프로필"
             backHref="/"
             backLabel="대시보드"

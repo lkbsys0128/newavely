@@ -29,7 +29,16 @@ import {
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import { canDeleteMemberRole, canUseDeleteActions } from "@/lib/role-policy";
 import type { AppUser, DashboardMetrics, GlobalAppStats } from "@/lib/app-page-data";
-import type { AttendanceEvent, AuditLog, DeletedAuthUser, Group, ImportantLink, Member, MemberLinkRequest } from "@/lib/types";
+import type {
+  AttendanceEvent,
+  AuditLog,
+  DeletedAuthUser,
+  Group,
+  ImportantLink,
+  Member,
+  MemberLinkRequest,
+  MemberStatusMessage,
+} from "@/lib/types";
 import {
   defaultMemberFilters,
   filterMembers,
@@ -58,6 +67,7 @@ type AppDataProps = {
   memberLinkRequests?: MemberLinkRequest[];
   deletedAuthUsers?: DeletedAuthUser[];
   importantLinks?: ImportantLink[];
+  memberStatusMessages?: MemberStatusMessage[];
   dashboardMetrics?: DashboardMetrics;
   globalStats?: GlobalAppStats;
 };
@@ -83,7 +93,15 @@ function getHostname(url: string) {
   }
 }
 
-export function DashboardOverview({ user, members, groups, attendanceEvents = [], dashboardMetrics, globalStats }: AppDataProps) {
+export function DashboardOverview({
+  user,
+  members,
+  groups,
+  attendanceEvents = [],
+  memberStatusMessages = [],
+  dashboardMetrics,
+  globalStats,
+}: AppDataProps) {
   const dashboardMembers = members.filter((member) => !isMergedPlaceholderMember(member));
   const activeMembers = dashboardMembers.filter((member) => member.status !== "inactive");
   const localPresentCount = activeMembers.filter((member) => member.present).length;
@@ -107,6 +125,7 @@ export function DashboardOverview({ user, members, groups, attendanceEvents = []
       <SectionNav
         items={[
           { href: "#overview-metrics", label: "요약" },
+          { href: "#member-status-board", label: "한마디" },
           { href: "#statistics-summary", label: "통계" },
           { href: "#birthday-overview", label: "생일" },
           { href: "#group-roster", label: "순 배정표" },
@@ -116,6 +135,8 @@ export function DashboardOverview({ user, members, groups, attendanceEvents = []
           { href: "#group-summary", label: "순 현황" },
         ]}
       />
+
+      <MemberStatusBoard messages={memberStatusMessages} />
 
       <div className="metric-grid" id="overview-metrics">
         <article className="metric-card">
@@ -161,6 +182,60 @@ export function DashboardOverview({ user, members, groups, attendanceEvents = []
       </div>
     </>
   );
+}
+
+function MemberStatusBoard({ messages }: { messages: MemberStatusMessage[] }) {
+  if (messages.length === 0) {
+    return (
+      <section className="member-status-board empty" id="member-status-board">
+        <div>
+          <p className="eyebrow">오늘의 한마디</p>
+          <h2>아직 올라온 한마디가 없습니다</h2>
+        </div>
+        <Link className="secondary-button" href="/profile#today-message">
+          내 한마디 쓰기
+        </Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="member-status-board" id="member-status-board" aria-label="멤버 오늘의 한마디">
+      <div className="member-status-board-heading">
+        <div>
+          <p className="eyebrow">오늘의 한마디</p>
+          <h2>최근 업데이트</h2>
+        </div>
+        <Link className="secondary-button" href="/profile#today-message">
+          내 한마디 수정
+        </Link>
+      </div>
+      <div className="member-status-list">
+        {messages.slice(0, 8).map((message) => (
+          <article className="member-status-card" key={message.memberId}>
+            <p>{message.message}</p>
+            <div>
+              <strong>{message.memberName}</strong>
+              <span>
+                {message.groupName} · {formatStatusUpdatedAt(message.updatedAt)}
+              </span>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function formatStatusUpdatedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "방금";
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }
 
 type InsightMember = {

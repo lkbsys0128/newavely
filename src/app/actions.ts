@@ -85,6 +85,10 @@ const deleteImportantLinkSchema = z.object({
   id: z.string().uuid(),
 });
 
+const memberStatusMessageSchema = z.object({
+  message: z.string().trim().max(80, "한마디는 80자 이내로 적어주세요."),
+});
+
 const createMemberLinkRequestSchema = z.object({
   targetMemberId: nullableUuid,
   note: nullableText,
@@ -1719,6 +1723,46 @@ export async function deleteImportantLink(_previousState: ActionState, formData:
     });
     revalidateAppData();
     return "링크를 삭제했습니다.";
+  });
+}
+
+export async function updateMyStatusMessage(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("로그인이 필요합니다.");
+
+    const currentMember = await getOrCreateCurrentMember(supabase, {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.full_name,
+    });
+    const parsed = memberStatusMessageSchema.parse({
+      message: formData.get("message"),
+    });
+
+    if (!parsed.message) {
+      const { error } = await supabase.from("member_status_messages").delete().eq("member_id", currentMember.id);
+      if (error) throw error;
+      revalidateAppData();
+      return "한마디를 비웠습니다.";
+    }
+
+    const { error } = await supabase.from("member_status_messages").upsert(
+      {
+        member_id: currentMember.id,
+        message: parsed.message,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "member_id" },
+    );
+
+    if (error) throw error;
+    revalidateAppData();
+    return "오늘의 한마디를 저장했습니다.";
   });
 }
 

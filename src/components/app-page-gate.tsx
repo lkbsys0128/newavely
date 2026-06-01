@@ -4,6 +4,7 @@ import { AuthPanel } from "@/components/auth-panel";
 import { ErrorPanel } from "@/components/error-panel";
 import { OnboardingPanel } from "@/components/onboarding-panel";
 import { SetupPanel } from "@/components/setup-panel";
+import { MemberStatusComposer } from "@/components/member-status-composer";
 import type { AppPageData, ReadyAppPageData } from "@/lib/app-page-data";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import { hasPermission } from "@/lib/rbac";
@@ -60,6 +61,7 @@ export function AppPageGate({
 
   if (data.user.role === "member") {
     const member = data.members.find((item) => item.authUserId === data.user.id) ?? data.members.find((item) => item.email === data.user.email);
+    const currentStatusMessage = member ? data.memberStatusMessages.find((message) => message.memberId === member.id)?.message ?? "" : "";
 
     return (
       <main className="main-content">
@@ -87,6 +89,7 @@ export function AppPageGate({
             </div>
           </div>
         </section>
+        <MemberStatusComposer initialMessage={currentStatusMessage} />
       </main>
     );
   }

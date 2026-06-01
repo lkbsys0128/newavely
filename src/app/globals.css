@@ -1030,6 +1030,104 @@ h3 {
   background: rgba(255, 255, 255, 0.96);
 }
 
+.member-status-board {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(47, 145, 181, 0.22);
+  border-radius: 8px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(47, 145, 181, 0.11), rgba(255, 255, 255, 0.9) 52%),
+    #ffffff;
+  box-shadow: var(--shadow);
+}
+
+.member-status-board.empty {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.member-status-board-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.member-status-board h2 {
+  margin-top: 4px;
+  font-size: 1.15rem;
+}
+
+.member-status-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.member-status-card {
+  display: grid;
+  gap: 12px;
+  min-height: 118px;
+  border: 1px solid rgba(47, 145, 181, 0.18);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.member-status-card p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.98rem;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.member-status-card div {
+  display: grid;
+  gap: 2px;
+  align-self: end;
+}
+
+.member-status-card span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.status-composer-panel {
+  margin-bottom: 16px;
+  background:
+    linear-gradient(180deg, rgba(47, 145, 181, 0.055), transparent 80px),
+    #ffffff;
+}
+
+.status-composer-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.status-composer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-counter {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.status-counter.over {
+  color: var(--danger);
+}
+
 .link-hero {
   display: flex;
   align-items: center;
@@ -3386,6 +3484,7 @@ tbody tr:hover {
 
   .topbar,
   .topbar-actions,
+  .member-status-board-heading,
   .panel-heading,
   .attendance-check-header,
   .onboarding-hero {
@@ -3478,6 +3577,7 @@ tbody tr:hover {
   }
 
   .nav-list,
+  .member-status-board.empty,
   .metric-grid,
   .statistics-layout,
   .statistics-chart-grid,
@@ -3517,6 +3617,15 @@ tbody tr:hover {
 
   .group-attendance-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .status-composer-form {
+    grid-template-columns: 1fr;
+  }
+
+  .status-composer-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .permission-row,
