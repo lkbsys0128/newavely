@@ -24,20 +24,17 @@ drop policy if exists "users can read own feedback messages" on admin_feedback_m
 create policy "users can read own feedback messages"
 on admin_feedback_messages for select
 to authenticated
-using (
-  reporter_member_id = current_member_id()
-  or current_member_role() in ('owner', 'admin')
-);
+using (reporter_member_id = public.current_member_id() or public.current_member_role() in ('owner', 'admin'));
 
 drop policy if exists "users can create own feedback messages" on admin_feedback_messages;
 create policy "users can create own feedback messages"
 on admin_feedback_messages for insert
 to authenticated
-with check (reporter_member_id = current_member_id());
+with check (reporter_member_id = public.current_member_id());
 
 drop policy if exists "owners and admins can update feedback messages" on admin_feedback_messages;
 create policy "owners and admins can update feedback messages"
 on admin_feedback_messages for update
 to authenticated
-using (current_member_role() in ('owner', 'admin'))
-with check (current_member_role() in ('owner', 'admin'));
+using (public.current_member_role() in ('owner', 'admin'))
+with check (public.current_member_role() in ('owner', 'admin'));
