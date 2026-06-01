@@ -116,3 +116,18 @@ export type MemberStatusMessage = {
   message: string;
   updatedAt: string;
 };
+
+export type AdminFeedbackMessage = {
+  id: string;
+  reporterMemberId: string;
+  reporterName: string;
+  reporterGroupName: string;
+  category: "feature" | "bug" | "question" | "other";
+  title: string;
+  message: string;
+  status: "open" | "reviewing" | "resolved" | "closed";
+  adminNote: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+};

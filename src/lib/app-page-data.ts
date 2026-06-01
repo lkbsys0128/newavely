@@ -1,5 +1,6 @@
 import { hasPermission, type Role } from "@/lib/rbac";
 import type {
+  AdminFeedbackMessage,
   AttendanceEvent,
   AuditLog,
   CustomFieldDefinition,
@@ -19,6 +20,7 @@ import {
   ensureAttendanceEvent,
   formatSupabaseError,
   getAuditLogs,
+  getAdminFeedbackMessages,
   getCustomFieldDefinitions,
   getDashboardData,
   getDeletedAuthUsers,
@@ -49,6 +51,7 @@ export type ReadyAppPageData = {
   deletedAuthUsers: DeletedAuthUser[];
   importantLinks: ImportantLink[];
   memberStatusMessages: MemberStatusMessage[];
+  adminFeedbackMessages: AdminFeedbackMessage[];
   customFieldDefinitions: CustomFieldDefinition[];
   dashboardMetrics: DashboardMetrics;
   globalStats: GlobalAppStats;
@@ -578,6 +581,11 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
     const deletedAuthUsers = hasPermission(currentMember.role, "roles:manage") ? await getDeletedAuthUsers(supabase) : [];
     const importantLinks = hasPermission(currentMember.role, "links:read") ? await getImportantLinks(supabase) : [];
     const memberStatusMessages = await getMemberStatusMessages(supabase);
+    const adminFeedbackMessages = await getAdminFeedbackMessages(
+      supabase,
+      currentMember.id,
+      hasPermission(currentMember.role, "roles:manage"),
+    );
     const memberLinkRequests = await getMemberLinkRequests(
       supabase,
       currentMember.id,
@@ -610,6 +618,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       deletedAuthUsers,
       importantLinks,
       memberStatusMessages,
+      adminFeedbackMessages,
       customFieldDefinitions,
       dashboardMetrics: globalStats.dashboardMetrics,
       globalStats,

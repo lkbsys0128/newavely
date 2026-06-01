@@ -1,5 +1,6 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
 import type {
+  AdminFeedbackMessage,
   AttendanceEvent,
   AuditLog,
   CareFollowup,
@@ -105,6 +106,31 @@ type DbMemberStatusMessage = {
     custom_fields: Record<string, unknown> | null;
     groups?: { name: string | null } | Array<{ name: string | null }> | null;
   }> | null;
+};
+
+type DbAdminFeedbackMessage = {
+  id: string;
+  reporter_member_id: string;
+  category: AdminFeedbackMessage["category"];
+  title: string;
+  message: string;
+  status: AdminFeedbackMessage["status"];
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+  resolved_at: string | null;
+  reporter?:
+    | {
+        name: string | null;
+        custom_fields: Record<string, unknown> | null;
+        groups?: { name: string | null } | Array<{ name: string | null }> | null;
+      }
+    | Array<{
+        name: string | null;
+        custom_fields: Record<string, unknown> | null;
+        groups?: { name: string | null } | Array<{ name: string | null }> | null;
+      }>
+    | null;
 };
 
 type DbMemberLinkRequest = {
@@ -508,6 +534,54 @@ export async function getMemberStatusMessages(supabase: SupabaseClient): Promise
       groupName: group?.name ?? "미배정",
       message: status.message,
       updatedAt: status.updated_at,
+    };
+  });
+}
+
+export async function getAdminFeedbackMessages(
+  supabase: SupabaseClient,
+  currentMemberId: string,
+  includeAll: boolean,
+): Promise<AdminFeedbackMessage[]> {
+  let query = supabase
+    .from("admin_feedback_messages")
+    .select(
+      "id, reporter_member_id, category, title, message, status, admin_note, created_at, updated_at, resolved_at, reporter:members!admin_feedback_messages_reporter_member_id_fkey(name, custom_fields, groups!members_group_id_fkey(name))",
+    )
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (!includeAll) {
+    query = query.eq("reporter_member_id", currentMemberId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  return ((data ?? []) as unknown as DbAdminFeedbackMessage[]).map((item) => {
+    const reporter = Array.isArray(item.reporter) ? item.reporter[0] : item.reporter;
+    const group = Array.isArray(reporter?.groups) ? reporter?.groups[0] : reporter?.groups;
+
+    return {
+      id: item.id,
+      reporterMemberId: item.reporter_member_id,
+      reporterName: formatMemberDisplayName({
+        name: reporter?.name ?? "알 수 없음",
+        customFields: reporter?.custom_fields ?? {},
+      }),
+      reporterGroupName: group?.name ?? "미배정",
+      category: item.category,
+      title: item.title,
+      message: item.message,
+      status: item.status,
+      adminNote: item.admin_note ?? "",
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      resolvedAt: item.resolved_at,
     };
   });
 }

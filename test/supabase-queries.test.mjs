@@ -24,11 +24,13 @@ const deletedAuthRestoreRequestsSource = readFileSync(new URL("../db/019_deleted
 const importantLinksSource = readFileSync(new URL("../db/021_important_links.sql", import.meta.url), "utf8");
 const memberStatusMessagesSource = readFileSync(new URL("../db/022_member_status_messages.sql", import.meta.url), "utf8");
 const staffLeaderParitySource = readFileSync(new URL("../db/023_staff_leader_parity.sql", import.meta.url), "utf8");
+const adminFeedbackMessagesSource = readFileSync(new URL("../db/024_admin_feedback_messages.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+const feedbackPageSource = readFileSync(new URL("../src/app/feedback/page.tsx", import.meta.url), "utf8");
 const googleSheetsSource = readFileSync(new URL("../src/lib/google-sheets.ts", import.meta.url), "utf8");
 const layoutSource = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
 const memberDetailSource = readFileSync(new URL("../src/components/member-detail.tsx", import.meta.url), "utf8");
@@ -506,4 +508,20 @@ test("member status messages are short self-managed dashboard updates", () => {
   assert.match(globalCssSource, /status-composer-panel/);
   assert.match(globalCssSource, /status-quick-list/);
   assert.match(globalCssSource, /status-input-shell/);
+});
+
+test("admin feedback inbox lets users message admins and admins update status", () => {
+  assert.match(schemaSource, /create table admin_feedback_messages/);
+  assert.match(adminFeedbackMessagesSource, /users can create own feedback messages/);
+  assert.match(adminFeedbackMessagesSource, /owners and admins can update feedback messages/);
+  assert.match(dataSource, /export async function getAdminFeedbackMessages/);
+  assert.match(appPageDataSource, /adminFeedbackMessages/);
+  assert.match(actionsSource, /export async function createAdminFeedbackMessage/);
+  assert.match(actionsSource, /export async function updateAdminFeedbackMessage/);
+  assert.match(dashboardSource, /export function FeedbackPageContent/);
+  assert.match(dashboardSource, /관리자에게 보내기/);
+  assert.match(appGateSource, /피드백 접수함으로 이동/);
+  assert.match(feedbackPageSource, /FeedbackPageContent/);
+  assert.match(mobileAwareNavSource, /href: "\/feedback"/);
+  assert.match(globalCssSource, /feedback-inbox-panel/);
 });
