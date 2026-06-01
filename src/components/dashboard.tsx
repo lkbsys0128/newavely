@@ -831,12 +831,84 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
       ) : null}
       <SectionNav
         items={[
+          { href: "#member-create", label: "새 멤버" },
           { href: "#member-filters", label: "필터" },
           { href: "#member-list", label: "목록" },
           { href: "#duplicate-candidates", label: "중복 후보" },
-          { href: "#member-create", label: "새 멤버" },
         ]}
       />
+
+      <DisclosurePanel
+        id="member-create"
+        title="멤버 추가"
+        meta={canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}
+      >
+        <form action={createMemberAction} className="member-form">
+          <label>
+            한국 이름
+            <input name="name" required placeholder="예: 김하은" disabled={!canManageMembers} />
+          </label>
+          <label>
+            영어 이름
+            <input name="englishName" placeholder="예: Grace" disabled={!canManageMembers} />
+          </label>
+          <label>
+            연락처
+            <input name="phone" required placeholder="010-0000-0000" disabled={!canManageMembers} />
+          </label>
+          <label>
+            이메일
+            <input name="email" type="email" placeholder="name@example.com" disabled={!canManageMembers} />
+          </label>
+          <label>
+            순
+            <select name="groupId" disabled={!canManageMembers}>
+              <option value="">미배정</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            주소
+            <input name="address" placeholder="주소" disabled={!canManageMembers} />
+          </label>
+          <label>
+            세례/등록
+            <BaptismStatusSelect value="" disabled={!canManageMembers} />
+          </label>
+          <label>
+            메모
+            <input name="notes" placeholder="돌봄 메모" disabled={!canManageMembers} />
+          </label>
+          <label>
+            역할
+            <select name="role" disabled={!canManageRoles}>
+              {assignableRoleEntries.map(([role, label]) => (
+                <option key={role} value={role}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            상태
+            <select name="status" disabled={!canManageMembers}>
+              <option value="active">활동</option>
+              <option value="new">새가족</option>
+              <option value="care">돌봄 필요</option>
+            </select>
+          </label>
+          <div className="form-actions full-width">
+            <ActionMessage state={createMemberState} />
+            <button className="primary-button" type="submit" disabled={!canManageMembers || isCreatingMember}>
+              추가
+            </button>
+          </div>
+        </form>
+      </DisclosurePanel>
 
       <section className="panel filter-panel" id="member-filters">
         <label className="search-field member-filter-search">
@@ -1193,77 +1265,6 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
         </div>
       </DisclosurePanel>
 
-      <DisclosurePanel
-        id="member-create"
-        title="멤버 추가"
-        meta={canManageMembers ? "필수 정보만 먼저 입력" : "관리자/리더 권한 필요"}
-      >
-        <form action={createMemberAction} className="member-form">
-          <label>
-            한국 이름
-            <input name="name" required placeholder="예: 김하은" disabled={!canManageMembers} />
-          </label>
-          <label>
-            영어 이름
-            <input name="englishName" placeholder="예: Grace" disabled={!canManageMembers} />
-          </label>
-          <label>
-            연락처
-            <input name="phone" required placeholder="010-0000-0000" disabled={!canManageMembers} />
-          </label>
-          <label>
-            이메일
-            <input name="email" type="email" placeholder="name@example.com" disabled={!canManageMembers} />
-          </label>
-          <label>
-            순
-            <select name="groupId" disabled={!canManageMembers}>
-              <option value="">미배정</option>
-              {groups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            주소
-            <input name="address" placeholder="주소" disabled={!canManageMembers} />
-          </label>
-          <label>
-            세례/등록
-            <BaptismStatusSelect value="" disabled={!canManageMembers} />
-          </label>
-          <label>
-            메모
-            <input name="notes" placeholder="돌봄 메모" disabled={!canManageMembers} />
-          </label>
-          <label>
-            역할
-            <select name="role" disabled={!canManageRoles}>
-              {assignableRoleEntries.map(([role, label]) => (
-                <option key={role} value={role}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            상태
-            <select name="status" disabled={!canManageMembers}>
-              <option value="active">활동</option>
-              <option value="new">새가족</option>
-              <option value="care">돌봄 필요</option>
-            </select>
-          </label>
-          <div className="form-actions full-width">
-            <ActionMessage state={createMemberState} />
-            <button className="primary-button" type="submit" disabled={!canManageMembers || isCreatingMember}>
-            추가
-            </button>
-          </div>
-        </form>
-      </DisclosurePanel>
     </>
   );
 }
