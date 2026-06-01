@@ -31,6 +31,10 @@ const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", 
 const googleSheetsSource = readFileSync(new URL("../src/lib/google-sheets.ts", import.meta.url), "utf8");
 const layoutSource = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
 const memberDetailSource = readFileSync(new URL("../src/components/member-detail.tsx", import.meta.url), "utf8");
+const memberStatusComposerSource = readFileSync(
+  new URL("../src/components/member-status-composer.tsx", import.meta.url),
+  "utf8",
+);
 const onboardingSource = readFileSync(new URL("../src/components/onboarding-panel.tsx", import.meta.url), "utf8");
 const profilePageSource = readFileSync(new URL("../src/app/profile/page.tsx", import.meta.url), "utf8");
 const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
@@ -492,6 +496,11 @@ test("member status messages are short self-managed dashboard updates", () => {
   assert.match(dashboardSource, /오늘의 한마디/);
   assert.match(memberDetailSource, /MemberStatusComposer/);
   assert.match(appGateSource, /MemberStatusComposer/);
+  assert.match(memberStatusComposerSource, /quickStatusMessages/);
+  assert.match(memberStatusComposerSource, /textarea/);
+  assert.match(memberStatusComposerSource, /비우기/);
   assert.match(globalCssSource, /member-status-board/);
   assert.match(globalCssSource, /status-composer-panel/);
+  assert.match(globalCssSource, /status-quick-list/);
+  assert.match(globalCssSource, /status-input-shell/);
 });

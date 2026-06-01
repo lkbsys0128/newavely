@@ -1097,31 +1097,121 @@ h3 {
 }
 
 .status-composer-panel {
+  overflow: hidden;
+  border-color: rgba(47, 145, 181, 0.24);
   margin-bottom: 16px;
+  padding: 0;
   background:
-    linear-gradient(180deg, rgba(47, 145, 181, 0.055), transparent 80px),
+    radial-gradient(circle at top right, rgba(47, 145, 181, 0.16), transparent 220px),
+    linear-gradient(135deg, rgba(47, 145, 181, 0.08), rgba(255, 255, 255, 0.92) 56%),
     #ffffff;
+}
+
+.status-composer-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(47, 145, 181, 0.16);
+  padding: 18px 18px 14px;
+}
+
+.status-composer-heading h2 {
+  margin-top: 4px;
+  font-size: 1.18rem;
 }
 
 .status-composer-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  align-items: stretch;
+  gap: 14px;
+  padding: 18px;
+}
+
+.status-input-shell {
+  display: grid;
   gap: 12px;
-  margin-top: 14px;
+}
+
+.status-input-shell textarea {
+  min-height: 92px;
+  resize: vertical;
+  border-color: rgba(47, 145, 181, 0.24);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.5;
+  box-shadow: inset 0 1px 0 rgba(47, 145, 181, 0.08);
+}
+
+.status-input-shell textarea:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px rgba(47, 145, 181, 0.12),
+    inset 0 1px 0 rgba(47, 145, 181, 0.08);
+}
+
+.status-quick-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-quick-list button {
+  min-height: 34px;
+  border: 1px solid rgba(47, 145, 181, 0.18);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--accent-dark);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 900;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.status-quick-list button:hover,
+.status-quick-list button:focus-visible {
+  border-color: rgba(47, 145, 181, 0.34);
+  background: var(--soft);
+  outline: none;
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
 }
 
 .status-composer-actions {
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  justify-content: end;
+  flex-direction: column;
   gap: 10px;
+  min-width: 104px;
 }
 
 .status-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border: 1px solid rgba(47, 145, 181, 0.18);
+  border-radius: 999px;
+  padding: 0 11px;
+  background: rgba(255, 255, 255, 0.76);
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 850;
   white-space: nowrap;
+}
+
+.status-counter.urgent {
+  border-color: rgba(210, 78, 78, 0.22);
+  background: rgba(255, 243, 243, 0.9);
+  color: var(--danger);
 }
 
 .status-counter.over {
@@ -3485,6 +3575,7 @@ tbody tr:hover {
   .topbar,
   .topbar-actions,
   .member-status-board-heading,
+  .status-composer-heading,
   .panel-heading,
   .attendance-check-header,
   .onboarding-hero {
@@ -3626,6 +3717,7 @@ tbody tr:hover {
   .status-composer-actions {
     align-items: stretch;
     flex-direction: column;
+    min-width: 0;
   }
 
   .permission-row,
