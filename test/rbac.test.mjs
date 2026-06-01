@@ -24,3 +24,7 @@ test("important links can be added by soonjang and deleted by admins", () => {
   assert(permissionsByRole.member.includes("links:read"));
   assert.equal(permissionsByRole.member.includes("links:write"), false);
 });
+
+test("soonjang keeps the same app permissions as leader", () => {
+  assert.deepEqual(permissionsByRole.staff, permissionsByRole.leader);
+});
