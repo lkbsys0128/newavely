@@ -22,7 +22,7 @@ export const permissionsByRole: Record<Role, Permission[]> = {
   owner: [...permissions],
   admin: permissions.filter((permission) => permission !== "owner:manage"),
   leader: ["members:read", "members:write", "attendance:read", "attendance:write", "groups:read", "links:read", "links:write"],
-  staff: ["members:read", "attendance:read", "groups:read", "links:read", "links:write"],
+  staff: ["members:read", "members:write", "attendance:read", "attendance:write", "groups:read", "links:read", "links:write"],
   member: ["members:read", "groups:read", "links:read"],
 };
 

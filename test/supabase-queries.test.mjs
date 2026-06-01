@@ -23,6 +23,7 @@ const deletedAuthUserBlocksSource = readFileSync(new URL("../db/018_deleted_auth
 const deletedAuthRestoreRequestsSource = readFileSync(new URL("../db/019_deleted_auth_restore_requests.sql", import.meta.url), "utf8");
 const importantLinksSource = readFileSync(new URL("../db/021_important_links.sql", import.meta.url), "utf8");
 const memberStatusMessagesSource = readFileSync(new URL("../db/022_member_status_messages.sql", import.meta.url), "utf8");
+const staffLeaderParitySource = readFileSync(new URL("../db/023_staff_leader_parity.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -146,6 +147,8 @@ test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(schemaSource, /authorized users can delete lower role members/);
   assert.match(deleteRolePoliciesSource, /authorized users can delete lower role members/);
   assert.match(deleteRolePoliciesSource, /leaders can delete groups/);
+  assert.match(staffLeaderParitySource, /current_member_role\(\) in \('owner', 'admin', 'leader', 'staff'\)/);
+  assert.match(staffLeaderParitySource, /when 'staff' then 3/);
   assert.match(deletedAuthUserBlocksSource, /member\.permanent_delete\.backfill/);
   assert.match(deletedAuthUserBlocksSource, /deleted_auth_users/);
   assert.match(deletedAuthRestoreRequestsSource, /restore_requested_at/);

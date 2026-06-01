@@ -41,7 +41,7 @@ const mixedMembers = [
   member({ id: "merged-placeholder", name: "병합 잔여", displayName: "병합 잔여", email: "old@merged.local", groupId: null, groupName: "미배정" }),
 ];
 
-test("soonjang sees full detail only for members in led groups", () => {
+test("soonjang has the same full-detail view as leader", () => {
   const scopedMembers = scopeMembersForRole({
     role: "staff",
     currentMemberId: "soonjang",
@@ -51,19 +51,19 @@ test("soonjang sees full detail only for members in led groups", () => {
 
   assert.equal(scopedMembers.find((item) => item.id === "same-group").phone, "010-0000-0000");
   assert.equal(scopedMembers.find((item) => item.id === "other-group").name, "다른 순");
-  assert.equal(scopedMembers.find((item) => item.id === "other-group").phone, "비공개");
-  assert.equal(scopedMembers.find((item) => item.id === "other-group").email, "");
-  assert.equal(scopedMembers.find((item) => item.id === "other-group").address, "비공개");
-  assert.equal(scopedMembers.find((item) => item.id === "other-group").baptismStatus, "비공개");
-  assert.equal(scopedMembers.find((item) => item.id === "other-group").authUserId, null);
+  assert.equal(scopedMembers.find((item) => item.id === "other-group").phone, "010-0000-0000");
+  assert.equal(scopedMembers.find((item) => item.id === "other-group").email, "person@example.com");
+  assert.equal(scopedMembers.find((item) => item.id === "other-group").address, "Seattle");
+  assert.equal(scopedMembers.find((item) => item.id === "other-group").baptismStatus, "세례/입교");
+  assert.equal(scopedMembers.find((item) => item.id === "other-group").authUserId, "auth-id");
   assert.equal(scopedMembers.find((item) => item.id === "other-group").role, "member");
   assert.equal(scopedMembers.find((item) => item.id === "other-group").status, "active");
   assert.equal(scopedMembers.find((item) => item.id === "inactive").status, "inactive");
-  assert.equal(scopedMembers.find((item) => item.id === "other-group").present, false);
-  assert.equal(scopedMembers.find((item) => item.id === "other-group").notes, "");
-  assert.deepEqual({ ...scopedMembers.find((item) => item.id === "other-group").customFields }, {});
-  assert.deepEqual(Array.from(scopedMembers.find((item) => item.id === "other-group").attendanceHistory), []);
-  assert.deepEqual(Array.from(scopedMembers.find((item) => item.id === "other-group").careFollowups), []);
+  assert.equal(scopedMembers.find((item) => item.id === "other-group").present, true);
+  assert.equal(scopedMembers.find((item) => item.id === "other-group").notes, "메모");
+  assert.deepEqual({ ...scopedMembers.find((item) => item.id === "other-group").customFields }, { birthdate: "2000-01-01" });
+  assert.deepEqual(Array.from(scopedMembers.find((item) => item.id === "other-group").attendanceHistory), mixedMembers.find((item) => item.id === "other-group").attendanceHistory);
+  assert.deepEqual(Array.from(scopedMembers.find((item) => item.id === "other-group").careFollowups), mixedMembers.find((item) => item.id === "other-group").careFollowups);
 });
 
 test("all roles use the same visible roster basis without merged placeholders", () => {
@@ -85,8 +85,8 @@ test("all roles use the same visible roster basis without merged placeholders", 
   }
 });
 
-test("owner admin and leader roles keep the same full-detail view", () => {
-  for (const role of ["owner", "admin", "leader"]) {
+test("owner admin leader and soonjang roles keep the same full-detail view", () => {
+  for (const role of ["owner", "admin", "leader", "staff"]) {
     const scopedMembers = scopeMembersForRole({
       role,
       currentMemberId: `${role}-user`,

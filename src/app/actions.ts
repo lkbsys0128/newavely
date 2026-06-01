@@ -346,7 +346,7 @@ const rolePriority: Record<Role, number> = {
   owner: 5,
   admin: 4,
   leader: 3,
-  staff: 2,
+  staff: 3,
   member: 1,
 };
 
