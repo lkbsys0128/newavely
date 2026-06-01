@@ -344,7 +344,11 @@ test("attendance event setup supports batch creation and Sunday auto-create in P
 
 test("attendance stats can aggregate all events by group and event type", () => {
   assert.match(dashboardSource, /statsEventTypeFilter/);
+  assert.match(dashboardSource, /statsDateFilter/);
   assert.match(dashboardSource, /statsGroupId/);
+  assert.match(dashboardSource, /<option value="all">전체 날짜<\/option>/);
+  assert.match(dashboardSource, /event\.eventDate === statsDateFilter/);
+  assert.match(dashboardSource, /row\.eventDate !== statsDateFilter/);
   assert.match(dashboardSource, /buildAggregateAttendanceStat/);
   assert.match(dashboardSource, /날짜별 출석률/);
   assert.match(dashboardSource, /순별 비교/);

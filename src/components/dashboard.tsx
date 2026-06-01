@@ -1609,6 +1609,7 @@ export function AttendanceManager({
   const [attendanceGroupId, setAttendanceGroupId] = useState("all");
   const [eventSearchQuery, setEventSearchQuery] = useState("");
   const [statsEventTypeFilter, setStatsEventTypeFilter] = useState("all");
+  const [statsDateFilter, setStatsDateFilter] = useState("all");
   const [statsGroupId, setStatsGroupId] = useState("all");
   const [absenceMinimumStreak, setAbsenceMinimumStreak] = useState(3);
   const [eventPendingDelete, setEventPendingDelete] = useState<AttendanceEvent | null>(null);
@@ -1723,7 +1724,11 @@ export function AttendanceManager({
     const rate = activeMemberCount ? Math.round((presentCount / activeMemberCount) * 100) : 0;
     return { ...event, presentCount, rate };
   });
-  const aggregateStatsEvents = attendanceEvents.filter((event) => statsEventTypeFilter === "all" || event.title === statsEventTypeFilter);
+  const aggregateStatsEvents = attendanceEvents.filter(
+    (event) =>
+      (statsEventTypeFilter === "all" || event.title === statsEventTypeFilter) &&
+      (statsDateFilter === "all" || event.eventDate === statsDateFilter),
+  );
   const aggregateEventIds = new Set(aggregateStatsEvents.map((event) => event.id));
   const aggregateGroupStats = [
     ...groups.map((group) => {
@@ -1773,11 +1778,36 @@ export function AttendanceManager({
     rate: unassignedAttendanceRate,
   };
   const displayEventTrend = attendanceStats?.eventTrend ?? eventTrend;
-  const displayAggregateGroupStats = (attendanceStats?.aggregateGroupStats ?? aggregateGroupStats).filter(
-    (group) =>
-      group.memberCount > 0 &&
-      (statsEventTypeFilter === "all" ? group.eventType === "all" : group.eventType === statsEventTypeFilter) &&
-      (statsGroupId === "all" || group.id === statsGroupId),
+  const aggregateStatsFromTrend = Object.values(
+    (attendanceStats?.eventGroupTrend ?? []).reduce<
+      Record<string, { eventType: string; id: string; name: string; memberCount: number; possibleCount: number; presentCount: number; excusedCount: number }>
+    >((rows, row) => {
+      if (statsEventTypeFilter !== "all" && row.eventType !== statsEventTypeFilter) return rows;
+      if (statsDateFilter !== "all" && row.eventDate !== statsDateFilter) return rows;
+      const current = rows[row.groupId] ?? {
+        eventType: statsEventTypeFilter,
+        id: row.groupId,
+        name: row.groupName,
+        memberCount: row.totalCount,
+        possibleCount: 0,
+        presentCount: 0,
+        excusedCount: 0,
+      };
+      rows[row.groupId] = {
+        ...current,
+        memberCount: Math.max(current.memberCount, row.totalCount),
+        possibleCount: current.possibleCount + row.totalCount,
+        presentCount: current.presentCount + row.presentCount,
+        excusedCount: current.excusedCount + row.excusedCount,
+      };
+      return rows;
+    }, {}),
+  ).map((group) => ({
+    ...group,
+    rate: group.possibleCount ? Math.round((group.presentCount / group.possibleCount) * 100) : 0,
+  }));
+  const displayAggregateGroupStats = (attendanceStats?.eventGroupTrend ? aggregateStatsFromTrend : aggregateGroupStats).filter(
+    (group) => group.memberCount > 0 && (statsGroupId === "all" || group.id === statsGroupId),
   );
   const displayAggregateTotals = displayAggregateGroupStats.reduce(
     (totals, group) => ({
@@ -1798,6 +1828,7 @@ export function AttendanceManager({
   const trendSource = attendanceStats?.eventGroupTrend ?? [];
   const filteredTrendRows = trendSource
     .filter((row) => statsEventTypeFilter === "all" || row.eventType === statsEventTypeFilter)
+    .filter((row) => statsDateFilter === "all" || row.eventDate === statsDateFilter)
     .filter((row) => statsGroupId === "all" || row.groupId === statsGroupId)
     .slice(0, 48);
   const compactTrendRows = Object.values(
@@ -1834,7 +1865,10 @@ export function AttendanceManager({
   const absenceWatchList = activeMembers
     .map((member) => {
       let streak = 0;
-      const scopedEvents = attendanceEvents.filter((event) => statsEventTypeFilter === "all" || event.title === statsEventTypeFilter).slice(0, 10);
+      const scopedEvents = attendanceEvents
+        .filter((event) => statsEventTypeFilter === "all" || event.title === statsEventTypeFilter)
+        .filter((event) => statsDateFilter === "all" || event.eventDate === statsDateFilter)
+        .slice(0, 10);
       for (const event of scopedEvents) {
         const record = member.attendanceHistory.find((item) => item.eventId === event.id);
         if (record?.status === "present" || record?.status === "excused") break;
@@ -2056,6 +2090,17 @@ export function AttendanceManager({
                 {attendanceEventTypes.map((title) => (
                   <option key={title} value={title}>
                     {title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              날짜
+              <select value={statsDateFilter} onChange={(event) => setStatsDateFilter(event.target.value)}>
+                <option value="all">전체 날짜</option>
+                {eventDateOptions.map((eventDate) => (
+                  <option key={eventDate} value={eventDate}>
+                    {eventDate}
                   </option>
                 ))}
               </select>
