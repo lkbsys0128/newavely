@@ -97,6 +97,10 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 15. `db/015_attendance_observability.sql`
 16. `db/016_clear_attendance_import_notes.sql`
 17. `db/017_member_english_names.sql`
+18. `db/018_deleted_auth_user_blocks.sql`
+19. `db/019_deleted_auth_restore_requests.sql`
+20. `db/020_backfill_2026_05_31_attendance_types.sql`
+21. `db/021_important_links.sql`
 
 주요 테이블:
 
@@ -107,6 +111,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 - `care_followups`: 멤버별 돌봄/연락 팔로업 기록
 - `member_link_requests`: 첫 로그인 계정과 기존 교적 멤버 연결 승인 요청
 - `member_custom_field_definitions`: 멤버별 커스텀 필드 정의
+- `important_links`: 공동체 공식 홈페이지/소셜/신청 링크 등 중요 사이트 모음
 - `audit_logs`: 멤버/순/출석 변경에 대한 append-only 감사 로그
 
 중요한 관계:

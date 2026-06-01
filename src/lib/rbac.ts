@@ -12,6 +12,8 @@ export const permissions = [
   "roles:manage",
   "owner:manage",
   "sensitive:read",
+  "links:read",
+  "links:write",
 ] as const;
 
 export type Permission = (typeof permissions)[number];
@@ -19,9 +21,9 @@ export type Permission = (typeof permissions)[number];
 export const permissionsByRole: Record<Role, Permission[]> = {
   owner: [...permissions],
   admin: permissions.filter((permission) => permission !== "owner:manage"),
-  leader: ["members:read", "members:write", "attendance:read", "attendance:write", "groups:read"],
-  staff: ["members:read", "attendance:read", "groups:read"],
-  member: ["members:read", "groups:read"],
+  leader: ["members:read", "members:write", "attendance:read", "attendance:write", "groups:read", "links:read", "links:write"],
+  staff: ["members:read", "attendance:read", "groups:read", "links:read", "links:write"],
+  member: ["members:read", "groups:read", "links:read"],
 };
 
 export function hasPermission(role: Role, permission: Permission) {

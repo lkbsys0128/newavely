@@ -98,3 +98,13 @@ export type DeletedAuthUser = {
   restoreRequestNote: string;
   restoreData: Record<string, unknown> | null;
 };
+
+export type ImportantLink = {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  iconKey: "website" | "links" | "youtube" | "instagram" | "default";
+  createdByName: string;
+  createdAt: string;
+};

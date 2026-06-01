@@ -6,9 +6,11 @@ import { useActionState, useEffect, useMemo, useState, useTransition, type React
 import {
   createAttendanceEvent,
   createGroup,
+  createImportantLink,
   createMember,
   deleteAttendanceEvent,
   deleteGroup,
+  deleteImportantLink,
   deleteMemberPermanently,
   deactivateMember,
   exportMembersToGoogleSheet,
@@ -27,7 +29,7 @@ import {
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import { canDeleteMemberRole, canUseDeleteActions } from "@/lib/role-policy";
 import type { AppUser, DashboardMetrics, GlobalAppStats } from "@/lib/app-page-data";
-import type { AttendanceEvent, AuditLog, DeletedAuthUser, Group, Member, MemberLinkRequest } from "@/lib/types";
+import type { AttendanceEvent, AuditLog, DeletedAuthUser, Group, ImportantLink, Member, MemberLinkRequest } from "@/lib/types";
 import {
   defaultMemberFilters,
   filterMembers,
@@ -55,6 +57,7 @@ type AppDataProps = {
   attendanceEvents?: AttendanceEvent[];
   memberLinkRequests?: MemberLinkRequest[];
   deletedAuthUsers?: DeletedAuthUser[];
+  importantLinks?: ImportantLink[];
   dashboardMetrics?: DashboardMetrics;
   globalStats?: GlobalAppStats;
 };
@@ -63,6 +66,22 @@ type AttendanceFilter = "all" | "present" | "absent" | "excused";
 type AttendanceStatus = "present" | "absent" | "excused";
 
 const initialActionState: ActionState = { ok: false, message: "" };
+
+const linkIconLabels: Record<ImportantLink["iconKey"], string> = {
+  website: "NW",
+  links: "LT",
+  youtube: "YT",
+  instagram: "IG",
+  default: "GO",
+};
+
+function getHostname(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
 export function DashboardOverview({ user, members, groups, attendanceEvents = [], dashboardMetrics, globalStats }: AppDataProps) {
   const dashboardMembers = members.filter((member) => !isMergedPlaceholderMember(member));
@@ -1390,6 +1409,98 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
             ))}
           </div>
         </DisclosurePanel>
+      ) : null}
+    </>
+  );
+}
+
+export function LinksPageContent({ user, importantLinks = [] }: AppDataProps) {
+  const canCreateLinks = hasPermission(user.role, "links:write");
+  const canDeleteLinks = user.role === "owner" || user.role === "admin";
+  const [createLinkState, createLinkAction, isCreatingLink] = useActionState(createImportantLink, initialActionState);
+  const [deleteLinkState, deleteLinkAction, isDeletingLink] = useActionState(deleteImportantLink, initialActionState);
+
+  return (
+    <>
+      <PageHeader eyebrow="중요 링크" title="링크" user={user}>
+        <span className="status-pill">{importantLinks.length}개</span>
+      </PageHeader>
+
+      <SectionNav
+        items={[
+          { href: "#link-list", label: "링크 목록" },
+          { href: "#link-create", label: "새 링크" },
+        ]}
+      />
+
+      <section className="link-hero panel">
+        <div>
+          <p className="eyebrow">Newave Resource Hub</p>
+          <h2>자주 쓰는 사이트를 한 곳에서</h2>
+          <p className="meta">공식 홈페이지, 소셜 채널, 안내 링크를 빠르게 열 수 있습니다.</p>
+        </div>
+      </section>
+
+      <section className="link-grid" id="link-list" aria-label="중요 링크 목록">
+        {importantLinks.map((link) => (
+          <article className="link-card" key={link.id}>
+            <a href={link.url} target="_blank" rel="noreferrer" aria-label={`${link.title} 새 창에서 열기`}>
+              <span className={`link-icon ${link.iconKey}`}>{linkIconLabels[link.iconKey]}</span>
+              <span className="link-card-body">
+                <strong>{link.title}</strong>
+                <span>{link.description || getHostname(link.url)}</span>
+                <small>{getHostname(link.url)}</small>
+              </span>
+              <span className="link-open-indicator">열기</span>
+            </a>
+            {canDeleteLinks ? (
+              <form action={deleteLinkAction} className="link-delete-form">
+                <input name="id" type="hidden" value={link.id} />
+                <button className="danger-text-button" type="submit" disabled={isDeletingLink}>
+                  삭제
+                </button>
+              </form>
+            ) : null}
+          </article>
+        ))}
+        {importantLinks.length === 0 ? (
+          <article className="empty-state">
+            <strong>등록된 링크가 없습니다</strong>
+            <span>순장 이상 권한으로 첫 링크를 추가할 수 있습니다.</span>
+          </article>
+        ) : null}
+      </section>
+      <ActionMessage state={deleteLinkState} />
+
+      {canCreateLinks ? (
+        <section className="panel form-panel link-create-panel" id="link-create">
+          <div className="panel-heading">
+            <div>
+              <h2>새 링크 추가</h2>
+              <p className="meta">순장/리더 이상은 공동체에 필요한 링크를 추가할 수 있습니다.</p>
+            </div>
+          </div>
+          <form action={createLinkAction} className="member-form link-form">
+            <label>
+              이름
+              <input name="title" placeholder="예: 뉴웨이브 공식 홈페이지" required />
+            </label>
+            <label>
+              URL
+              <input name="url" type="url" placeholder="https://example.com" required />
+            </label>
+            <label className="full-width">
+              설명
+              <input name="description" placeholder="링크를 어디에 쓰는지 짧게 적어주세요" />
+            </label>
+            <div className="form-actions full-width">
+              <button className="primary-button" type="submit" disabled={isCreatingLink}>
+                {isCreatingLink ? "추가 중" : "추가"}
+              </button>
+            </div>
+          </form>
+          <ActionMessage state={createLinkState} />
+        </section>
       ) : null}
     </>
   );
@@ -3091,6 +3202,8 @@ const permissionLabels = {
   "roles:manage": "권한 관리",
   "owner:manage": "최고 관리자 관리",
   "sensitive:read": "민감 정보 열람",
+  "links:read": "링크 보기",
+  "links:write": "링크 추가",
 };
 
 const auditActionLabels: Record<string, string> = {

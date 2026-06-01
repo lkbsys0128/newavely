@@ -9,6 +9,7 @@ const navItems = [
   { href: "/members", label: "멤버" },
   { href: "/groups", label: "순" },
   { href: "/attendance", label: "출석" },
+  { href: "/links", label: "링크" },
   { href: "/permissions", label: "권한" },
   { href: "/audit", label: "감사 로그" },
 ];
