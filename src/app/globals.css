@@ -246,6 +246,14 @@ a {
   white-space: nowrap;
 }
 
+.primary-button,
+.secondary-button,
+.danger-button,
+.table-action,
+.segment {
+  flex-shrink: 0;
+}
+
 .danger-text-button {
   min-height: 32px;
   border: 1px solid transparent;
@@ -528,13 +536,14 @@ h2 {
 
 h3 {
   margin: 0;
-  color: var(--text);
+  color: var(--ink);
   font-size: 1rem;
 }
 
 .topbar-actions {
   display: flex;
-  align-items: end;
+  align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -559,6 +568,7 @@ h3 {
 
 .section-nav-links {
   display: flex;
+  align-items: center;
   gap: 0;
   overflow-x: auto;
   padding: 0 2px;
@@ -957,6 +967,7 @@ h3 {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 .danger-button {
@@ -1537,10 +1548,29 @@ h3 {
 
 .panel-heading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.panel-heading > div {
+  min-width: 0;
+}
+
+.panel-heading > span,
+.panel-heading > .meta,
+.panel-heading > .request-count-pill,
+.panel-heading > .primary-button,
+.panel-heading > .secondary-button,
+.panel-heading > form,
+.panel-heading > button {
+  flex: 0 0 auto;
+}
+
+.panel-heading h2,
+.panel-heading p {
+  overflow-wrap: anywhere;
 }
 
 .care-list,
@@ -1633,9 +1663,11 @@ h3 {
 .person-block strong,
 .person-block span {
   display: block;
+  min-width: 0;
 }
 
 .person-block span {
+  overflow-wrap: anywhere;
   color: var(--muted);
   font-size: 0.86rem;
 }
@@ -1693,6 +1725,7 @@ h3 {
 
 .table-wrap {
   overflow: auto;
+  max-width: 100%;
 }
 
 table {
@@ -1708,6 +1741,13 @@ td {
   padding: 12px 10px;
   text-align: left;
   vertical-align: middle;
+  white-space: nowrap;
+}
+
+td .person-block strong,
+td .person-block span {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -3158,7 +3198,7 @@ tbody tr:hover {
 
 .attendance-check-header {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 14px;
@@ -3176,7 +3216,7 @@ tbody tr:hover {
 
 .attendance-check-controls {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: flex-end;
   gap: 12px;
   flex-wrap: wrap;
@@ -3263,6 +3303,7 @@ tbody tr:hover {
 
 .snapshot-mini-metrics article {
   display: grid;
+  align-content: center;
   gap: 3px;
   border: 1px solid rgba(47, 145, 181, 0.16);
   border-radius: 6px;
@@ -3474,7 +3515,7 @@ tbody tr:hover {
 
 .attendance-card {
   display: grid;
-  grid-template-columns: minmax(180px, 0.85fr) auto minmax(420px, 1.4fr);
+  grid-template-columns: minmax(180px, 0.85fr) minmax(88px, auto) minmax(360px, 1.4fr);
   align-items: center;
   min-height: 72px;
   gap: 14px;
@@ -3501,6 +3542,13 @@ tbody tr:hover {
 .attendance-card .person-block {
   display: grid;
   gap: 3px;
+}
+
+.attendance-card .person-block strong,
+.attendance-card .person-block span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attendance-card .attendance-pill {
@@ -3932,6 +3980,24 @@ tbody tr:hover {
     flex-direction: column;
   }
 
+  .topbar-actions {
+    justify-content: flex-start;
+  }
+
+  .topbar-actions > *,
+  .panel-heading > form,
+  .panel-heading > button,
+  .panel-heading > .primary-button,
+  .panel-heading > .secondary-button {
+    width: 100%;
+  }
+
+  .panel-heading > span,
+  .panel-heading > .meta,
+  .panel-heading > .request-count-pill {
+    align-self: flex-start;
+  }
+
   .onboarding-panel {
     padding: 20px;
   }
@@ -3975,6 +4041,11 @@ tbody tr:hover {
 
   .section-nav-links {
     flex-wrap: nowrap;
+  }
+
+  .section-nav a {
+    min-height: 42px;
+    padding: 0 14px;
   }
 
   .attendance-check-controls,
@@ -4087,6 +4158,11 @@ tbody tr:hover {
 
   .member-status-card {
     grid-template-columns: minmax(86px, 0.34fr) minmax(0, 1fr);
+  }
+
+  .member-status-person {
+    display: grid;
+    gap: 2px;
   }
 
   .member-status-card time {
