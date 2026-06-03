@@ -122,6 +122,11 @@ export function DashboardOverview({
     : 0;
   const dashboardInsights = buildDashboardInsights(activeMembers, groups);
   const statisticsSummary = globalStats?.statisticsSummary ?? dashboardInsights.statisticsSummary;
+  const currentMember = members.find((member) => member.authUserId === user.id) ?? members.find((member) => member.email === user.email);
+  const ledGroup = currentMember ? groups.find((group) => group.leaderMemberId === currentMember.id) : undefined;
+  const ownGroup = ledGroup ?? (currentMember?.groupId ? groups.find((group) => group.id === currentMember.groupId) : undefined);
+  const attendanceShortcutEvent = chooseAttendanceShortcutEvent(attendanceEvents);
+  const canShowAttendanceShortcut = hasPermission(user.role, "attendance:write") && ownGroup && attendanceShortcutEvent;
 
   return (
     <>
@@ -139,6 +144,24 @@ export function DashboardOverview({
           { href: "#group-summary", label: "순 현황" },
         ]}
       />
+
+      {canShowAttendanceShortcut ? (
+        <section className="mobile-attendance-shortcut panel">
+          <div>
+            <p className="eyebrow">빠른 출석 체크</p>
+            <h2>내 순 출석 바로가기</h2>
+            <p className="meta">
+              {ownGroup.name} · {attendanceShortcutEvent.eventDate} · {attendanceShortcutEvent.title}
+            </p>
+          </div>
+          <Link
+            className="primary-button"
+            href={`/attendance?eventId=${attendanceShortcutEvent.id}&groupId=${ownGroup.id}&mode=group#attendance-checklist`}
+          >
+            출석체크 하기
+          </Link>
+        </section>
+      ) : null}
 
       <MemberStatusBoard messages={memberStatusMessages} />
 
@@ -228,6 +251,29 @@ function MemberStatusBoard({ messages }: { messages: MemberStatusMessage[] }) {
       </div>
     </section>
   );
+}
+
+function getPacificTodayDateString() {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function chooseAttendanceShortcutEvent(attendanceEvents: AttendanceEvent[]) {
+  if (attendanceEvents.length === 0) return undefined;
+
+  const today = getPacificTodayDateString();
+  const todayEvents = attendanceEvents.filter((event) => event.eventDate === today);
+  const latestDate = attendanceEvents[0]?.eventDate;
+  const fallbackEvents = latestDate ? attendanceEvents.filter((event) => event.eventDate === latestDate) : attendanceEvents;
+  const candidates = todayEvents.length > 0 ? todayEvents : fallbackEvents;
+
+  return candidates.find((event) => event.title === "순모임") ?? candidates.find((event) => event.title === "주일 예배") ?? candidates[0];
 }
 
 function formatStatusUpdatedAt(value: string) {
@@ -1744,6 +1790,13 @@ export function AttendanceManager({
 }) {
   const searchParams = useSearchParams();
   const explicitAttendanceEventId = searchParams.get("eventId");
+  const requestedAttendanceGroupId = searchParams.get("groupId");
+  const initialAttendanceGroupId =
+    requestedAttendanceGroupId && groups.some((group) => group.id === requestedAttendanceGroupId)
+      ? requestedAttendanceGroupId
+      : requestedAttendanceGroupId === "unassigned"
+        ? "unassigned"
+        : "all";
   const [localMembers, setLocalMembers] = useState(members);
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
   const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
@@ -1752,7 +1805,7 @@ export function AttendanceManager({
   const canManageAttendance = hasPermission(user.role, "attendance:write");
   const canDeleteAttendanceEvents = canUseDeleteActions(user.role);
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
-  const [attendanceGroupId, setAttendanceGroupId] = useState("all");
+  const [attendanceGroupId, setAttendanceGroupId] = useState(initialAttendanceGroupId);
   const [eventSearchQuery, setEventSearchQuery] = useState("");
   const [statsEventTypeFilter, setStatsEventTypeFilter] = useState("all");
   const [statsDateFilter, setStatsDateFilter] = useState("all");
@@ -1762,6 +1815,14 @@ export function AttendanceManager({
   const [readAttendanceEventIds, setReadAttendanceEventIds] = useState<Set<string>>(new Set());
   const readEventsStorageKey = `newavely:read-attendance-events:${user.id}`;
   const hasExplicitAttendanceSelection = Boolean(explicitAttendanceEventId);
+  const buildAttendanceHref = (eventId: string, hash = "") => {
+    const params = new URLSearchParams({ eventId });
+    if (attendanceGroupId !== "all") {
+      params.set("groupId", attendanceGroupId);
+      params.set("mode", "group");
+    }
+    return `/attendance?${params.toString()}${hash}`;
+  };
 
   useEffect(() => {
     setLocalMembers(members);
@@ -2072,7 +2133,7 @@ export function AttendanceManager({
                   className={`segment event-segment ${hasExplicitAttendanceSelection && event.id === attendanceEventId ? "active" : ""} ${
                     unreadAttendanceEventIds.has(event.id) ? "unread" : ""
                   }`}
-                  href={`/attendance?eventId=${event.id}`}
+                  href={buildAttendanceHref(event.id, "#attendance-checklist")}
                   key={event.id}
                 >
                   {unreadAttendanceEventIds.has(event.id) ? <span className="unread-event-dot" aria-label="새 이벤트" /> : null}
@@ -2105,7 +2166,7 @@ export function AttendanceManager({
                     attendanceEvents.find((item) => item.eventDate === selectedDate && item.title === "주일 예배") ??
                     attendanceEvents.find((item) => item.eventDate === selectedDate);
                   if (eventForDate) {
-                    window.location.href = `/attendance?eventId=${eventForDate.id}`;
+                    window.location.href = buildAttendanceHref(eventForDate.id, "#attendance-checklist");
                   }
                 }
               }}
@@ -2416,7 +2477,7 @@ export function AttendanceManager({
                   {sameDateEvents.map((event) => (
                     <Link
                       className={`segment event-segment ${event.id === attendanceEventId ? "active" : ""}`}
-                      href={`/attendance?eventId=${event.id}`}
+                      href={buildAttendanceHref(event.id, "#attendance-checklist")}
                       key={event.id}
                     >
                       {event.title}

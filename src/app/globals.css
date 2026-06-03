@@ -1043,6 +1043,27 @@ h3 {
   box-shadow: var(--shadow);
 }
 
+.mobile-attendance-shortcut {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  border-color: rgba(47, 145, 181, 0.28);
+  background:
+    linear-gradient(135deg, rgba(47, 145, 181, 0.14), rgba(255, 255, 255, 0.92) 58%),
+    #ffffff;
+}
+
+.mobile-attendance-shortcut h2 {
+  margin-top: 4px;
+  font-size: 1.1rem;
+}
+
+.mobile-attendance-shortcut .primary-button {
+  min-width: 132px;
+}
+
 .member-status-board.empty {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -3777,6 +3798,15 @@ tbody tr:hover {
 
   .onboarding-note-field textarea {
     min-height: 76px;
+  }
+
+  .mobile-attendance-shortcut {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-attendance-shortcut .primary-button {
+    width: 100%;
   }
 
   .section-nav {
