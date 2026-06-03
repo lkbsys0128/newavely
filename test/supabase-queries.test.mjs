@@ -289,6 +289,8 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
   assert.match(dashboardSource, /attendanceSearchQuery/);
   assert.match(dashboardSource, /attendanceGroupId/);
+  assert.match(dashboardSource, /requestedAttendanceGroupId/);
+  assert.match(dashboardSource, /buildAttendanceHref/);
   assert.match(dashboardSource, /eventSearchQuery/);
   assert.match(dashboardSource, /eventDateOptions/);
   assert.match(dashboardSource, /filteredEventDateOptions/);
@@ -317,7 +319,7 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /출석 날짜 선택/);
   assert.match(dashboardSource, /출석 종류/);
   assert.match(dashboardSource, /attendance-mode-switcher/);
-  assert.match(dashboardSource, /href=\{`\/attendance\?eventId=\$\{event\.id\}`\}/);
+  assert.match(dashboardSource, /href=\{buildAttendanceHref\(event\.id, "#attendance-checklist"\)\}/);
   assert.match(dashboardSource, /체크할 날짜 선택/);
   assert.match(dashboardSource, /주일 예배[\s\S]*순모임/);
   assert.match(dashboardSource, /event-create-note/);
@@ -340,6 +342,13 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /출석 이벤트를 지울까요/);
   assert.match(dashboardSource, /deleteEventAction/);
   assert.doesNotMatch(dashboardSource, /member\.groupName} · {member\.phone/);
+});
+
+test("dashboard gives leaders a mobile shortcut to their group attendance", () => {
+  assert.match(dashboardSource, /mobile-attendance-shortcut/);
+  assert.match(dashboardSource, /chooseAttendanceShortcutEvent/);
+  assert.match(dashboardSource, /groupId=\$\{ownGroup\.id\}&mode=group#attendance-checklist/);
+  assert.match(globalCssSource, /mobile-attendance-shortcut/);
 });
 
 test("attendance event setup supports batch creation and Sunday auto-create in Pacific time", () => {
