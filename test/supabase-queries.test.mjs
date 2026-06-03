@@ -277,6 +277,11 @@ test("global styles include sharper control radius pass", () => {
   assert.match(globalCssSource, /Sharper UI pass/);
   assert.match(globalCssSource, /\.primary-button,[\s\S]*\.event-chip \{[\s\S]*border-radius: 4px/);
   assert.match(globalCssSource, /\.status-pill,[\s\S]*\.permission-chip,[\s\S]*\.progress span \{[\s\S]*border-radius: 4px/);
+  assert.match(globalCssSource, /\.topbar-actions \{[\s\S]*align-items: center/);
+  assert.match(globalCssSource, /\.panel-heading \{[\s\S]*align-items: flex-start/);
+  assert.match(globalCssSource, /\.section-nav-links \{[\s\S]*align-items: center/);
+  assert.match(globalCssSource, /\.attendance-card \{[\s\S]*minmax\(88px, auto\)/);
+  assert.doesNotMatch(globalCssSource, /\.topbar-actions \{[\s\S]{0,120}align-items: end/);
 });
 
 test("member detail opens as a centered modal from the roster", () => {
