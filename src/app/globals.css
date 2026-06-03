@@ -2254,13 +2254,16 @@ tbody tr:hover {
 
 .onboarding-request-admin {
   display: grid;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.45fr) auto;
+  align-items: end;
+  gap: 12px;
   margin-top: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 18px;
+  padding: 14px;
   background: #ffffff;
   color: var(--muted);
+  box-shadow: var(--shadow-soft);
 }
 
 .onboarding-request-copy {
@@ -2281,7 +2284,7 @@ tbody tr:hover {
 }
 
 .onboarding-note-field textarea {
-  min-height: 108px;
+  min-height: 72px;
   resize: vertical;
 }
 
@@ -3759,6 +3762,21 @@ tbody tr:hover {
 
   .onboarding-request-admin button {
     justify-self: stretch;
+  }
+
+  .onboarding-request-admin {
+    position: sticky;
+    bottom: 12px;
+    z-index: 4;
+    grid-template-columns: 1fr;
+    max-height: min(44dvh, 320px);
+    overflow-y: auto;
+    box-shadow: 0 18px 38px rgba(23, 51, 59, 0.18);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .onboarding-note-field textarea {
+    min-height: 76px;
   }
 
   .section-nav {

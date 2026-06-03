@@ -93,10 +93,25 @@ export function OnboardingPanel({
               <p className="onboarding-help">검색 결과에서 본인 교적을 선택하면 관리자에게 연결 승인을 요청합니다.</p>
             </div>
 
+            <form action={action} className="onboarding-request-admin">
+              <div className="onboarding-request-copy">
+                <strong>검색이 어렵거나 교적이 안 보이나요?</strong>
+                <span>검색 결과를 기다리지 않고 바로 관리자에게 확인 요청을 보낼 수 있습니다.</span>
+              </div>
+              <input name="targetMemberId" type="hidden" value="" />
+              <label className="onboarding-note-field">
+                <span>관리자에게 남길 메모</span>
+                <textarea name="note" placeholder="예: 이름은 홍길동이고, 청년부 소속입니다." />
+              </label>
+              <button className="secondary-button" type="submit" disabled={isSubmitting}>
+                관리자에게 요청
+              </button>
+            </form>
+
             {!canShowResults ? (
               <div className="empty-state onboarding-empty-state">
                 <strong>검색어를 입력하면 교적 후보가 표시됩니다</strong>
-                <span>전체 멤버 목록을 먼저 보여주지 않고, 입력한 조건에 맞는 후보만 보여줍니다.</span>
+                <span>전체 멤버 목록을 먼저 보여주지 않고, 입력한 조건에 맞는 후보만 보여줍니다. 찾기 어렵다면 위 요청 창구를 이용해주세요.</span>
               </div>
             ) : null}
 
@@ -123,20 +138,10 @@ export function OnboardingPanel({
             ) : null}
 
             {canShowResults && candidates.length === 0 ? (
-              <form action={action} className="onboarding-request-admin">
-                <div className="onboarding-request-copy">
-                  <strong>내 교적을 찾지 못했나요?</strong>
-                  <span>관리자에게 확인 요청을 보내면, 관리자가 교적을 확인한 뒤 연결하거나 새 교적을 만들어줍니다.</span>
-                </div>
-                <input name="targetMemberId" type="hidden" value="" />
-                <label className="onboarding-note-field">
-                  <span>관리자에게 남길 메모</span>
-                  <textarea name="note" placeholder="예: 이름은 홍길동이고, 청년부 소속입니다." />
-                </label>
-                <button className="secondary-button" type="submit" disabled={isSubmitting}>
-                  관리자에게 요청
-                </button>
-              </form>
+              <div className="empty-state onboarding-empty-state">
+                <strong>검색 결과가 없습니다</strong>
+                <span>위 요청 창구로 관리자에게 본인 확인을 요청해주세요.</span>
+              </div>
             ) : null}
 
             <ActionMessage state={state} />

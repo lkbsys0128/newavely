@@ -78,6 +78,9 @@ test("first-login onboarding does not auto-link or auto-admin new Google users",
   assert.match(dataSource, /status: "new"/);
   assert.match(dataSource, /needsOnboarding: true/);
   assert.match(onboardingSource, /본인 교적을 연결해주세요/);
+  assert.match(onboardingSource, /검색이 어렵거나 교적이 안 보이나요/);
+  assert.match(onboardingSource, /검색 결과가 없습니다/);
+  assert.match(globalCssSource, /position: sticky;[\s\S]*bottom: 12px/);
 });
 
 test("schema allows admin-routed link requests while tightening member reads", () => {
