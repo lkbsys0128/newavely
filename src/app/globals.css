@@ -3222,18 +3222,6 @@ tbody tr:hover {
   flex-wrap: wrap;
 }
 
-.attendance-mode-switcher {
-  display: grid;
-  gap: 6px;
-  justify-items: end;
-}
-
-.attendance-mode-switcher > span {
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-
 .attendance-toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
@@ -4048,10 +4036,8 @@ tbody tr:hover {
     padding: 0 14px;
   }
 
-  .attendance-check-controls,
-  .attendance-mode-switcher {
+  .attendance-check-controls {
     align-items: stretch;
-    justify-items: stretch;
     width: 100%;
   }
 
@@ -4059,13 +4045,11 @@ tbody tr:hover {
     flex-direction: column;
   }
 
-  .attendance-mode-switcher .segmented,
   .attendance-check-controls > .segmented {
     display: flex;
     width: 100%;
   }
 
-  .attendance-mode-switcher .segment,
   .attendance-check-controls > .segmented .segment {
     flex: 1 1 0;
   }
