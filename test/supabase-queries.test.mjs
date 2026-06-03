@@ -336,9 +336,10 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /sameDateEvents/);
   assert.match(dashboardSource, /event-selector-panel/);
   assert.match(dashboardSource, /출석 날짜 선택/);
-  assert.match(dashboardSource, /출석 종류/);
-  assert.match(dashboardSource, /attendance-mode-switcher/);
-  assert.match(dashboardSource, /href=\{buildAttendanceHref\(event\.id, "#attendance-checklist"\)\}/);
+  assert.match(dashboardSource, /attendanceCheckEventNames/);
+  assert.doesNotMatch(dashboardSource, /출석 종류/);
+  assert.doesNotMatch(dashboardSource, /attendance-mode-switcher/);
+  assert.doesNotMatch(globalCssSource, /attendance-mode-switcher/);
   assert.match(dashboardSource, /체크할 날짜 선택/);
   assert.match(dashboardSource, /주일 예배[\s\S]*순모임/);
   assert.match(dashboardSource, /event-create-note/);

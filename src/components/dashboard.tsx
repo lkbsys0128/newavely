@@ -2128,6 +2128,7 @@ export function AttendanceManager({
     const absentCount = Math.max(attendanceOverviewMembers.length - presentCount - excusedCount, 0);
     return { event, presentCount, excusedCount, absentCount };
   });
+  const attendanceCheckEventNames = sameDateEvents.map((event) => event.title).join(" · ");
   const attendanceOverviewRows = attendanceOverviewMembers.map((member) => {
     const statuses = attendanceOverviewEvents.map((event) => ({
       event,
@@ -2507,26 +2508,10 @@ export function AttendanceManager({
           <div>
             <h2>출석 체크</h2>
             <span>
-              {attendanceDate} · {attendanceTitle} · {attendanceMembers.length}/{activeMemberCount}명 표시
+              {attendanceDate} · {attendanceCheckEventNames} · {attendanceMembers.length}/{activeMemberCount}명 표시
             </span>
           </div>
           <div className="attendance-check-controls">
-            {sameDateEvents.length > 1 ? (
-              <div className="attendance-mode-switcher" aria-label="출석 종류 선택">
-                <span>출석 종류</span>
-                <div className="segmented">
-                  {sameDateEvents.map((event) => (
-                    <Link
-                      className={`segment event-segment ${event.id === attendanceEventId ? "active" : ""}`}
-                      href={buildAttendanceHref(event.id, "#attendance-checklist")}
-                      key={event.id}
-                    >
-                      {event.title}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : null}
           <div className="segmented">
             {(["all", "present", "absent", "excused"] as const).map((filter) => (
               <button
