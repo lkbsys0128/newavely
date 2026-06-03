@@ -218,6 +218,18 @@ test("dashboard exposes roster insight sections for operators", () => {
   assert.match(globalCssSource, /group-attendance-metrics/);
 });
 
+test("attendance check screen summarizes selected group worship and group attendance", () => {
+  assert.match(dashboardSource, /내 순 출석현황/);
+  assert.match(dashboardSource, /attendanceOverviewRows/);
+  assert.match(dashboardSource, /fullyPresentCount/);
+  assert.match(dashboardSource, /needsCheckCount/);
+  assert.match(dashboardSource, /attendanceGroupId === "unassigned" \? !member\.groupId : member\.groupId === attendanceGroupId/);
+  assert.match(dashboardSource, /<option value="unassigned">미배정<\/option>/);
+  assert.match(globalCssSource, /group-attendance-snapshot/);
+  assert.match(globalCssSource, /snapshot-mini-metrics/);
+  assert.match(globalCssSource, /snapshot-status\.present/);
+});
+
 test("dashboard metric cards use role-independent server metrics", () => {
   assert.match(appPageDataSource, /export function buildDashboardMetrics/);
   assert.match(appPageDataSource, /export function buildGlobalAppStats/);

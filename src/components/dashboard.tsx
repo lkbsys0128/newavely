@@ -2094,12 +2094,52 @@ export function AttendanceManager({
     const matchesQuery = normalizedQuery
       ? [member.displayName, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery))
       : true;
-    const matchesGroup = attendanceGroupId === "all" || member.groupId === attendanceGroupId;
+    const matchesGroup =
+      attendanceGroupId === "all" ||
+      (attendanceGroupId === "unassigned" ? !member.groupId : member.groupId === attendanceGroupId);
     if (attendanceFilter === "present") return matchesQuery && matchesGroup && status === "present";
     if (attendanceFilter === "absent") return matchesQuery && matchesGroup && status === "absent";
     if (attendanceFilter === "excused") return matchesQuery && matchesGroup && status === "excused";
     return matchesQuery && matchesGroup;
   });
+  const attendanceOverviewMembers = activeMembers.filter((member) => {
+    const normalizedQuery = attendanceSearchQuery.trim().toLowerCase();
+    const matchesQuery = normalizedQuery
+      ? [member.displayName, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery))
+      : true;
+    const matchesGroup =
+      attendanceGroupId === "all" ||
+      (attendanceGroupId === "unassigned" ? !member.groupId : member.groupId === attendanceGroupId);
+    return matchesQuery && matchesGroup;
+  });
+  const overviewGroupName =
+    attendanceGroupId === "all"
+      ? "전체 순"
+      : attendanceGroupId === "unassigned"
+        ? "미배정"
+        : groups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
+  const attendanceOverviewEvents = sameDateEvents
+    .filter((event) => event.title === "주일 예배" || event.title === "순모임")
+    .sort((a, b) => (a.title === "주일 예배" ? -1 : 1) - (b.title === "주일 예배" ? -1 : 1));
+  const attendanceOverviewStats = attendanceOverviewEvents.map((event) => {
+    const presentCount = attendanceOverviewMembers.filter((member) => getMemberAttendanceStatus(member, event.id) === "present").length;
+    const excusedCount = attendanceOverviewMembers.filter((member) => getMemberAttendanceStatus(member, event.id) === "excused").length;
+    const absentCount = Math.max(attendanceOverviewMembers.length - presentCount - excusedCount, 0);
+    return { event, presentCount, excusedCount, absentCount };
+  });
+  const attendanceOverviewRows = attendanceOverviewMembers.map((member) => {
+    const statuses = attendanceOverviewEvents.map((event) => ({
+      event,
+      status: getMemberAttendanceStatus(member, event.id),
+    }));
+    const missedCount = statuses.filter((item) => item.status === "absent").length;
+    const presentCount = statuses.filter((item) => item.status === "present").length;
+    return { member, missedCount, presentCount, statuses };
+  });
+  const fullyPresentCount = attendanceOverviewRows.filter(
+    (row) => row.statuses.length > 0 && row.statuses.every((item) => item.status === "present"),
+  ).length;
+  const needsCheckCount = attendanceOverviewRows.filter((row) => row.statuses.some((item) => item.status === "absent")).length;
 
   return (
     <>
@@ -2500,6 +2540,68 @@ export function AttendanceManager({
           </div>
           </div>
         </div>
+        {attendanceOverviewEvents.length > 0 ? (
+          <section className="group-attendance-snapshot" aria-label={`${overviewGroupName} 출석현황`}>
+            <div className="group-attendance-snapshot-heading">
+              <div>
+                <p className="eyebrow">내 순 출석현황</p>
+                <h3>{overviewGroupName}</h3>
+                <span>
+                  {attendanceDate} · {attendanceOverviewMembers.length}명 표시
+                </span>
+              </div>
+              <div className="snapshot-mini-metrics">
+                <article>
+                  <span>둘 다 출석</span>
+                  <strong>{fullyPresentCount}</strong>
+                  <small>예배와 순모임 모두 출석</small>
+                </article>
+                <article>
+                  <span>확인 필요</span>
+                  <strong>{needsCheckCount}</strong>
+                  <small>미출석 항목이 있는 멤버</small>
+                </article>
+                {attendanceOverviewStats.map(({ event, presentCount, excusedCount, absentCount }) => (
+                  <article key={event.id}>
+                    <span>{event.title}</span>
+                    <strong>{presentCount}/{attendanceOverviewMembers.length}</strong>
+                    <small>미출석 {absentCount} · 사유 {excusedCount}</small>
+                  </article>
+                ))}
+              </div>
+            </div>
+            <div
+              className={`group-attendance-snapshot-grid ${attendanceOverviewEvents.length > 1 ? "two-events" : "single-event"}`}
+            >
+              <div className="snapshot-grid-head member-name">이름</div>
+              {attendanceOverviewEvents.map((event) => (
+                <div className="snapshot-grid-head" key={event.id}>
+                  {event.title}
+                </div>
+              ))}
+              {attendanceOverviewRows.map(({ member, missedCount, presentCount, statuses }) => (
+                <div
+                  className={`snapshot-member-row ${missedCount === 0 && presentCount > 0 ? "all-present" : ""}`}
+                  key={member.id}
+                >
+                  <strong title={member.displayName}>{member.displayName}</strong>
+                  {statuses.map(({ event, status }) => {
+                    return (
+                      <span className={`snapshot-status ${status}`} key={event.id}>
+                        {attendanceStatusLabels[status]}
+                      </span>
+                    );
+                  })}
+                </div>
+              ))}
+              {attendanceOverviewMembers.length === 0 ? (
+                <div className="snapshot-empty-row">
+                  조건에 맞는 멤버가 없습니다.
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
         <div className="attendance-toolbar">
           <label>
             검색
@@ -2514,6 +2616,7 @@ export function AttendanceManager({
             순
             <select onChange={(event) => setAttendanceGroupId(event.target.value)} value={attendanceGroupId}>
               <option value="all">전체 순</option>
+              <option value="unassigned">미배정</option>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.name}

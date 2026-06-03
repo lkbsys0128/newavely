@@ -3225,6 +3225,158 @@ tbody tr:hover {
   font-weight: 700;
 }
 
+.group-attendance-snapshot {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(47, 145, 181, 0.22);
+  border-radius: 8px;
+  padding: 12px;
+  background: linear-gradient(180deg, #ffffff, #f7fcfd);
+  box-shadow: 0 14px 30px rgba(23, 51, 59, 0.06);
+}
+
+.group-attendance-snapshot-heading {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.4fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.group-attendance-snapshot-heading h3 {
+  margin: 2px 0;
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.group-attendance-snapshot-heading span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.snapshot-mini-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.snapshot-mini-metrics article {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(47, 145, 181, 0.16);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.snapshot-mini-metrics span,
+.snapshot-mini-metrics small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snapshot-mini-metrics strong {
+  color: var(--accent-dark);
+  font-size: 1.12rem;
+  line-height: 1;
+}
+
+.group-attendance-snapshot-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.group-attendance-snapshot-grid.two-events {
+  grid-template-columns: minmax(120px, 1fr) repeat(2, minmax(86px, 0.48fr));
+}
+
+.group-attendance-snapshot-grid.single-event {
+  grid-template-columns: minmax(120px, 1fr) minmax(86px, 0.48fr);
+}
+
+.snapshot-grid-head {
+  padding: 0 8px 2px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.snapshot-grid-head:not(.member-name) {
+  text-align: center;
+}
+
+.snapshot-member-row {
+  display: contents;
+}
+
+.snapshot-member-row > strong,
+.snapshot-member-row > .snapshot-status {
+  min-height: 34px;
+  border: 1px solid rgba(47, 145, 181, 0.13);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.snapshot-member-row > strong {
+  overflow: hidden;
+  border-radius: 6px 0 0 6px;
+  padding: 8px 10px;
+  color: var(--ink);
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snapshot-member-row.all-present > strong {
+  background: rgba(234, 248, 245, 0.9);
+}
+
+.snapshot-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.snapshot-status.present {
+  background: rgba(226, 247, 252, 0.92);
+  color: var(--accent-dark);
+}
+
+.snapshot-status.absent {
+  background: rgba(250, 239, 239, 0.92);
+  color: var(--danger);
+}
+
+.snapshot-status.excused {
+  background: rgba(236, 248, 244, 0.92);
+  color: #2e7d63;
+}
+
+.snapshot-status:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.snapshot-empty-row {
+  grid-column: 1 / -1;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+}
+
 .event-toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px);
@@ -3657,6 +3809,14 @@ tbody tr:hover {
     grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
   }
 
+  .group-attendance-snapshot-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .snapshot-mini-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .group-edit-form {
     grid-template-columns: 1fr;
   }
@@ -4018,6 +4178,28 @@ tbody tr:hover {
 
   .attendance-type-actions {
     grid-template-columns: 1fr;
+  }
+
+  .group-attendance-snapshot {
+    padding: 10px;
+  }
+
+  .group-attendance-snapshot-grid.two-events {
+    grid-template-columns: minmax(94px, 1fr) repeat(2, minmax(64px, 0.46fr));
+  }
+
+  .group-attendance-snapshot-grid.single-event {
+    grid-template-columns: minmax(94px, 1fr) minmax(70px, 0.46fr);
+  }
+
+  .snapshot-member-row > strong {
+    padding: 7px 8px;
+    font-size: 0.82rem;
+  }
+
+  .snapshot-status {
+    padding: 0 5px;
+    font-size: 0.72rem;
   }
 
   .link-card a {
