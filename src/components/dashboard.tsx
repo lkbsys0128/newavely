@@ -151,7 +151,7 @@ export function DashboardOverview({
             <p className="eyebrow">빠른 출석 체크</p>
             <h2>내 순 출석 바로가기</h2>
             <p className="meta">
-              {ownGroup.name} · {attendanceShortcutEvent.eventDate} · {attendanceShortcutEvent.title}
+              {ownGroup.name} · {attendanceShortcutEvent.eventDate}
             </p>
           </div>
           <Link

@@ -367,6 +367,8 @@ test("attendance checklist uses roster members and exposes search filters", () =
 test("dashboard gives leaders a mobile shortcut to their group attendance", () => {
   assert.match(dashboardSource, /mobile-attendance-shortcut/);
   assert.match(dashboardSource, /chooseAttendanceShortcutEvent/);
+  assert.match(dashboardSource, /\{ownGroup\.name\} · \{attendanceShortcutEvent\.eventDate\}/);
+  assert.doesNotMatch(dashboardSource, /\{ownGroup\.name\} · \{attendanceShortcutEvent\.eventDate\} · \{attendanceShortcutEvent\.title\}/);
   assert.match(dashboardSource, /groupId=\$\{ownGroup\.id\}&mode=group#attendance-checklist/);
   assert.match(globalCssSource, /mobile-attendance-shortcut/);
 });
