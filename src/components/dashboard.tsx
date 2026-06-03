@@ -2118,6 +2118,7 @@ export function AttendanceManager({
       : attendanceGroupId === "unassigned"
         ? "미배정"
         : groups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
+  const shouldShowAttendanceOverview = attendanceGroupId !== "all" && attendanceGroupId !== "unassigned";
   const attendanceOverviewEvents = sameDateEvents
     .filter((event) => event.title === "주일 예배" || event.title === "순모임")
     .sort((a, b) => (a.title === "주일 예배" ? -1 : 1) - (b.title === "주일 예배" ? -1 : 1));
@@ -2540,7 +2541,7 @@ export function AttendanceManager({
           </div>
           </div>
         </div>
-        {attendanceOverviewEvents.length > 0 ? (
+        {shouldShowAttendanceOverview && attendanceOverviewEvents.length > 0 ? (
           <section className="group-attendance-snapshot" aria-label={`${overviewGroupName} 출석현황`}>
             <div className="group-attendance-snapshot-heading">
               <div>
