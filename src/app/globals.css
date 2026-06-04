@@ -17,6 +17,10 @@
   --soft-strong: #d9f0f6;
   --shadow: 0 10px 24px rgba(23, 51, 59, 0.055);
   --shadow-soft: 0 5px 14px rgba(47, 145, 181, 0.09);
+  --motion-fast: 140ms;
+  --motion-medium: 220ms;
+  --motion-slow: 320ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 :root[data-theme="dark"] {
@@ -59,6 +63,11 @@ body {
     sans-serif;
   word-break: keep-all;
   overflow-wrap: break-word;
+}
+
+.page-transition {
+  min-width: 0;
+  animation: pageEnter var(--motion-slow) var(--motion-ease) both;
 }
 
 [id] {
@@ -593,6 +602,10 @@ a {
   padding: 14px 16px 16px;
 }
 
+.notification-bar[open] .notification-list {
+  animation: revealDown var(--motion-medium) var(--motion-ease) both;
+}
+
 .notification-item {
   display: grid;
   gap: 3px;
@@ -850,6 +863,13 @@ h3 {
   padding: 16px;
 }
 
+.disclosure-panel[open] .disclosure-body,
+.advanced-field[open] label,
+.reason-details[open] .reason-form,
+.audit-details[open] pre {
+  animation: revealDown var(--motion-medium) var(--motion-ease) both;
+}
+
 .search-field,
 .member-form label,
 .management-form label,
@@ -1091,6 +1111,11 @@ h3 {
   border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow);
+  transition:
+    border-color var(--motion-medium) var(--motion-ease),
+    background var(--motion-medium) var(--motion-ease),
+    box-shadow var(--motion-medium) var(--motion-ease),
+    transform var(--motion-medium) var(--motion-ease);
 }
 
 .metric-card {
@@ -1140,6 +1165,15 @@ h3 {
 .panel {
   padding: 16px;
   background: rgba(255, 255, 255, 0.96);
+}
+
+.panel:hover,
+.metric-card:hover,
+.group-card:hover,
+.link-card:hover,
+.mini-roster-card:hover,
+.upcoming-birthday-card:hover {
+  border-color: var(--line-strong);
 }
 
 .member-status-board {
@@ -1700,6 +1734,11 @@ h3 {
   border-radius: 8px;
   padding: 12px;
   background: var(--surface-strong);
+  transition:
+    border-color var(--motion-medium) var(--motion-ease),
+    background var(--motion-medium) var(--motion-ease),
+    box-shadow var(--motion-medium) var(--motion-ease),
+    transform var(--motion-medium) var(--motion-ease);
 }
 
 .care-item:hover,
@@ -4636,6 +4675,41 @@ tbody tr:hover {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
   }
 }
 
