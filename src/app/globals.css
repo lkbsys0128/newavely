@@ -251,9 +251,9 @@ a {
 }
 
 .theme-toggle {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   width: 100%;
   min-height: 42px;
@@ -275,7 +275,8 @@ a {
 }
 
 .theme-toggle-copy {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
   gap: 9px;
   min-width: 0;
@@ -305,8 +306,7 @@ a {
 
 .theme-toggle-switch {
   position: relative;
-  display: inline-flex;
-  align-items: center;
+  display: block;
   flex: 0 0 auto;
   width: 38px;
   height: 22px;
@@ -320,12 +320,14 @@ a {
 
 .theme-toggle-switch span {
   position: absolute;
+  top: 50%;
   left: 4px;
   width: 14px;
   height: 14px;
   border-radius: 999px;
   background: var(--accent);
   box-shadow: var(--shadow-soft);
+  transform: translateY(-50%);
   transition:
     background 160ms ease,
     transform 180ms ease;
@@ -341,7 +343,7 @@ a {
 
 :root[data-theme="dark"] .theme-toggle-switch span {
   background: var(--accent-dark);
-  transform: translateX(16px);
+  transform: translate(16px, -50%);
 }
 
 .google-button,
@@ -4900,8 +4902,34 @@ tbody tr:hover {
   color: #ffffff;
 }
 
+:root[data-theme="dark"] .member-status-card {
+  border-color: rgba(117, 199, 219, 0.2);
+  background: #14262c;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .member-status-card:hover {
+  border-color: rgba(117, 199, 219, 0.36);
+  background: #182e35;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="dark"] .member-status-card p {
+  color: #f2fbfc;
+}
+
+:root[data-theme="dark"] .member-status-card strong {
+  color: #f2fbfc;
+}
+
+:root[data-theme="dark"] .member-status-card span,
+:root[data-theme="dark"] .member-status-card time {
+  color: #9fb6bd;
+}
+
 :root[data-theme="dark"] .feedback-item,
 :root[data-theme="dark"] .feedback-admin-form,
+:root[data-theme="dark"] .link-delete-form,
 :root[data-theme="dark"] .care-item,
 :root[data-theme="dark"] .summary-row,
 :root[data-theme="dark"] .attendance-row,
@@ -4938,6 +4966,7 @@ tbody tr:hover {
 :root[data-theme="dark"] .aggregate-group-row,
 :root[data-theme="dark"] .absence-watch-row,
 :root[data-theme="dark"] .dashboard-rate-pill,
+:root[data-theme="dark"] .snapshot-mini-metrics article,
 :root[data-theme="dark"] .merge-choice-row,
 :root[data-theme="dark"] .ministry-label-editor,
 :root[data-theme="dark"] .link-request-summary,
@@ -4946,7 +4975,8 @@ tbody tr:hover {
 :root[data-theme="dark"] .onboarding-request-admin,
 :root[data-theme="dark"] .group-card-overview div,
 :root[data-theme="dark"] .attendance-toolbar,
-:root[data-theme="dark"] .event-toolbar {
+:root[data-theme="dark"] .event-toolbar,
+:root[data-theme="dark"] .event-switcher {
   background: var(--surface-strong);
 }
 
@@ -4983,6 +5013,26 @@ tbody tr:hover {
 :root[data-theme="dark"] .role-member-overlay {
   background: var(--surface-strong);
   color: var(--ink);
+}
+
+:root[data-theme="dark"] .theme-toggle-mark,
+:root[data-theme="dark"] .statistics-table-row,
+:root[data-theme="dark"] .snapshot-member-row > strong,
+:root[data-theme="dark"] .snapshot-member-row > .snapshot-status {
+  background: #14262c;
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .snapshot-grid-head,
+:root[data-theme="dark"] .snapshot-mini-metrics span,
+:root[data-theme="dark"] .snapshot-mini-metrics small {
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .snapshot-mini-metrics strong,
+:root[data-theme="dark"] .statistics-table-row span:first-child,
+:root[data-theme="dark"] .group-card-overview strong {
+  color: var(--accent-dark);
 }
 
 :root[data-theme="dark"] .status-pill,
