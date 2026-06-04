@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MobileAwareNav } from "@/components/mobile-aware-nav";
 import { SignOutButton } from "@/components/sign-out-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import "./globals.css";
 
@@ -13,10 +14,25 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const authEnabled = hasSupabaseEnv();
+  const themeScript = `
+    (() => {
+      try {
+        const savedTheme = localStorage.getItem("newavely-theme");
+        const theme = savedTheme === "light" || savedTheme === "dark"
+          ? savedTheme
+          : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      } catch {
+        document.documentElement.dataset.theme = "light";
+      }
+    })();
+  `;
 
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <div className="app-shell">
           <aside className="sidebar" aria-label="주요 메뉴">
             <Link className="brand" href="/" aria-label="대시보드로 이동">
@@ -36,6 +52,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <MobileAwareNav />
 
               <div className="auth-card" aria-label="계정 메뉴">
+                <ThemeToggle />
                 <SignOutButton enabled={authEnabled} />
               </div>
             </div>

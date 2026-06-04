@@ -4,6 +4,7 @@
   --surface: #ffffff;
   --surface-strong: #ffffff;
   --ink: #17333b;
+  --text: #17333b;
   --muted: #647b82;
   --line: #d8e6ea;
   --line-strong: #bfd5dc;
@@ -16,6 +17,27 @@
   --soft-strong: #d9f0f6;
   --shadow: 0 10px 24px rgba(23, 51, 59, 0.055);
   --shadow-soft: 0 5px 14px rgba(47, 145, 181, 0.09);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #071418;
+  --surface: #0d2026;
+  --surface-strong: #122a31;
+  --ink: #e8f3f6;
+  --text: #e8f3f6;
+  --muted: #9fb8bf;
+  --line: #24434c;
+  --line-strong: #315864;
+  --accent: #5bb6d1;
+  --accent-dark: #84d3e8;
+  --accent-2: #ef7d7d;
+  --danger: #ef7d7d;
+  --accent-3: #6bd3be;
+  --soft: #12313a;
+  --soft-strong: #193f4a;
+  --shadow: 0 14px 34px rgba(0, 0, 0, 0.32);
+  --shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.24);
 }
 
 * {
@@ -225,6 +247,66 @@ a {
 .auth-card {
   margin-top: auto;
   display: grid;
+  gap: 10px;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.theme-toggle:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--soft);
+  color: var(--accent-dark);
+}
+
+.theme-toggle-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 34px;
+  height: 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--soft);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.theme-toggle-icon span {
+  position: absolute;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: var(--shadow-soft);
+  transition:
+    background 160ms ease,
+    transform 180ms ease;
+}
+
+:root[data-theme="dark"] .theme-toggle-icon {
+  background: rgba(91, 182, 209, 0.18);
+}
+
+:root[data-theme="dark"] .theme-toggle-icon span {
+  background: var(--accent-dark);
+  transform: translateX(14px);
 }
 
 .google-button,
@@ -4634,4 +4716,258 @@ tbody tr:hover {
 .mini-roster-card,
 .upcoming-birthday-card {
   box-shadow: 0 8px 18px rgba(23, 51, 59, 0.045);
+}
+
+:root[data-theme="dark"] body {
+  background:
+    linear-gradient(180deg, rgba(91, 182, 209, 0.09), transparent 260px),
+    var(--bg);
+}
+
+:root[data-theme="dark"] .sidebar {
+  background: rgba(9, 24, 29, 0.95);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme="dark"] .brand-mark,
+:root[data-theme="dark"] .google-button,
+:root[data-theme="dark"] .sign-out-button,
+:root[data-theme="dark"] .login-mark,
+:root[data-theme="dark"] .login-chips span,
+:root[data-theme="dark"] .notification-bar summary:hover strong,
+:root[data-theme="dark"] .request-count-pill,
+:root[data-theme="dark"] .disclosure-indicator,
+:root[data-theme="dark"] .search-field input,
+:root[data-theme="dark"] .member-form input,
+:root[data-theme="dark"] .member-form select,
+:root[data-theme="dark"] .management-form input,
+:root[data-theme="dark"] .management-form select,
+:root[data-theme="dark"] .management-form textarea,
+:root[data-theme="dark"] .filter-grid select,
+:root[data-theme="dark"] .link-request-resolution input,
+:root[data-theme="dark"] .link-request-resolution select,
+:root[data-theme="dark"] .role-management-row select,
+:root[data-theme="dark"] .reason-form input,
+:root[data-theme="dark"] .reason-form select,
+:root[data-theme="dark"] .reason-form textarea,
+:root[data-theme="dark"] .attendance-stats-toolbar select,
+:root[data-theme="dark"] .attendance-check-toolbar input,
+:root[data-theme="dark"] .attendance-check-toolbar select,
+:root[data-theme="dark"] .attendance-toolbar input,
+:root[data-theme="dark"] .attendance-toolbar select,
+:root[data-theme="dark"] .event-toolbar input,
+:root[data-theme="dark"] .event-toolbar select,
+:root[data-theme="dark"] .event-selector-panel select {
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .google-button {
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .nav-list a,
+:root[data-theme="dark"] .sign-out-button,
+:root[data-theme="dark"] .section-nav a {
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .nav-list a:hover,
+:root[data-theme="dark"] .sign-out-button:hover:not(:disabled),
+:root[data-theme="dark"] .section-nav a:hover,
+:root[data-theme="dark"] .section-nav a:focus-visible {
+  color: var(--accent-dark);
+}
+
+:root[data-theme="dark"] .login-card,
+:root[data-theme="dark"] .notification-bar,
+:root[data-theme="dark"] .section-nav,
+:root[data-theme="dark"] .link-request-section,
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .member-status-board,
+:root[data-theme="dark"] .mobile-attendance-shortcut,
+:root[data-theme="dark"] .status-composer-panel,
+:root[data-theme="dark"] .link-hero,
+:root[data-theme="dark"] .feedback-hero,
+:root[data-theme="dark"] .link-card,
+:root[data-theme="dark"] .group-card,
+:root[data-theme="dark"] .attendance-aggregate-panel,
+:root[data-theme="dark"] .group-attendance-snapshot {
+  background:
+    linear-gradient(180deg, rgba(91, 182, 209, 0.08), transparent 86px),
+    var(--surface);
+}
+
+:root[data-theme="dark"] .feedback-item,
+:root[data-theme="dark"] .feedback-admin-form,
+:root[data-theme="dark"] .care-item,
+:root[data-theme="dark"] .summary-row,
+:root[data-theme="dark"] .attendance-row,
+:root[data-theme="dark"] .history-row,
+:root[data-theme="dark"] .permission-row,
+:root[data-theme="dark"] .detail-row,
+:root[data-theme="dark"] .audit-row,
+:root[data-theme="dark"] .definition-row,
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .link-request-card,
+:root[data-theme="dark"] .role-management-row,
+:root[data-theme="dark"] .event-selector-panel,
+:root[data-theme="dark"] .event-chip,
+:root[data-theme="dark"] .attendance-card,
+:root[data-theme="dark"] .attendance-trend-card,
+:root[data-theme="dark"] .attendance-compare-card,
+:root[data-theme="dark"] .statistics-table-card,
+:root[data-theme="dark"] .statistics-chart-card,
+:root[data-theme="dark"] .mini-roster-card,
+:root[data-theme="dark"] .upcoming-birthday-card,
+:root[data-theme="dark"] .group-modal-member-row,
+:root[data-theme="dark"] .role-member-overlay-item,
+:root[data-theme="dark"] .duplicate-card,
+:root[data-theme="dark"] .confirm-modal {
+  background: var(--surface);
+}
+
+:root[data-theme="dark"] .request-empty-state,
+:root[data-theme="dark"] .event-create-note,
+:root[data-theme="dark"] .attendance-selection-empty,
+:root[data-theme="dark"] .attendance-kpi-strip article,
+:root[data-theme="dark"] .attendance-compare-row,
+:root[data-theme="dark"] .attendance-mini-summary,
+:root[data-theme="dark"] .aggregate-group-row,
+:root[data-theme="dark"] .absence-watch-row,
+:root[data-theme="dark"] .dashboard-rate-pill,
+:root[data-theme="dark"] .merge-choice-row,
+:root[data-theme="dark"] .ministry-label-editor,
+:root[data-theme="dark"] .link-request-summary,
+:root[data-theme="dark"] .onboarding-search,
+:root[data-theme="dark"] .onboarding-candidate,
+:root[data-theme="dark"] .onboarding-request-admin,
+:root[data-theme="dark"] .group-card-overview div,
+:root[data-theme="dark"] .attendance-toolbar,
+:root[data-theme="dark"] .event-toolbar {
+  background: var(--surface-strong);
+}
+
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .statistics-table-card,
+:root[data-theme="dark"] .statistics-chart-card,
+:root[data-theme="dark"] .group-card,
+:root[data-theme="dark"] .mini-roster-card,
+:root[data-theme="dark"] .upcoming-birthday-card {
+  box-shadow: var(--shadow);
+}
+
+:root[data-theme="dark"] .care-item:hover,
+:root[data-theme="dark"] .summary-row:hover,
+:root[data-theme="dark"] .attendance-row:hover,
+:root[data-theme="dark"] .history-row:hover,
+:root[data-theme="dark"] .permission-row:hover,
+:root[data-theme="dark"] .detail-row:hover,
+:root[data-theme="dark"] tbody tr:hover {
+  background: var(--surface-strong);
+}
+
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] .statistics-table-group strong,
+:root[data-theme="dark"] .mobile-menu-toggle,
+:root[data-theme="dark"] .segment,
+:root[data-theme="dark"] .member-chip,
+:root[data-theme="dark"] .insight-member-chip,
+:root[data-theme="dark"] .ministry-label-chip span,
+:root[data-theme="dark"] .attendance-group-chip,
+:root[data-theme="dark"] .permission-chip,
+:root[data-theme="dark"] .audit-details pre,
+:root[data-theme="dark"] .role-member-overlay {
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .status-pill,
+:root[data-theme="dark"] .status-counter.urgent,
+:root[data-theme="dark"] .feedback-category.bug,
+:root[data-theme="dark"] .attendance-toggle.absent,
+:root[data-theme="dark"] .snapshot-status.absent {
+  background: rgba(239, 125, 125, 0.14);
+  color: #ffaaaa;
+}
+
+:root[data-theme="dark"] .status-pill.active,
+:root[data-theme="dark"] .attendance-pill.present,
+:root[data-theme="dark"] .role-pill,
+:root[data-theme="dark"] .account-pill.connected,
+:root[data-theme="dark"] .attendance-toggle.present,
+:root[data-theme="dark"] .snapshot-status.present {
+  background: rgba(91, 182, 209, 0.16);
+  color: var(--accent-dark);
+}
+
+:root[data-theme="dark"] .attendance-pill,
+:root[data-theme="dark"] .account-pill,
+:root[data-theme="dark"] .feedback-status,
+:root[data-theme="dark"] .feedback-category.question {
+  background: rgba(159, 184, 191, 0.12);
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .attendance-pill.excused,
+:root[data-theme="dark"] .attendance-toggle.excused,
+:root[data-theme="dark"] .snapshot-status.excused,
+:root[data-theme="dark"] .feedback-status.resolved {
+  background: rgba(107, 211, 190, 0.14);
+  color: var(--accent-3);
+}
+
+:root[data-theme="dark"] .attendance-card.present {
+  background: linear-gradient(90deg, rgba(91, 182, 209, 0.18), rgba(13, 32, 38, 0.96) 42%);
+}
+
+:root[data-theme="dark"] .attendance-card.absent {
+  background: var(--surface);
+}
+
+:root[data-theme="dark"] .attendance-card.excused,
+:root[data-theme="dark"] .snapshot-member-row.all-present > strong {
+  background: linear-gradient(90deg, rgba(107, 211, 190, 0.14), rgba(13, 32, 38, 0.96) 42%);
+}
+
+:root[data-theme="dark"] .attendance-type-action,
+:root[data-theme="dark"] .attendance-toggle,
+:root[data-theme="dark"] .snapshot-member-row > strong,
+:root[data-theme="dark"] .snapshot-member-row > .snapshot-status,
+:root[data-theme="dark"] .reason-details,
+:root[data-theme="dark"] .snapshot-empty-row {
+  background: rgba(18, 42, 49, 0.9);
+}
+
+:root[data-theme="dark"] .link-icon.youtube,
+:root[data-theme="dark"] .feedback-status.closed,
+:root[data-theme="dark"] .danger-zone-form,
+:root[data-theme="dark"] .rejected-state {
+  background: rgba(239, 125, 125, 0.1);
+}
+
+:root[data-theme="dark"] .link-icon.instagram {
+  background: rgba(162, 119, 216, 0.14);
+}
+
+:root[data-theme="dark"] .link-icon.links {
+  background: rgba(107, 211, 190, 0.12);
+}
+
+:root[data-theme="dark"] .progress,
+:root[data-theme="dark"] .statistics-bar-track {
+  background: #1b3a43;
+}
+
+:root[data-theme="dark"] .member-detail-backdrop,
+:root[data-theme="dark"] .confirm-modal-backdrop {
+  background: rgba(2, 8, 10, 0.64);
+}
+
+@media (max-width: 760px) {
+  :root[data-theme="dark"] .sidebar {
+    background: rgba(9, 24, 29, 0.92);
+  }
 }
