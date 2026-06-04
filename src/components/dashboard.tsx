@@ -2118,6 +2118,11 @@ export function AttendanceManager({
       : attendanceGroupId === "unassigned"
         ? "미배정"
         : groups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
+  const attendanceGroupOptions = [
+    { id: "all", name: "전체" },
+    ...groups.map((group) => ({ id: group.id, name: group.name })),
+    { id: "unassigned", name: "미배정" },
+  ];
   const shouldShowAttendanceOverview = attendanceGroupId !== "all" && attendanceGroupId !== "unassigned";
   const attendanceOverviewEvents = sameDateEvents
     .filter((event) => event.title === "주일 예배" || event.title === "순모임")
@@ -2526,6 +2531,18 @@ export function AttendanceManager({
           </div>
           </div>
         </div>
+        <div className="attendance-group-strip" aria-label="순 선택">
+          {attendanceGroupOptions.map((group) => (
+            <button
+              className={`attendance-group-chip ${attendanceGroupId === group.id ? "active" : ""}`}
+              key={group.id}
+              onClick={() => setAttendanceGroupId(group.id)}
+              type="button"
+            >
+              {group.name}
+            </button>
+          ))}
+        </div>
         {shouldShowAttendanceOverview && attendanceOverviewEvents.length > 0 ? (
           <section className="group-attendance-snapshot" aria-label={`${overviewGroupName} 출석현황`}>
             <div className="group-attendance-snapshot-heading">
@@ -2597,18 +2614,6 @@ export function AttendanceManager({
               type="search"
               value={attendanceSearchQuery}
             />
-          </label>
-          <label>
-            순
-            <select onChange={(event) => setAttendanceGroupId(event.target.value)} value={attendanceGroupId}>
-              <option value="all">전체 순</option>
-              <option value="unassigned">미배정</option>
-              {groups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </select>
           </label>
         </div>
         <div className="attendance-check-list">

@@ -3222,9 +3222,41 @@ tbody tr:hover {
   flex-wrap: wrap;
 }
 
+.attendance-group-strip {
+  display: flex;
+  gap: 7px;
+  margin: -4px 0 14px;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: thin;
+}
+
+.attendance-group-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.attendance-group-chip.active {
+  border-color: rgba(47, 145, 181, 0.35);
+  background: var(--accent-dark);
+  color: #ffffff;
+  box-shadow: var(--shadow-soft);
+}
+
 .attendance-toolbar {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
+  grid-template-columns: minmax(220px, 1fr);
   gap: 12px;
   margin-bottom: 14px;
   border: 1px solid var(--line);
@@ -3285,17 +3317,18 @@ tbody tr:hover {
 
 .snapshot-mini-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(4, minmax(64px, 1fr));
+  gap: 7px;
 }
 
 .snapshot-mini-metrics article {
   display: grid;
   align-content: center;
-  gap: 3px;
+  gap: 2px;
   border: 1px solid rgba(47, 145, 181, 0.16);
   border-radius: 6px;
-  padding: 9px 10px;
+  min-width: 0;
+  padding: 8px;
   background: rgba(255, 255, 255, 0.84);
 }
 
@@ -3303,7 +3336,7 @@ tbody tr:hover {
 .snapshot-mini-metrics small {
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3311,7 +3344,7 @@ tbody tr:hover {
 
 .snapshot-mini-metrics strong {
   color: var(--accent-dark);
-  font-size: 1.12rem;
+  font-size: 1.05rem;
   line-height: 1;
 }
 
@@ -3849,10 +3882,6 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
-  .snapshot-mini-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .group-edit-form {
     grid-template-columns: 1fr;
   }
@@ -4242,6 +4271,23 @@ tbody tr:hover {
 
   .group-attendance-snapshot {
     padding: 10px;
+  }
+
+  .snapshot-mini-metrics {
+    gap: 5px;
+  }
+
+  .snapshot-mini-metrics article {
+    padding: 7px 6px;
+  }
+
+  .snapshot-mini-metrics span,
+  .snapshot-mini-metrics small {
+    font-size: 0.62rem;
+  }
+
+  .snapshot-mini-metrics strong {
+    font-size: 0.98rem;
   }
 
   .group-attendance-snapshot-grid.two-events {
