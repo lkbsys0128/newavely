@@ -63,6 +63,8 @@ export function MemberDetailPageContent({
   showLinkRequest?: boolean;
 }) {
   const canManageMembers = hasPermission(user.role, "members:write");
+  const isOwnProfile = member.authUserId === user.id || Boolean(member.email && member.email === user.email);
+  const canEditProfile = canManageMembers || isOwnProfile;
   const canManageDefinitions = hasPermission(user.role, "roles:manage");
   const canManageRoles = hasPermission(user.role, "roles:manage");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
@@ -109,7 +111,6 @@ export function MemberDetailPageContent({
     typeof member.customFields.google_account_name === "string" ? member.customFields.google_account_name : "";
   const currentMemberLinkRequests = memberLinkRequests.filter((request) => request.requesterMemberId === member.id);
   const currentStatusMessage = memberStatusMessages.find((message) => message.memberId === member.id)?.message ?? "";
-  const isOwnProfile = member.authUserId === user.id || Boolean(member.email && member.email === user.email);
   const pendingLinkRequest = currentMemberLinkRequests.find(isActionableLinkRequest);
   const rejectedLinkRequest = currentMemberLinkRequests.find((request) => request.status === "rejected");
   const linkableMembers = assignableMembers.filter((item) => item.id !== member.id && !item.authUserId);
@@ -200,30 +201,30 @@ export function MemberDetailPageContent({
         <section className="panel" id="basic-info">
           <div className="panel-heading">
             <h2>기본 정보</h2>
-            <span>{canManageMembers ? "수정 가능" : "읽기 전용"}</span>
+            <span>{canEditProfile ? "수정 가능" : "읽기 전용"}</span>
           </div>
           <form action={profileAction} className="management-form">
             <input name="id" type="hidden" value={member.id} />
             <label>
               한국 이름
-              <input name="name" required defaultValue={member.name} disabled={!canManageMembers} />
+              <input name="name" required defaultValue={member.name} disabled={!canEditProfile} />
             </label>
             <label>
               영어 이름
               <input
                 name="englishName"
                 defaultValue={typeof member.customFields.english_name === "string" ? member.customFields.english_name : ""}
-                disabled={!canManageMembers}
+                disabled={!canEditProfile}
                 placeholder="예: Daniel"
               />
             </label>
             <label>
               이메일
-              <input name="email" type="email" defaultValue={member.email} disabled={!canManageMembers} />
+              <input name="email" type="email" defaultValue={member.email} disabled={!canEditProfile} />
             </label>
             <label>
               연락처
-              <input name="phone" required defaultValue={member.phone} disabled={!canManageMembers} />
+              <input name="phone" required defaultValue={member.phone} disabled={!canEditProfile} />
             </label>
             <label>
               순
@@ -235,6 +236,7 @@ export function MemberDetailPageContent({
                   </option>
                 ))}
               </select>
+              {!canManageMembers ? <input name="groupId" type="hidden" value={member.groupId ?? ""} /> : null}
             </label>
             <label>
               역할
@@ -245,6 +247,7 @@ export function MemberDetailPageContent({
                   </option>
                 ))}
               </select>
+              {!canManageRoles ? <input name="role" type="hidden" value={member.role} /> : null}
             </label>
             <label>
               상태
@@ -254,22 +257,23 @@ export function MemberDetailPageContent({
                 <option value="care">돌봄 필요</option>
                 <option value="inactive">비활성화</option>
               </select>
+              {!canManageMembers ? <input name="status" type="hidden" value={member.status} /> : null}
             </label>
             <label>
               주소
-              <input name="address" defaultValue={member.address} disabled={!canManageMembers} />
+              <input name="address" defaultValue={member.address} disabled={!canEditProfile} />
             </label>
             <label>
               세례/등록
-              <BaptismStatusSelect value={member.baptismStatus} disabled={!canManageMembers} />
+              <BaptismStatusSelect value={member.baptismStatus} disabled={!canEditProfile} />
             </label>
             <label className="full-width">
-              돌봄 메모
-              <textarea name="notes" defaultValue={member.notes} disabled={!canManageMembers} />
+              메모
+              <textarea name="notes" defaultValue={member.notes} disabled={!canEditProfile} />
             </label>
             <div className="form-actions full-width">
               <ActionMessage state={profileState} />
-              <button className="primary-button" type="submit" disabled={!canManageMembers || isSavingProfile}>
+              <button className="primary-button" type="submit" disabled={!canEditProfile || isSavingProfile}>
                 저장
               </button>
             </div>
@@ -300,7 +304,7 @@ export function MemberDetailPageContent({
                       type="checkbox"
                       value={ministry}
                       defaultChecked={selectedMinistries.includes(ministry)}
-                      disabled={!canManageMembers}
+                      disabled={!canEditProfile}
                     />
                     <span>{ministry}</span>
                   </label>
@@ -315,7 +319,7 @@ export function MemberDetailPageContent({
                   field={field}
                   value={member.customFields[field.key]}
                   customFields={member.customFields}
-                  disabled={!canManageMembers}
+                  disabled={!canEditProfile}
                 />
               </label>
             ))}
@@ -332,7 +336,7 @@ export function MemberDetailPageContent({
               <button
                 className="primary-button"
                 type="submit"
-                disabled={!canManageMembers || isSavingCustomFields}
+                disabled={!canEditProfile || isSavingCustomFields}
               >
                 추가 정보 저장
               </button>

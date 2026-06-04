@@ -468,7 +468,7 @@ export async function createMember(_previousState: ActionState, formData: FormDa
 
 export async function updateMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:read");
 
     const parsed = updateMemberSchema.parse({
       id: formData.get("id"),
@@ -491,6 +491,11 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
       .single();
 
     if (beforeError) throw beforeError;
+    const isOwnProfileUpdate = currentMember.id === parsed.id;
+    const canManageMembers = hasPermission(currentMember.role, "members:write");
+    if (!canManageMembers && !isOwnProfileUpdate) {
+      throw new Error("본인 프로필만 수정할 수 있습니다.");
+    }
     const splitName = splitCompositeMemberName(parsed.name);
     const existingCustomFields =
       beforeData && typeof beforeData === "object" && "custom_fields" in beforeData
@@ -508,6 +513,8 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
       throw new Error("최고 관리자 권한은 최고 관리자만 변경할 수 있습니다.");
     }
     const nextRole = canManageRoles ? requestedRole : currentRole;
+    const nextGroupId = canManageMembers ? parsed.groupId : (beforeData.group_id as string | null);
+    const nextStatus = canManageMembers ? parsed.status : (beforeData.status as "active" | "new" | "care" | "inactive");
     if (nextRole !== currentRole) {
       const [
         { count: activeAdminCount, error: activeAdminCountError },
@@ -536,9 +543,9 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
       .update({
         name: splitName.koreanName,
         phone: parsed.phone,
-        group_id: parsed.groupId,
+        group_id: nextGroupId,
         role: nextRole,
-        status: parsed.status,
+        status: nextStatus,
         email: parsed.email,
         address: parsed.address,
         baptism_status: parsed.baptismStatus,
@@ -1142,7 +1149,7 @@ export async function updateMemberRole(_previousState: ActionState, formData: Fo
 
 export async function updateMemberCustomFields(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:read");
     const id = z.string().uuid().parse(formData.get("id"));
     const customFields: Record<string, unknown> = {};
 
@@ -1159,6 +1166,9 @@ export async function updateMemberCustomFields(_previousState: ActionState, form
 
     const { data: beforeData, error: beforeError } = await supabase.from("members").select("*").eq("id", id).single();
     if (beforeError) throw beforeError;
+    if (!hasPermission(currentMember.role, "members:write") && currentMember.id !== id) {
+      throw new Error("본인 추가 정보만 수정할 수 있습니다.");
+    }
     const existingCustomFields =
       beforeData && typeof beforeData === "object" && "custom_fields" in beforeData
         ? ((beforeData.custom_fields as Record<string, unknown> | null) ?? {})

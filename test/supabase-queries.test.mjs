@@ -564,7 +564,7 @@ test("member status messages are short self-managed dashboard updates", () => {
   assert.match(dashboardSource, /MemberStatusBoard/);
   assert.match(dashboardSource, /오늘의 한마디/);
   assert.match(memberDetailSource, /MemberStatusComposer/);
-  assert.match(appGateSource, /MemberStatusComposer/);
+  assert.doesNotMatch(appGateSource, /data\.user\.role === "member"/);
   assert.match(memberStatusComposerSource, /quickStatusMessages/);
   assert.match(memberStatusComposerSource, /textarea/);
   assert.match(memberStatusComposerSource, /비우기/);
@@ -572,6 +572,27 @@ test("member status messages are short self-managed dashboard updates", () => {
   assert.match(globalCssSource, /status-composer-panel/);
   assert.match(globalCssSource, /status-quick-list/);
   assert.match(globalCssSource, /status-input-shell/);
+});
+
+test("member role can self-serve profile groups and attendance without admin controls", () => {
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("members:read"\)/);
+  assert.match(actionsSource, /isOwnProfileUpdate/);
+  assert.match(actionsSource, /본인 프로필만 수정할 수 있습니다/);
+  assert.match(actionsSource, /nextGroupId = canManageMembers \? parsed\.groupId : \(beforeData\.group_id as string \| null\)/);
+  assert.match(actionsSource, /nextStatus = canManageMembers \? parsed\.status : \(beforeData\.status as "active" \| "new" \| "care" \| "inactive"\)/);
+  assert.match(actionsSource, /본인 추가 정보만 수정할 수 있습니다/);
+  assert.match(memberDetailSource, /canEditProfile/);
+  assert.match(memberDetailSource, /disabled=\{!canEditProfile\}/);
+  assert.match(memberDetailSource, /<input name="groupId" type="hidden"/);
+  assert.match(memberDetailSource, /<input name="role" type="hidden"/);
+  assert.match(memberDetailSource, /<input name="status" type="hidden"/);
+  assert.match(dashboardSource, /const isMemberView = user\.role === "member"/);
+  assert.match(dashboardSource, /visibleGroups/);
+  assert.match(dashboardSource, /user\.role !== "member" \|\| member\.id === currentAttendanceMember\?\.id/);
+  assert.match(schemaSource, /current_member_group_id/);
+  assert.match(schemaSource, /users can update their own member profile/);
+  assert.match(schemaSource, /role = 'member'::member_role/);
+  assert.match(schemaSource, /group_id is not distinct from current_member_group_id\(\)/);
 });
 
 test("admin feedback inbox lets users message admins and admins update status", () => {
