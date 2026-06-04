@@ -50,12 +50,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       type="button"
     >
-      <span className="theme-toggle-copy">
-        <span className="theme-toggle-mark" aria-hidden="true">
-          {isDark ? "D" : "L"}
-        </span>
-        <span>{isDark ? "다크 모드" : "라이트 모드"}</span>
-      </span>
+      <span className="theme-toggle-copy">{isDark ? "다크 모드" : "라이트 모드"}</span>
       <span className="theme-toggle-switch" aria-hidden="true">
         <span />
       </span>
