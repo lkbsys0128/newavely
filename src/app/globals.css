@@ -251,9 +251,9 @@ a {
 }
 
 .theme-toggle {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   width: 100%;
   min-height: 42px;
@@ -275,7 +275,8 @@ a {
 }
 
 .theme-toggle-copy {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
   gap: 9px;
   min-width: 0;
@@ -305,8 +306,7 @@ a {
 
 .theme-toggle-switch {
   position: relative;
-  display: inline-flex;
-  align-items: center;
+  display: block;
   flex: 0 0 auto;
   width: 38px;
   height: 22px;
@@ -320,12 +320,14 @@ a {
 
 .theme-toggle-switch span {
   position: absolute;
+  top: 50%;
   left: 4px;
   width: 14px;
   height: 14px;
   border-radius: 999px;
   background: var(--accent);
   box-shadow: var(--shadow-soft);
+  transform: translateY(-50%);
   transition:
     background 160ms ease,
     transform 180ms ease;
@@ -341,7 +343,7 @@ a {
 
 :root[data-theme="dark"] .theme-toggle-switch span {
   background: var(--accent-dark);
-  transform: translateX(16px);
+  transform: translate(16px, -50%);
 }
 
 .google-button,
@@ -4898,6 +4900,31 @@ tbody tr:hover {
   border-color: rgba(117, 199, 219, 0.44);
   background: #1b333b;
   color: #ffffff;
+}
+
+:root[data-theme="dark"] .member-status-card {
+  border-color: rgba(117, 199, 219, 0.2);
+  background: #14262c;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .member-status-card:hover {
+  border-color: rgba(117, 199, 219, 0.36);
+  background: #182e35;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="dark"] .member-status-card p {
+  color: #f2fbfc;
+}
+
+:root[data-theme="dark"] .member-status-card strong {
+  color: #f2fbfc;
+}
+
+:root[data-theme="dark"] .member-status-card span,
+:root[data-theme="dark"] .member-status-card time {
+  color: #9fb6bd;
 }
 
 :root[data-theme="dark"] .feedback-item,
