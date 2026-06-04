@@ -1807,6 +1807,7 @@ export function AttendanceManager({
   const [statsGroupId, setStatsGroupId] = useState("all");
   const [absenceMinimumStreak, setAbsenceMinimumStreak] = useState(3);
   const [eventPendingDelete, setEventPendingDelete] = useState<AttendanceEvent | null>(null);
+  const [attendanceMemberModal, setAttendanceMemberModal] = useState<{ memberId: string; mode: "menu" | "reason" } | null>(null);
   const [readAttendanceEventIds, setReadAttendanceEventIds] = useState<Set<string>>(new Set());
   const readEventsStorageKey = `newavely:read-attendance-events:${user.id}`;
   const hasExplicitAttendanceSelection = Boolean(explicitAttendanceEventId);
@@ -2117,7 +2118,6 @@ export function AttendanceManager({
     ...groups.map((group) => ({ id: group.id, name: group.name })),
     { id: "unassigned", name: "미배정" },
   ];
-  const shouldShowAttendanceOverview = attendanceGroupId !== "all" && attendanceGroupId !== "unassigned";
   const attendanceOverviewEvents = sameDateEvents
     .filter((event) => event.title === "주일 예배" || event.title === "순모임")
     .sort((a, b) => (a.title === "주일 예배" ? -1 : 1) - (b.title === "주일 예배" ? -1 : 1));
@@ -2141,6 +2141,31 @@ export function AttendanceManager({
     (row) => row.statuses.length > 0 && row.statuses.every((item) => item.status === "present"),
   ).length;
   const needsCheckCount = attendanceOverviewRows.filter((row) => row.statuses.some((item) => item.status === "absent")).length;
+  const selectedAttendanceModalMember = attendanceMemberModal
+    ? activeMembers.find((member) => member.id === attendanceMemberModal.memberId) ?? null
+    : null;
+  const handleToggleAttendanceEvent = (member: Member, event: AttendanceEvent, nextPresent: boolean) => {
+    setLocalMembers((current) =>
+      current.map((item) =>
+        item.id === member.id
+          ? {
+              ...item,
+              present: event.id === attendanceEventId ? nextPresent : item.present,
+              attendanceHistory: updateLocalAttendanceHistory({
+                attendanceDate: event.eventDate,
+                attendanceTitle: event.title,
+                eventId: event.id,
+                history: item.attendanceHistory,
+                nextPresent,
+              }),
+            }
+          : item,
+      ),
+    );
+    startTransition(() => {
+      void toggleAttendance(member.id, event.id, nextPresent);
+    });
+  };
 
   return (
     <>
@@ -2191,6 +2216,24 @@ export function AttendanceManager({
             </div>
           </div>
         </div>
+      ) : null}
+      {selectedAttendanceModalMember && attendanceMemberModal?.mode === "menu" ? (
+        <AttendanceMemberActionModal
+          attendanceEvents={sameDateEvents}
+          member={selectedAttendanceModalMember}
+          onClose={() => setAttendanceMemberModal(null)}
+          onOpenReason={() => setAttendanceMemberModal({ memberId: selectedAttendanceModalMember.id, mode: "reason" })}
+        />
+      ) : null}
+      {selectedAttendanceModalMember && attendanceMemberModal?.mode === "reason" ? (
+        <AttendanceReasonModal
+          attendanceDate={attendanceDate}
+          attendanceEvents={sameDateEvents}
+          canManageAttendance={canManageAttendance}
+          member={selectedAttendanceModalMember}
+          onBack={() => setAttendanceMemberModal({ memberId: selectedAttendanceModalMember.id, mode: "menu" })}
+          onClose={() => setAttendanceMemberModal(null)}
+        />
       ) : null}
 
       <DisclosurePanel
@@ -2509,11 +2552,11 @@ export function AttendanceManager({
             <span>위에서 날짜를 고르면 주일 예배와 순모임 출석을 한 화면에서 체크할 수 있습니다.</span>
           </article>
         ) : null}
-        {hasExplicitAttendanceSelection && shouldShowAttendanceOverview && attendanceOverviewEvents.length > 0 ? (
+        {hasExplicitAttendanceSelection && attendanceOverviewEvents.length > 0 ? (
           <section className="group-attendance-snapshot" aria-label={`${overviewGroupName} 출석현황`}>
             <div className="group-attendance-snapshot-heading">
               <div>
-                <p className="eyebrow">내 순 출석현황</p>
+                <p className="eyebrow">출석현황</p>
                 <h3>{overviewGroupName}</h3>
                 <span>
                   {attendanceDate} · {attendanceOverviewMembers.length}명 표시
@@ -2553,12 +2596,26 @@ export function AttendanceManager({
                   className={`snapshot-member-row ${missedCount === 0 && presentCount > 0 ? "all-present" : ""}`}
                   key={member.id}
                 >
-                  <strong title={member.displayName}>{member.displayName}</strong>
+                  <button
+                    className="snapshot-member-name"
+                    title={member.displayName}
+                    type="button"
+                    onClick={() => setAttendanceMemberModal({ memberId: member.id, mode: "menu" })}
+                  >
+                    {member.displayName}
+                  </button>
                   {statuses.map(({ event, status }) => {
                     return (
-                      <span className={`snapshot-status ${status}`} key={event.id}>
+                      <button
+                        aria-label={`${member.displayName} ${event.title} ${attendanceStatusLabels[status]}`}
+                        className={`snapshot-status snapshot-status-button ${status}`}
+                        disabled={!canManageAttendance || isPending}
+                        key={event.id}
+                        onClick={() => handleToggleAttendanceEvent(member, event, status !== "present")}
+                        type="button"
+                      >
                         {attendanceStatusLabels[status]}
-                      </span>
+                      </button>
                     );
                   })}
                 </div>
@@ -2571,7 +2628,7 @@ export function AttendanceManager({
             </div>
           </section>
         ) : null}
-        {hasExplicitAttendanceSelection ? (
+        {hasExplicitAttendanceSelection && attendanceOverviewEvents.length === 0 ? (
         <div className="attendance-check-list">
           {attendanceMembers.map((member) => {
             const status = getMemberAttendanceStatus(member, attendanceEventId);
@@ -2583,28 +2640,7 @@ export function AttendanceManager({
                 isPending={isPending}
                 key={member.id}
                 member={member}
-                onToggleEvent={(event, nextPresent) => {
-                  setLocalMembers((current) =>
-                    current.map((item) =>
-                      item.id === member.id
-                        ? {
-                            ...item,
-                            present: event.id === attendanceEventId ? nextPresent : item.present,
-                            attendanceHistory: updateLocalAttendanceHistory({
-                              attendanceDate: event.eventDate,
-                              attendanceTitle: event.title,
-                              eventId: event.id,
-                              history: item.attendanceHistory,
-                              nextPresent,
-                            }),
-                          }
-                        : item,
-                    ),
-                  );
-                  startTransition(() => {
-                    void toggleAttendance(member.id, event.id, nextPresent);
-                  });
-                }}
+                onToggleEvent={(event, nextPresent) => handleToggleAttendanceEvent(member, event, nextPresent)}
                 status={status}
               />
             );
@@ -2620,6 +2656,168 @@ export function AttendanceManager({
       </section>
       </div>
     </>
+  );
+}
+
+function AttendanceMemberActionModal({
+  member,
+  attendanceEvents,
+  onClose,
+  onOpenReason,
+}: {
+  member: Member;
+  attendanceEvents: AttendanceEvent[];
+  onClose: () => void;
+  onOpenReason: () => void;
+}) {
+  return (
+    <div className="confirm-modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        aria-labelledby="attendance-member-action-title"
+        aria-modal="true"
+        className="confirm-modal attendance-member-modal"
+        role="dialog"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="eyebrow">출석 멤버</p>
+            <h2 id="attendance-member-action-title">{member.displayName}</h2>
+            <p className="meta">{member.groupName}</p>
+          </div>
+          <button className="secondary-button table-action" type="button" onClick={onClose}>
+            닫기
+          </button>
+        </div>
+        <div className="attendance-member-status-list">
+          {attendanceEvents.map((event) => {
+            const status = getMemberAttendanceStatus(member, event.id);
+            return (
+              <div className="attendance-member-status-row" key={event.id}>
+                <span>{event.title}</span>
+                <strong className={`snapshot-status ${status}`}>{attendanceStatusLabels[status]}</strong>
+              </div>
+            );
+          })}
+        </div>
+        <div className="attendance-member-modal-actions">
+          <Link className="secondary-button" href={`/members/${member.id}`}>
+            상세보기
+          </Link>
+          <button className="primary-button" type="button" onClick={onOpenReason}>
+            사유 입력
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AttendanceReasonModal({
+  member,
+  attendanceDate,
+  attendanceEvents,
+  canManageAttendance,
+  onBack,
+  onClose,
+}: {
+  member: Member;
+  attendanceDate: string;
+  attendanceEvents: AttendanceEvent[];
+  canManageAttendance: boolean;
+  onBack: () => void;
+  onClose: () => void;
+}) {
+  const [reasonState, reasonAction, isSavingReason] = useActionState(updateAttendanceReason, initialActionState);
+  const defaultReasonEvent =
+    attendanceEvents.find((event) => getMemberAttendanceStatus(member, event.id) !== "present") ?? attendanceEvents[0];
+  const defaultReasonRecord = defaultReasonEvent
+    ? member.attendanceHistory.find((record) => record.eventId === defaultReasonEvent.id)
+    : null;
+  const defaultVisibleNote =
+    defaultReasonRecord?.note && !isImportedAttendanceNote(defaultReasonRecord.note) ? defaultReasonRecord.note : "";
+
+  useEffect(() => {
+    if (reasonState.ok) onClose();
+  }, [onClose, reasonState.ok]);
+
+  return (
+    <div className="confirm-modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        aria-labelledby="attendance-reason-modal-title"
+        aria-modal="true"
+        className="confirm-modal attendance-member-modal attendance-reason-modal"
+        role="dialog"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="eyebrow">사유 입력</p>
+            <h2 id="attendance-reason-modal-title">{member.displayName}</h2>
+            <p className="meta">{member.groupName}</p>
+          </div>
+          <button className="secondary-button table-action" type="button" onClick={onClose}>
+            닫기
+          </button>
+        </div>
+        {defaultReasonEvent ? (
+          <form action={reasonAction} className="reason-form attendance-modal-reason-form">
+            <input name="memberId" type="hidden" value={member.id} />
+            <label>
+              대상
+              <select name="eventId" defaultValue={defaultReasonEvent.id} disabled={!canManageAttendance}>
+                {attendanceEvents.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              시작일
+              <input
+                name="excuseStartDate"
+                type="date"
+                defaultValue={defaultReasonRecord?.excuseStartDate || attendanceDate}
+                disabled={!canManageAttendance}
+              />
+            </label>
+            <label>
+              종료일
+              <input
+                name="excuseEndDate"
+                type="date"
+                defaultValue={defaultReasonRecord?.excuseEndDate || attendanceDate}
+                disabled={!canManageAttendance}
+              />
+            </label>
+            <label className="reason-note-field">
+              사유
+              <textarea
+                name="note"
+                placeholder="여행, 건강, 가정 일정 등"
+                defaultValue={defaultVisibleNote}
+                disabled={!canManageAttendance}
+              />
+            </label>
+            <ActionMessage state={reasonState} />
+            <div className="attendance-member-modal-actions">
+              <button className="secondary-button" type="button" onClick={onBack}>
+                뒤로
+              </button>
+              <button className="primary-button" type="submit" disabled={!canManageAttendance || isSavingReason}>
+                저장
+              </button>
+            </div>
+          </form>
+        ) : (
+          <article className="empty-table-state">
+            <strong>사유를 넣을 출석 이벤트가 없습니다</strong>
+            <span>먼저 출석 날짜를 선택해주세요.</span>
+          </article>
+        )}
+      </div>
+    </div>
   );
 }
 
