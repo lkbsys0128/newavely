@@ -3566,13 +3566,13 @@ tbody tr:hover {
 
 .attendance-card {
   display: grid;
-  grid-template-columns: minmax(180px, 0.85fr) minmax(88px, auto) minmax(360px, 1.4fr);
-  align-items: center;
-  min-height: 72px;
-  gap: 14px;
+  grid-template-columns: minmax(140px, 0.55fr) minmax(0, 1.45fr);
+  align-items: start;
+  min-height: 0;
+  gap: 10px;
   border-color: var(--line);
   background: #ffffff;
-  padding: 12px 14px;
+  padding: 12px;
 }
 
 .attendance-card.present {
@@ -3592,7 +3592,8 @@ tbody tr:hover {
 
 .attendance-card .person-block {
   display: grid;
-  gap: 3px;
+  gap: 2px;
+  padding-top: 2px;
 }
 
 .attendance-card .person-block strong,
@@ -3609,22 +3610,22 @@ tbody tr:hover {
 .attendance-card .attendance-actions {
   align-self: stretch;
   display: grid;
-  align-items: center;
+  align-items: start;
   justify-content: end;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .attendance-type-actions {
-  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .attendance-type-action {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   border: 1px solid var(--line);
   border-radius: 4px;
-  padding: 10px;
+  padding: 8px;
   background: #ffffff;
 }
 
@@ -3638,20 +3639,55 @@ tbody tr:hover {
   background: rgba(237, 248, 245, 0.8);
 }
 
-.attendance-type-action-heading {
+.attendance-type-action-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
-.attendance-type-action-heading strong {
+.attendance-type-action-main strong {
   color: var(--ink);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.attendance-card .attendance-actions > button {
-  width: auto;
+.attendance-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 10px;
+  background: #eef4f6;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.attendance-toggle.present {
+  border-color: rgba(47, 145, 181, 0.28);
+  background: #e6f7fa;
+  color: var(--accent-dark);
+}
+
+.attendance-toggle.absent {
+  border-color: rgba(210, 83, 80, 0.18);
+  background: #fff0f0;
+  color: #b54143;
+}
+
+.attendance-toggle.excused {
+  border-color: rgba(72, 152, 128, 0.24);
+  background: #edf8f5;
+  color: #2f765f;
 }
 
 .attendance-empty-state {
@@ -3663,15 +3699,16 @@ tbody tr:hover {
   max-width: none;
   border: 1px dashed var(--line);
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 6px 8px;
   background: rgba(255, 255, 255, 0.76);
 }
 
 .reason-details summary {
   color: var(--muted);
   cursor: pointer;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 800;
+  line-height: 1.1;
 }
 
 .reason-form {
@@ -4305,7 +4342,16 @@ tbody tr:hover {
   }
 
   .attendance-type-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-type-action {
+    padding: 7px;
+  }
+
+  .attendance-toggle {
+    min-width: 56px;
+    padding: 0 8px;
   }
 
   .group-attendance-snapshot {

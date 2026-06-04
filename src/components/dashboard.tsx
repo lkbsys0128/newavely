@@ -2717,7 +2717,6 @@ function AttendanceRow({
         <span>{member.groupName}</span>
         {visibleNotes.length > 0 ? <span>사유: {visibleNotes.join(" · ")}</span> : null}
       </div>
-      <span className={`attendance-pill ${status}`}>{attendanceStatusLabels[status]}</span>
       <div className="attendance-actions attendance-type-actions">
         {visibleAttendanceEvents.map((event) => {
           const eventStatus = getMemberAttendanceStatus(member, event.id);
@@ -2725,18 +2724,17 @@ function AttendanceRow({
           const visibleNote = currentRecord?.note && !isImportedAttendanceNote(currentRecord.note) ? currentRecord.note : "";
           return (
             <div className={`attendance-type-action ${eventStatus}`} key={event.id}>
-              <div className="attendance-type-action-heading">
+              <div className="attendance-type-action-main">
                 <strong>{event.title}</strong>
-                <span className={`attendance-pill ${eventStatus}`}>{attendanceStatusLabels[eventStatus]}</span>
+                <button
+                  className={`attendance-toggle ${eventStatus}`}
+                  disabled={!canManageAttendance || isPending}
+                  onClick={() => onToggleEvent(event, eventStatus !== "present")}
+                  type="button"
+                >
+                  {attendanceStatusLabels[eventStatus]}
+                </button>
               </div>
-              <button
-                className={eventStatus === "present" ? "secondary-button" : "primary-button"}
-                disabled={!canManageAttendance || isPending}
-                onClick={() => onToggleEvent(event, eventStatus !== "present")}
-                type="button"
-              >
-                {eventStatus === "present" ? "미출석 처리" : "출석 체크"}
-              </button>
               <details className="reason-details">
                 <summary>사유</summary>
                 <form action={reasonAction} className="reason-form">
