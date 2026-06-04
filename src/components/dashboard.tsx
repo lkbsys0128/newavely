@@ -1316,6 +1316,11 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
 export function GroupsPageContent({ user, members, groups, globalStats }: AppDataProps) {
   const canManageGroups = hasPermission(user.role, "groups:write");
   const canDeleteGroups = canUseDeleteActions(user.role);
+  const currentMember = members.find((member) => member.authUserId === user.id) ?? members.find((member) => member.email === user.email);
+  const isMemberView = user.role === "member";
+  const visibleGroups = isMemberView
+    ? groups.filter((group) => currentMember?.groupId && group.id === currentMember.groupId)
+    : groups;
   const [groupPendingDelete, setGroupPendingDelete] = useState<Group | null>(null);
   const [groupMembersModal, setGroupMembersModal] = useState<Group | null>(null);
   const [lastUpdatedGroupId, setLastUpdatedGroupId] = useState<string | null>(null);
@@ -1323,11 +1328,13 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
   const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
   const [updateGroupState, updateGroupAction, isUpdatingGroup] = useActionState(updateGroup, initialActionState);
   const [deleteGroupState, deleteGroupAction, isDeletingGroup] = useActionState(deleteGroup, initialActionState);
-  const activeMembers = members.filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member));
+  const activeMembers = members
+    .filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member))
+    .filter((member) => !isMemberView || (currentMember?.groupId ? member.groupId === currentMember.groupId : member.id === currentMember?.id));
   const unassignedMembers = activeMembers.filter((member) => !member.groupId);
   const assignedMembers = activeMembers.filter((member) => member.groupId);
-  const assignedLeaderCount = groups.filter((group) => group.leaderMemberId).length;
-  const groupStats = globalStats?.groupPage;
+  const assignedLeaderCount = visibleGroups.filter((group) => group.leaderMemberId).length;
+  const groupStats = isMemberView ? undefined : globalStats?.groupPage;
   const groupLeaderOptions = [...activeMembers].sort((a, b) => a.name.localeCompare(b.name));
 
   useEffect(() => {
@@ -1342,9 +1349,9 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
       <SectionNav
         items={[
           { href: "#group-metrics", label: "요약" },
-          { href: "#group-create", label: "순 추가" },
-          { href: "#group-list", label: "순 목록" },
-          { href: "#unassigned-members", label: "미배정" },
+          ...(canManageGroups ? [{ href: "#group-create", label: "순 추가" }] : []),
+          { href: "#group-list", label: isMemberView ? "내 순" : "순 목록" },
+          ...(!isMemberView ? [{ href: "#unassigned-members", label: "미배정" }] : []),
         ]}
       />
       <div className="metric-grid" id="group-metrics">
@@ -1355,8 +1362,8 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
         </article>
         <article className="metric-card">
           <span>순</span>
-          <strong>{groups.length}</strong>
-          <small>현재 등록된 순</small>
+          <strong>{visibleGroups.length}</strong>
+          <small>{isMemberView ? "내가 속한 순" : "현재 등록된 순"}</small>
         </article>
         <article className="metric-card">
           <span>미배정</span>
@@ -1366,42 +1373,44 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
         <article className="metric-card">
           <span>배정 완료</span>
           <strong>{groupStats?.assignedMembers ?? assignedMembers.length}</strong>
-          <small>리더 {groupStats?.assignedLeaderCount ?? assignedLeaderCount}/{groups.length}명 배정</small>
+          <small>리더 {groupStats?.assignedLeaderCount ?? assignedLeaderCount}/{visibleGroups.length}명 배정</small>
         </article>
       </div>
 
-      <DisclosurePanel
-        id="group-create"
-        title="순 추가"
-        meta={canManageGroups ? "이름과 리더를 지정" : "관리자 권한 필요"}
-      >
-        <form action={createGroupAction} className="member-form group-create-form">
-          <label>
-            순 이름
-            <input name="name" required placeholder="예: 은미 순" disabled={!canManageGroups} />
-          </label>
-          <label>
-            리더
-            <select name="leaderMemberId" disabled={!canManageGroups}>
-              <option value="">미배정</option>
-              {groupLeaderOptions.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.displayName} · {member.groupName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="form-actions">
-            <ActionMessage state={createGroupState} />
-            <button className="primary-button" type="submit" disabled={!canManageGroups || isCreatingGroup}>
-              추가
-            </button>
-          </div>
-        </form>
-      </DisclosurePanel>
+      {canManageGroups ? (
+        <DisclosurePanel
+          id="group-create"
+          title="순 추가"
+          meta="이름과 리더를 지정"
+        >
+          <form action={createGroupAction} className="member-form group-create-form">
+            <label>
+              순 이름
+              <input name="name" required placeholder="예: 은미 순" />
+            </label>
+            <label>
+              리더
+              <select name="leaderMemberId">
+                <option value="">미배정</option>
+                {groupLeaderOptions.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.displayName} · {member.groupName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="form-actions">
+              <ActionMessage state={createGroupState} />
+              <button className="primary-button" type="submit" disabled={isCreatingGroup}>
+                추가
+              </button>
+            </div>
+          </form>
+        </DisclosurePanel>
+      ) : null}
 
       <section className="group-grid" id="group-list">
-        {groups.map((group) => {
+        {visibleGroups.map((group) => {
           const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
           const visibleGroupStats = groupStats?.groups.find((item) => item.id === group.id);
           const careCount = groupMembers.filter(
@@ -1431,42 +1440,46 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
               <button className="secondary-button group-members-button" type="button" onClick={() => setGroupMembersModal(group)}>
                 멤버 보기
               </button>
-              <form
-                action={updateGroupAction}
-                className="management-form group-edit-form"
-                onSubmit={() => setLastUpdatedGroupId(group.id)}
-              >
-                <input name="id" type="hidden" value={group.id} />
-                <label>
-                  이름
-                  <input name="name" required defaultValue={group.name} disabled={!canManageGroups} />
-                </label>
-                <label>
-                  리더
-                  <select name="leaderMemberId" defaultValue={group.leaderMemberId ?? ""} disabled={!canManageGroups}>
-                    <option value="">미배정</option>
-                    {groupLeaderOptions.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.displayName} · {member.groupName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {lastUpdatedGroupId === group.id ? <ActionMessage state={updateGroupState} /> : null}
-                <button className="secondary-button" type="submit" disabled={!canManageGroups || isUpdatingGroup}>
-                  저장
-                </button>
-              </form>
-              <div className="group-delete-form">
-                <button
-                  className="danger-text-button"
-                  type="button"
-                  disabled={!canDeleteGroups || isDeletingGroup}
-                  onClick={() => setGroupPendingDelete(group)}
+              {canManageGroups ? (
+                <form
+                  action={updateGroupAction}
+                  className="management-form group-edit-form"
+                  onSubmit={() => setLastUpdatedGroupId(group.id)}
                 >
-                  삭제
-                </button>
-              </div>
+                  <input name="id" type="hidden" value={group.id} />
+                  <label>
+                    이름
+                    <input name="name" required defaultValue={group.name} />
+                  </label>
+                  <label>
+                    리더
+                    <select name="leaderMemberId" defaultValue={group.leaderMemberId ?? ""}>
+                      <option value="">미배정</option>
+                      {groupLeaderOptions.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.displayName} · {member.groupName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {lastUpdatedGroupId === group.id ? <ActionMessage state={updateGroupState} /> : null}
+                  <button className="secondary-button" type="submit" disabled={isUpdatingGroup}>
+                    저장
+                  </button>
+                </form>
+              ) : null}
+              {canDeleteGroups ? (
+                <div className="group-delete-form">
+                  <button
+                    className="danger-text-button"
+                    type="button"
+                    disabled={isDeletingGroup}
+                    onClick={() => setGroupPendingDelete(group)}
+                  >
+                    삭제
+                  </button>
+                </div>
+              ) : null}
               {lastDeletedGroupId === group.id ? <ActionMessage state={deleteGroupState} /> : null}
             </article>
           );
@@ -1519,7 +1532,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
           </div>
         </div>
       ) : null}
-      {unassignedMembers.length > 0 ? (
+      {!isMemberView && unassignedMembers.length > 0 ? (
         <DisclosurePanel id="unassigned-members" title="미배정 멤버" meta={`${unassignedMembers.length}명`}>
           <div className="group-member-list">
             {unassignedMembers.map((member) => (
@@ -1892,9 +1905,12 @@ export function AttendanceManager({
   });
   const selectedAttendanceEvent = attendanceEvents.find((event) => event.id === attendanceEventId) ?? null;
   const unreadAttendanceEventIds = new Set(attendanceEvents.filter((event) => !readAttendanceEventIds.has(event.id)).map((event) => event.id));
-  const attendanceStats = globalStats?.attendance;
+  const currentAttendanceMember = localMembers.find((member) => member.authUserId === user.id) ?? localMembers.find((member) => member.email === user.email);
+  const attendanceStats = user.role === "member" ? undefined : globalStats?.attendance;
 
-  const activeMembers = localMembers.filter(isAttendanceRosterMember);
+  const activeMembers = localMembers
+    .filter(isAttendanceRosterMember)
+    .filter((member) => user.role !== "member" || member.id === currentAttendanceMember?.id);
   const activeMemberCount = activeMembers.length;
   const currentPresentCount = activeMembers.filter((member) => member.present).length;
   const currentExcusedCount = activeMembers.filter((member) => getMemberAttendanceStatus(member, attendanceEventId) === "excused").length;
@@ -2115,8 +2131,12 @@ export function AttendanceManager({
         : groups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
   const attendanceGroupOptions = [
     { id: "all", name: "전체" },
-    ...groups.map((group) => ({ id: group.id, name: group.name })),
-    { id: "unassigned", name: "미배정" },
+    ...(user.role === "member"
+      ? groups
+          .filter((group) => currentAttendanceMember?.groupId && group.id === currentAttendanceMember.groupId)
+          .map((group) => ({ id: group.id, name: group.name }))
+      : groups.map((group) => ({ id: group.id, name: group.name }))),
+    ...(user.role === "member" && currentAttendanceMember?.groupId ? [] : [{ id: "unassigned", name: "미배정" }]),
   ];
   const attendanceOverviewEvents = sameDateEvents
     .filter((event) => event.title === "주일 예배" || event.title === "순모임")

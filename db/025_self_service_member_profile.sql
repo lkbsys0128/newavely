@@ -1,7 +1,15 @@
-create policy "users can create their own member profile"
-on members for insert
-to authenticated
-with check (auth_user_id = auth.uid());
+create or replace function current_member_group_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select group_id
+  from members
+  where auth_user_id = auth.uid()
+  limit 1
+$$;
 
 drop policy if exists "users can update their own member profile" on members;
 create policy "users can update their own member profile"
@@ -17,8 +25,3 @@ with check (
   and status <> 'inactive'::member_status
   and group_id is not distinct from current_member_group_id()
 );
-
-create policy "admins and leaders can read custom field definitions"
-on member_custom_field_definitions for select
-to authenticated
-using (current_member_role() in ('owner', 'admin', 'leader'));
