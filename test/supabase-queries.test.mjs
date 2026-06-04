@@ -286,6 +286,7 @@ test("global styles include sharper control radius pass", () => {
   assert.match(globalCssSource, /\.section-nav-links \{[\s\S]*align-items: center/);
   assert.match(globalCssSource, /\.attendance-card \{[\s\S]*minmax\(140px, 0\.55fr\)/);
   assert.match(globalCssSource, /\.attendance-type-actions \{[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(globalCssSource, /\.attendance-card \.attendance-type-actions \{[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(globalCssSource, /\.attendance-toggle/);
   assert.doesNotMatch(globalCssSource, /\.topbar-actions \{[\s\S]{0,120}align-items: end/);
 });
