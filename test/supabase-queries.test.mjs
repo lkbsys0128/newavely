@@ -226,9 +226,13 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /fullyPresentCount/);
   assert.match(dashboardSource, /needsCheckCount/);
   assert.match(dashboardSource, /attendanceGroupId === "unassigned" \? !member\.groupId : member\.groupId === attendanceGroupId/);
-  assert.match(dashboardSource, /<option value="unassigned">미배정<\/option>/);
+  assert.match(dashboardSource, /attendanceGroupOptions/);
+  assert.match(dashboardSource, /attendance-group-strip/);
+  assert.match(dashboardSource, /attendance-group-chip/);
   assert.match(globalCssSource, /group-attendance-snapshot/);
   assert.match(globalCssSource, /snapshot-mini-metrics/);
+  assert.match(globalCssSource, /grid-template-columns: repeat\(4, minmax\(64px, 1fr\)\)/);
+  assert.match(globalCssSource, /attendance-group-strip/);
   assert.match(globalCssSource, /snapshot-status\.present/);
 });
 
@@ -367,6 +371,8 @@ test("attendance checklist uses roster members and exposes search filters", () =
 test("dashboard gives leaders a mobile shortcut to their group attendance", () => {
   assert.match(dashboardSource, /mobile-attendance-shortcut/);
   assert.match(dashboardSource, /chooseAttendanceShortcutEvent/);
+  assert.match(dashboardSource, /\{ownGroup\.name\} · \{attendanceShortcutEvent\.eventDate\}/);
+  assert.doesNotMatch(dashboardSource, /\{ownGroup\.name\} · \{attendanceShortcutEvent\.eventDate\} · \{attendanceShortcutEvent\.title\}/);
   assert.match(dashboardSource, /groupId=\$\{ownGroup\.id\}&mode=group#attendance-checklist/);
   assert.match(globalCssSource, /mobile-attendance-shortcut/);
 });
