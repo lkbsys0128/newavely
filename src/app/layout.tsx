@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { MobileAwareNav } from "@/components/mobile-aware-nav";
+import { PageTransition } from "@/components/page-transition";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -58,7 +60,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </div>
           </aside>
 
-          {children}
+          <Suspense fallback={null}>
+            <PageTransition>{children}</PageTransition>
+          </Suspense>
         </div>
       </body>
     </html>

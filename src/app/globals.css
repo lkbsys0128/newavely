@@ -17,6 +17,10 @@
   --soft-strong: #d9f0f6;
   --shadow: 0 10px 24px rgba(23, 51, 59, 0.055);
   --shadow-soft: 0 5px 14px rgba(47, 145, 181, 0.09);
+  --motion-fast: 140ms;
+  --motion-medium: 220ms;
+  --motion-slow: 320ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 :root[data-theme="dark"] {
@@ -59,6 +63,119 @@ body {
     sans-serif;
   word-break: keep-all;
   overflow-wrap: break-word;
+}
+
+.page-transition {
+  min-width: 0;
+  animation: pageEnter var(--motion-slow) var(--motion-ease) both;
+}
+
+.page-loading {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  animation: pageEnter var(--motion-slow) var(--motion-ease) both;
+}
+
+.loading-panel {
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.loading-topline,
+.loading-title,
+.loading-subtitle,
+.loading-card span,
+.loading-card strong,
+.loading-card small,
+.loading-list div {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--soft);
+}
+
+.loading-topline {
+  width: 118px;
+  height: 12px;
+}
+
+.loading-title {
+  width: min(340px, 70%);
+  height: 38px;
+}
+
+.loading-subtitle {
+  width: min(460px, 84%);
+  height: 18px;
+}
+
+.loading-progress {
+  position: relative;
+  overflow: hidden;
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: var(--soft-strong);
+}
+
+.loading-progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: loadingSweep 1100ms var(--motion-ease) infinite;
+}
+
+.loading-grid {
+  margin-top: 0;
+}
+
+.loading-card span,
+.loading-card strong,
+.loading-card small {
+  display: block;
+}
+
+.loading-card span {
+  width: 70px;
+  height: 13px;
+}
+
+.loading-card strong {
+  width: 92px;
+  height: 32px;
+}
+
+.loading-card small {
+  width: 120px;
+  height: 13px;
+}
+
+.loading-list {
+  display: grid;
+  gap: 10px;
+}
+
+.loading-list div {
+  height: 52px;
+}
+
+.loading-topline::after,
+.loading-title::after,
+.loading-subtitle::after,
+.loading-card span::after,
+.loading-card strong::after,
+.loading-card small::after,
+.loading-list div::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  content: "";
+  transform: translateX(-100%);
+  animation: skeletonShimmer 1300ms var(--motion-ease) infinite;
 }
 
 [id] {
@@ -593,6 +710,10 @@ a {
   padding: 14px 16px 16px;
 }
 
+.notification-bar[open] .notification-list {
+  animation: revealDown var(--motion-medium) var(--motion-ease) both;
+}
+
 .notification-item {
   display: grid;
   gap: 3px;
@@ -850,6 +971,13 @@ h3 {
   padding: 16px;
 }
 
+.disclosure-panel[open] .disclosure-body,
+.advanced-field[open] label,
+.reason-details[open] .reason-form,
+.audit-details[open] pre {
+  animation: revealDown var(--motion-medium) var(--motion-ease) both;
+}
+
 .search-field,
 .member-form label,
 .management-form label,
@@ -1091,6 +1219,11 @@ h3 {
   border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow);
+  transition:
+    border-color var(--motion-medium) var(--motion-ease),
+    background var(--motion-medium) var(--motion-ease),
+    box-shadow var(--motion-medium) var(--motion-ease),
+    transform var(--motion-medium) var(--motion-ease);
 }
 
 .metric-card {
@@ -1140,6 +1273,15 @@ h3 {
 .panel {
   padding: 16px;
   background: rgba(255, 255, 255, 0.96);
+}
+
+.panel:hover,
+.metric-card:hover,
+.group-card:hover,
+.link-card:hover,
+.mini-roster-card:hover,
+.upcoming-birthday-card:hover {
+  border-color: var(--line-strong);
 }
 
 .member-status-board {
@@ -1700,6 +1842,11 @@ h3 {
   border-radius: 8px;
   padding: 12px;
   background: var(--surface-strong);
+  transition:
+    border-color var(--motion-medium) var(--motion-ease),
+    background var(--motion-medium) var(--motion-ease),
+    box-shadow var(--motion-medium) var(--motion-ease),
+    transform var(--motion-medium) var(--motion-ease);
 }
 
 .care-item:hover,
@@ -4639,6 +4786,61 @@ tbody tr:hover {
   }
 }
 
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes loadingSweep {
+  from {
+    transform: translateX(-80%);
+  }
+
+  to {
+    transform: translateX(260%);
+  }
+}
+
+@keyframes skeletonShimmer {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}
+
 /* Sharper UI pass: keep the app friendly, but make controls feel more precise. */
 .brand-mark,
 .nav-list a,
@@ -5089,8 +5291,29 @@ tbody tr:hover {
 }
 
 :root[data-theme="dark"] .progress,
-:root[data-theme="dark"] .statistics-bar-track {
+:root[data-theme="dark"] .statistics-bar-track,
+:root[data-theme="dark"] .loading-progress {
   background: #1b3a43;
+}
+
+:root[data-theme="dark"] .loading-topline,
+:root[data-theme="dark"] .loading-title,
+:root[data-theme="dark"] .loading-subtitle,
+:root[data-theme="dark"] .loading-card span,
+:root[data-theme="dark"] .loading-card strong,
+:root[data-theme="dark"] .loading-card small,
+:root[data-theme="dark"] .loading-list div {
+  background: #14262c;
+}
+
+:root[data-theme="dark"] .loading-topline::after,
+:root[data-theme="dark"] .loading-title::after,
+:root[data-theme="dark"] .loading-subtitle::after,
+:root[data-theme="dark"] .loading-card span::after,
+:root[data-theme="dark"] .loading-card strong::after,
+:root[data-theme="dark"] .loading-card small::after,
+:root[data-theme="dark"] .loading-list div::after {
+  background: linear-gradient(90deg, transparent, rgba(117, 199, 219, 0.2), transparent);
 }
 
 :root[data-theme="dark"] .member-detail-backdrop,
