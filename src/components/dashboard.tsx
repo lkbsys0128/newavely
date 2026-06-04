@@ -2709,6 +2709,13 @@ function AttendanceRow({
       return note ? `${event.title}: ${note}` : "";
     })
     .filter(Boolean);
+  const defaultReasonEvent =
+    visibleAttendanceEvents.find((event) => getMemberAttendanceStatus(member, event.id) !== "present") ?? visibleAttendanceEvents[0];
+  const defaultReasonRecord = defaultReasonEvent
+    ? member.attendanceHistory.find((record) => record.eventId === defaultReasonEvent.id)
+    : null;
+  const defaultVisibleNote =
+    defaultReasonRecord?.note && !isImportedAttendanceNote(defaultReasonRecord.note) ? defaultReasonRecord.note : "";
 
   return (
     <article className={`attendance-row attendance-card ${status}`}>
@@ -2720,8 +2727,6 @@ function AttendanceRow({
       <div className="attendance-actions attendance-type-actions">
         {visibleAttendanceEvents.map((event) => {
           const eventStatus = getMemberAttendanceStatus(member, event.id);
-          const currentRecord = member.attendanceHistory.find((record) => record.eventId === event.id);
-          const visibleNote = currentRecord?.note && !isImportedAttendanceNote(currentRecord.note) ? currentRecord.note : "";
           return (
             <div className={`attendance-type-action ${eventStatus}`} key={event.id}>
               <div className="attendance-type-action-main">
@@ -2735,50 +2740,61 @@ function AttendanceRow({
                   {attendanceStatusLabels[eventStatus]}
                 </button>
               </div>
-              <details className="reason-details">
-                <summary>사유</summary>
-                <form action={reasonAction} className="reason-form">
-                  <input name="memberId" type="hidden" value={member.id} />
-                  <input name="eventId" type="hidden" value={event.id} />
-                  <label>
-                    시작일
-                    <input
-                      name="excuseStartDate"
-                      type="date"
-                      defaultValue={currentRecord?.excuseStartDate || attendanceDate}
-                      disabled={!canManageAttendance}
-                    />
-                  </label>
-                  <label>
-                    종료일
-                    <input
-                      name="excuseEndDate"
-                      type="date"
-                      defaultValue={currentRecord?.excuseEndDate || attendanceDate}
-                      disabled={!canManageAttendance}
-                    />
-                  </label>
-                  <label className="full-width">
-                    사유
-                    <textarea
-                      name="note"
-                      placeholder="여행, 건강, 가정 일정 등"
-                      defaultValue={visibleNote}
-                      disabled={!canManageAttendance}
-                    />
-                  </label>
-                  <div className="form-actions full-width">
-                    <ActionMessage state={reasonState} />
-                    <button className="secondary-button" type="submit" disabled={!canManageAttendance || isSavingReason}>
-                      저장
-                    </button>
-                  </div>
-                </form>
-              </details>
             </div>
           );
         })}
       </div>
+      {defaultReasonEvent ? (
+        <details className="reason-details attendance-reason-row">
+          <summary>사유 입력</summary>
+          <form action={reasonAction} className="reason-form compact-reason-form">
+            <input name="memberId" type="hidden" value={member.id} />
+            <label>
+              대상
+              <select name="eventId" defaultValue={defaultReasonEvent.id} disabled={!canManageAttendance}>
+                {visibleAttendanceEvents.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              시작일
+              <input
+                name="excuseStartDate"
+                type="date"
+                defaultValue={defaultReasonRecord?.excuseStartDate || attendanceDate}
+                disabled={!canManageAttendance}
+              />
+            </label>
+            <label>
+              종료일
+              <input
+                name="excuseEndDate"
+                type="date"
+                defaultValue={defaultReasonRecord?.excuseEndDate || attendanceDate}
+                disabled={!canManageAttendance}
+              />
+            </label>
+            <label className="reason-note-field">
+              사유
+              <textarea
+                name="note"
+                placeholder="여행, 건강, 가정 일정 등"
+                defaultValue={defaultVisibleNote}
+                disabled={!canManageAttendance}
+              />
+            </label>
+            <div className="form-actions reason-save-actions">
+              <ActionMessage state={reasonState} />
+              <button className="secondary-button" type="submit" disabled={!canManageAttendance || isSavingReason}>
+                저장
+              </button>
+            </div>
+          </form>
+        </details>
+      ) : null}
     </article>
   );
 }
