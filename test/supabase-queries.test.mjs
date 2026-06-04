@@ -219,20 +219,30 @@ test("dashboard exposes roster insight sections for operators", () => {
 });
 
 test("attendance check screen summarizes selected group worship and group attendance", () => {
-  assert.match(dashboardSource, /내 순 출석현황/);
+  assert.match(dashboardSource, /출석현황/);
   assert.match(dashboardSource, /attendanceOverviewRows/);
-  assert.match(dashboardSource, /shouldShowAttendanceOverview/);
-  assert.match(dashboardSource, /attendanceGroupId !== "all" && attendanceGroupId !== "unassigned"/);
   assert.match(dashboardSource, /fullyPresentCount/);
   assert.match(dashboardSource, /needsCheckCount/);
   assert.match(dashboardSource, /attendanceGroupId === "unassigned" \? !member\.groupId : member\.groupId === attendanceGroupId/);
   assert.match(dashboardSource, /attendanceGroupOptions/);
   assert.match(dashboardSource, /attendance-group-strip/);
   assert.match(dashboardSource, /attendance-group-chip/);
+  assert.match(dashboardSource, /AttendanceMemberActionModal/);
+  assert.match(dashboardSource, /AttendanceReasonModal/);
+  assert.match(dashboardSource, /snapshot-member-name/);
+  assert.match(dashboardSource, /snapshot-status-button/);
+  assert.match(dashboardSource, /handleToggleAttendanceEvent/);
+  assert.match(dashboardSource, /setAttendanceMemberModal/);
+  assert.match(dashboardSource, /상세보기/);
+  assert.match(dashboardSource, /사유 입력/);
   assert.match(globalCssSource, /group-attendance-snapshot/);
   assert.match(globalCssSource, /snapshot-mini-metrics/);
   assert.match(globalCssSource, /grid-template-columns: repeat\(4, minmax\(64px, 1fr\)\)/);
   assert.match(globalCssSource, /attendance-group-strip/);
+  assert.match(globalCssSource, /snapshot-member-name/);
+  assert.match(globalCssSource, /snapshot-status-button/);
+  assert.match(globalCssSource, /attendance-member-modal/);
+  assert.match(globalCssSource, /attendance-modal-reason-form/);
   assert.match(globalCssSource, /snapshot-status\.present/);
 });
 
@@ -353,6 +363,7 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /주일 예배[\s\S]*순모임/);
   assert.match(dashboardSource, /event-create-note/);
   assert.match(dashboardSource, /선택한 날짜 안에 주일 예배와 순모임 출석 체크가 함께 만들어집니다/);
+  assert.match(dashboardSource, /attendanceOverviewEvents\.length === 0/);
   assert.match(dashboardSource, /attendance-check-list/);
   assert.match(dashboardSource, /attendance-card/);
   assert.match(dashboardSource, /attendance-type-actions/);
