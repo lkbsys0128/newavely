@@ -322,7 +322,7 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /readAttendanceEventIds/);
   assert.match(dashboardSource, /window\.localStorage\.setItem\(readEventsStorageKey/);
   assert.match(dashboardSource, /unreadAttendanceEventIds/);
-  assert.match(dashboardSource, /unread-event-dot/);
+  assert.match(dashboardSource, /hasUnread \? "● " : ""/);
   assert.match(dashboardSource, /id="attendance-stats"/);
   assert.doesNotMatch(dashboardSource, /defaultOpen[\s\S]*id="attendance-stats"/);
   assert.match(globalCssSource, /attendance-page-flow/);
@@ -338,13 +338,15 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(globalCssSource, /attendance-insight-grid/);
   assert.match(globalCssSource, /attendance-trend-track:hover \.attendance-hover-card/);
   assert.match(dashboardSource, /sameDateEvents/);
-  assert.match(dashboardSource, /event-selector-panel/);
-  assert.match(dashboardSource, /출석 날짜 선택/);
+  assert.doesNotMatch(dashboardSource, /id="attendance-events"/);
+  assert.match(dashboardSource, /attendance-check-toolbar/);
+  assert.match(globalCssSource, /attendance-check-toolbar/);
   assert.match(dashboardSource, /attendanceCheckEventNames/);
   assert.doesNotMatch(dashboardSource, /출석 종류/);
   assert.doesNotMatch(dashboardSource, /attendance-mode-switcher/);
   assert.doesNotMatch(globalCssSource, /attendance-mode-switcher/);
   assert.match(dashboardSource, /체크할 날짜 선택/);
+  assert.match(dashboardSource, /id="attendance-stats"[\s\S]*id="attendance-create"[\s\S]*id="attendance-checklist"/);
   assert.match(dashboardSource, /주일 예배[\s\S]*순모임/);
   assert.match(dashboardSource, /event-create-note/);
   assert.match(dashboardSource, /선택한 날짜 안에 주일 예배와 순모임 출석 체크가 함께 만들어집니다/);

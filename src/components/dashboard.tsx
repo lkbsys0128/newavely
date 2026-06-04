@@ -1896,7 +1896,6 @@ export function AttendanceManager({
   });
   const selectedAttendanceEvent = attendanceEvents.find((event) => event.id === attendanceEventId) ?? null;
   const unreadAttendanceEventIds = new Set(attendanceEvents.filter((event) => !readAttendanceEventIds.has(event.id)).map((event) => event.id));
-  const currentDateHasUnread = sameDateEvents.some((event) => unreadAttendanceEventIds.has(event.id));
   const attendanceStats = globalStats?.attendance;
 
   const activeMembers = localMembers.filter(isAttendanceRosterMember);
@@ -2154,119 +2153,11 @@ export function AttendanceManager({
       <SectionNav
         items={[
           { href: "#attendance-stats", label: "통계" },
-          { href: "#attendance-events", label: "이벤트" },
           { href: "#attendance-create", label: "새 이벤트" },
-          ...(hasExplicitAttendanceSelection ? [{ href: "#attendance-checklist", label: "출석 체크" }] : []),
+          { href: "#attendance-checklist", label: "출석 체크" },
         ]}
       />
       <div className="attendance-page-flow">
-      <section className="panel form-panel" id="attendance-events">
-        <div className="panel-heading">
-          <div>
-            <h2>출석 날짜 선택</h2>
-            <p className="meta">날짜를 고른 뒤 주일 예배와 순모임 출석을 따로 체크합니다.</p>
-          </div>
-          <span>{eventDateOptions.length}개 날짜</span>
-        </div>
-        {sameDateEvents.length > 1 ? (
-          <div className="event-switcher" aria-label={`${attendanceDate} 이벤트 전환`}>
-            <span>
-              {currentDateHasUnread ? <span className="unread-event-dot" aria-label="새 이벤트" /> : null}
-              {attendanceDate}
-            </span>
-            <div className="segmented">
-              {sameDateEvents.map((event) => (
-                <Link
-                  className={`segment event-segment ${hasExplicitAttendanceSelection && event.id === attendanceEventId ? "active" : ""} ${
-                    unreadAttendanceEventIds.has(event.id) ? "unread" : ""
-                  }`}
-                  href={buildAttendanceHref(event.id, "#attendance-checklist")}
-                  key={event.id}
-                >
-                  {unreadAttendanceEventIds.has(event.id) ? <span className="unread-event-dot" aria-label="새 이벤트" /> : null}
-                  {event.title}
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : null}
-        <div className="event-toolbar">
-          <label>
-            날짜 검색
-            <input
-              type="search"
-              placeholder="날짜"
-              value={eventSearchQuery}
-              onChange={(event) => setEventSearchQuery(event.target.value)}
-            />
-          </label>
-        </div>
-        <div className="event-selector-panel">
-          <label>
-            출석 날짜
-            <select
-              value={hasExplicitAttendanceSelection ? attendanceDate : ""}
-              onChange={(event) => {
-                const selectedDate = event.target.value;
-                if (selectedDate) {
-                  const eventForDate =
-                    attendanceEvents.find((item) => item.eventDate === selectedDate && item.title === "주일 예배") ??
-                    attendanceEvents.find((item) => item.eventDate === selectedDate);
-                  if (eventForDate) {
-                    window.location.href = buildAttendanceHref(eventForDate.id, "#attendance-checklist");
-                  }
-                }
-              }}
-            >
-              <option value="">체크할 날짜 선택</option>
-              {filteredEventDateOptions.map((eventDate) => {
-                const dateEvents = attendanceEvents.filter((event) => event.eventDate === eventDate);
-                const hasUnread = dateEvents.some((event) => unreadAttendanceEventIds.has(event.id));
-                return (
-                  <option key={eventDate} value={eventDate}>
-                    {hasUnread ? "● " : ""}
-                    {eventDate}
-                  </option>
-                );
-              })}
-              {filteredEventDateOptions.length === 0 ? <option value="">조건에 맞는 날짜 없음</option> : null}
-            </select>
-          </label>
-          {hasExplicitAttendanceSelection && selectedAttendanceEvent ? (
-            <div className="selected-event-summary">
-              <div className="person-block">
-                <strong>{selectedAttendanceEvent.eventDate}</strong>
-                <span>{sameDateEvents.map((event) => event.title).join(" · ")}</span>
-              </div>
-              <button
-                className="danger-text-button"
-                type="button"
-                disabled={!canManageAttendance || !canDeleteAttendanceEvents || isDeletingEvent}
-                onClick={() => setEventPendingDelete(selectedAttendanceEvent)}
-              >
-                삭제
-              </button>
-            </div>
-          ) : null}
-          {attendanceEvents.length === 0 ? (
-            <article className="care-item">
-              <div className="person-block">
-                <strong>아직 출석 이벤트가 없습니다</strong>
-                <span>새 출석 이벤트를 만들면 멤버별 출석을 체크할 수 있습니다.</span>
-              </div>
-            </article>
-          ) : null}
-          {attendanceEvents.length > 0 && filteredEventDateOptions.length === 0 ? (
-            <article className="care-item">
-              <div className="person-block">
-                <strong>조건에 맞는 날짜가 없습니다</strong>
-                <span>검색어를 조정해보세요.</span>
-              </div>
-            </article>
-          ) : null}
-        </div>
-        <ActionMessage state={deleteEventState} />
-      </section>
       {eventPendingDelete ? (
         <div
           className="confirm-modal-backdrop"
@@ -2306,29 +2197,6 @@ export function AttendanceManager({
           </div>
         </div>
       ) : null}
-
-      <DisclosurePanel
-        id="attendance-create"
-        title="새 출석 이벤트"
-        meta={canManageAttendance ? "날짜를 선택하면 주일 예배와 순모임이 함께 준비됩니다" : "리더/관리자 권한 필요"}
-      >
-        <form action={createEventAction} className="member-form compact-form">
-          <label>
-            날짜
-            <input name="eventDate" type="date" required disabled={!canManageAttendance} />
-          </label>
-          <div className="event-create-note">
-            <strong>생성되는 출석</strong>
-            <span>선택한 날짜 안에 주일 예배와 순모임 출석 체크가 함께 만들어집니다.</span>
-          </div>
-          <div className="form-actions full-width">
-            <ActionMessage state={createEventState} />
-            <button className="primary-button" type="submit" disabled={!canManageAttendance || isCreatingEvent}>
-              만들기
-            </button>
-          </div>
-        </form>
-      </DisclosurePanel>
 
       <DisclosurePanel
         id="attendance-stats"
@@ -2507,16 +2375,101 @@ export function AttendanceManager({
         </section>
       </DisclosurePanel>
 
-      {hasExplicitAttendanceSelection ? (
+      <DisclosurePanel
+        id="attendance-create"
+        title="새 출석 이벤트"
+        meta={canManageAttendance ? "날짜를 선택하면 주일 예배와 순모임이 함께 준비됩니다" : "리더/관리자 권한 필요"}
+      >
+        <form action={createEventAction} className="member-form compact-form">
+          <label>
+            날짜
+            <input name="eventDate" type="date" required disabled={!canManageAttendance} />
+          </label>
+          <div className="event-create-note">
+            <strong>생성되는 출석</strong>
+            <span>선택한 날짜 안에 주일 예배와 순모임 출석 체크가 함께 만들어집니다.</span>
+          </div>
+          <div className="form-actions full-width">
+            <ActionMessage state={createEventState} />
+            <button className="primary-button" type="submit" disabled={!canManageAttendance || isCreatingEvent}>
+              만들기
+            </button>
+          </div>
+        </form>
+      </DisclosurePanel>
+
       <section className="panel" id="attendance-checklist">
         <div className="attendance-check-header">
           <div>
             <h2>출석 체크</h2>
             <span>
-              {attendanceDate} · {attendanceCheckEventNames} · {attendanceMembers.length}/{activeMemberCount}명 표시
+              {hasExplicitAttendanceSelection
+                ? `${attendanceDate} · ${attendanceCheckEventNames} · ${attendanceMembers.length}/${activeMemberCount}명 표시`
+                : "날짜를 선택하면 주일 예배와 순모임을 함께 체크할 수 있습니다"}
             </span>
           </div>
-          <div className="attendance-check-controls">
+        </div>
+        <div className="attendance-check-toolbar">
+          <label>
+            날짜
+            <select
+              value={hasExplicitAttendanceSelection ? attendanceDate : ""}
+              onChange={(event) => {
+                const selectedDate = event.target.value;
+                if (selectedDate) {
+                  const eventForDate =
+                    attendanceEvents.find((item) => item.eventDate === selectedDate && item.title === "주일 예배") ??
+                    attendanceEvents.find((item) => item.eventDate === selectedDate);
+                  if (eventForDate) {
+                    window.location.href = buildAttendanceHref(eventForDate.id, "#attendance-checklist");
+                  }
+                }
+              }}
+            >
+              <option value="">체크할 날짜 선택</option>
+              {filteredEventDateOptions.map((eventDate) => {
+                const dateEvents = attendanceEvents.filter((event) => event.eventDate === eventDate);
+                const hasUnread = dateEvents.some((event) => unreadAttendanceEventIds.has(event.id));
+                return (
+                  <option key={eventDate} value={eventDate}>
+                    {hasUnread ? "● " : ""}
+                    {eventDate}
+                  </option>
+                );
+              })}
+              {filteredEventDateOptions.length === 0 ? <option value="">조건에 맞는 날짜 없음</option> : null}
+            </select>
+          </label>
+          <label>
+            검색
+            <input
+              onChange={(event) => setAttendanceSearchQuery(event.target.value)}
+              placeholder="이름 또는 순"
+              type="search"
+              value={attendanceSearchQuery}
+            />
+          </label>
+          <label>
+            날짜 검색
+            <input
+              type="search"
+              placeholder="예: 2026-05"
+              value={eventSearchQuery}
+              onChange={(event) => setEventSearchQuery(event.target.value)}
+            />
+          </label>
+          {hasExplicitAttendanceSelection && selectedAttendanceEvent ? (
+            <button
+              className="danger-text-button attendance-event-delete-inline"
+              type="button"
+              disabled={!canManageAttendance || !canDeleteAttendanceEvents || isDeletingEvent}
+              onClick={() => setEventPendingDelete(selectedAttendanceEvent)}
+            >
+              삭제
+            </button>
+          ) : null}
+        </div>
+        <div className="attendance-check-controls">
           <div className="segmented">
             {(["all", "present", "absent", "excused"] as const).map((filter) => (
               <button
@@ -2528,7 +2481,6 @@ export function AttendanceManager({
                 {attendanceFilterLabels[filter]}
               </button>
             ))}
-          </div>
           </div>
         </div>
         <div className="attendance-group-strip" aria-label="순 선택">
@@ -2543,7 +2495,26 @@ export function AttendanceManager({
             </button>
           ))}
         </div>
-        {shouldShowAttendanceOverview && attendanceOverviewEvents.length > 0 ? (
+        <ActionMessage state={deleteEventState} />
+        {attendanceEvents.length === 0 ? (
+          <article className="empty-table-state attendance-empty-state">
+            <strong>아직 출석 이벤트가 없습니다</strong>
+            <span>새 출석 이벤트를 만들면 멤버별 출석을 체크할 수 있습니다.</span>
+          </article>
+        ) : null}
+        {attendanceEvents.length > 0 && filteredEventDateOptions.length === 0 ? (
+          <article className="empty-table-state attendance-empty-state">
+            <strong>조건에 맞는 날짜가 없습니다</strong>
+            <span>날짜 검색어를 조정해보세요.</span>
+          </article>
+        ) : null}
+        {!hasExplicitAttendanceSelection && filteredEventDateOptions.length > 0 ? (
+          <article className="empty-table-state attendance-empty-state">
+            <strong>출석 체크할 날짜를 선택해주세요</strong>
+            <span>위에서 날짜를 고르면 주일 예배와 순모임 출석을 한 화면에서 체크할 수 있습니다.</span>
+          </article>
+        ) : null}
+        {hasExplicitAttendanceSelection && shouldShowAttendanceOverview && attendanceOverviewEvents.length > 0 ? (
           <section className="group-attendance-snapshot" aria-label={`${overviewGroupName} 출석현황`}>
             <div className="group-attendance-snapshot-heading">
               <div>
@@ -2605,17 +2576,7 @@ export function AttendanceManager({
             </div>
           </section>
         ) : null}
-        <div className="attendance-toolbar">
-          <label>
-            검색
-            <input
-              onChange={(event) => setAttendanceSearchQuery(event.target.value)}
-              placeholder="이름 또는 순"
-              type="search"
-              value={attendanceSearchQuery}
-            />
-          </label>
-        </div>
+        {hasExplicitAttendanceSelection ? (
         <div className="attendance-check-list">
           {attendanceMembers.map((member) => {
             const status = getMemberAttendanceStatus(member, attendanceEventId);
@@ -2660,15 +2621,8 @@ export function AttendanceManager({
             </article>
           ) : null}
         </div>
+        ) : null}
       </section>
-      ) : (
-        <section className="panel attendance-selection-empty" id="attendance-checklist">
-          <div className="person-block">
-            <strong>출석 체크할 날짜를 선택해주세요</strong>
-            <span>날짜를 고른 뒤 주일 예배 또는 순모임 출석을 체크할 수 있습니다.</span>
-          </div>
-        </section>
-      )}
       </div>
     </>
   );

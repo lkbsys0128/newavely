@@ -2457,16 +2457,12 @@ tbody tr:hover {
   order: 1;
 }
 
-.attendance-page-flow #attendance-events {
+.attendance-page-flow #attendance-create {
   order: 2;
 }
 
-.attendance-page-flow #attendance-create {
-  order: 3;
-}
-
 .attendance-page-flow #attendance-checklist {
-  order: 4;
+  order: 3;
 }
 
 .event-segment.unread,
@@ -3216,16 +3212,50 @@ tbody tr:hover {
 
 .attendance-check-controls {
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: flex-start;
   gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.attendance-check-toolbar {
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) minmax(180px, 1fr) minmax(160px, 220px) auto;
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.attendance-check-toolbar label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.attendance-check-toolbar input,
+.attendance-check-toolbar select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 11px;
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.attendance-event-delete-inline {
+  min-height: 38px;
+  align-self: end;
 }
 
 .attendance-group-strip {
   display: flex;
   gap: 7px;
-  margin: -4px 0 14px;
+  margin: 0 0 14px;
   overflow-x: auto;
   padding: 2px 0 4px;
   scrollbar-width: thin;
@@ -3874,6 +3904,14 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
+  .attendance-check-toolbar {
+    grid-template-columns: minmax(170px, 220px) minmax(180px, 1fr) minmax(160px, 220px);
+  }
+
+  .attendance-event-delete-inline {
+    justify-self: end;
+  }
+
   .attendance-toolbar {
     grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
   }
@@ -4143,6 +4181,7 @@ tbody tr:hover {
   .management-form,
   .filter-grid,
   .attendance-toolbar,
+  .attendance-check-toolbar,
   .attendance-stats-toolbar,
   .attendance-kpi-strip,
   .attendance-insight-grid,
