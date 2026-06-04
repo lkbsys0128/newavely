@@ -11,6 +11,7 @@ import {
   calculateKoreanAge,
   normalizeBaptismStatus,
   normalizeJobValue,
+  normalizeMinistryList,
   normalizeMinistryValue,
 } from "@/lib/member-field-options";
 import { splitCompositeMemberName } from "@/lib/member-names";
@@ -298,6 +299,12 @@ function normalizeSubmittedCustomFields(customFields: Record<string, unknown>) {
   }
   if ("ministry_2" in normalized) {
     normalized.ministry_2 = normalizeMinistryValue(normalized.ministry_2);
+  }
+  if ("ministries" in normalized) {
+    const ministries = normalizeMinistryList(normalized.ministries);
+    normalized.ministries = ministries;
+    normalized.ministry_1 = ministries[0] ?? null;
+    normalized.ministry_2 = ministries[1] ?? null;
   }
   if ("birthdate" in normalized || "age" in normalized) {
     normalized.age = calculateKoreanAge(normalized.birthdate);
@@ -1141,7 +1148,13 @@ export async function updateMemberCustomFields(_previousState: ActionState, form
 
     for (const [key, value] of formData.entries()) {
       if (!key.startsWith("custom_")) continue;
-      customFields[key.replace(/^custom_/, "")] = parseCustomFieldValue(value);
+      const fieldKey = key.replace(/^custom_/, "");
+      const parsedValue = parseCustomFieldValue(value);
+      if (fieldKey in customFields) {
+        customFields[fieldKey] = [...(Array.isArray(customFields[fieldKey]) ? customFields[fieldKey] : [customFields[fieldKey]]), parsedValue];
+      } else {
+        customFields[fieldKey] = parsedValue;
+      }
     }
 
     const { data: beforeData, error: beforeError } = await supabase.from("members").select("*").eq("id", id).single();

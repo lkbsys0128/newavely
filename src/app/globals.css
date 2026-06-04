@@ -1965,6 +1965,96 @@ tbody tr:hover {
   gap: 12px;
 }
 
+.ministry-label-editor {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fcfd;
+}
+
+.ministry-label-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ministry-label-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.ministry-label-heading strong {
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.ministry-label-heading span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.ministry-label-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ministry-label-chip {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.ministry-label-chip input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ministry-label-chip span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.ministry-label-chip:hover span {
+  transform: translateY(-1px);
+  border-color: rgba(47, 145, 181, 0.32);
+}
+
+.ministry-label-chip input:checked + span {
+  border-color: rgba(47, 145, 181, 0.36);
+  background: var(--accent-dark);
+  color: #ffffff;
+  box-shadow: var(--shadow-soft);
+}
+
+.ministry-label-chip input:disabled + span {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+}
+
 .group-edit-form {
   grid-template-columns: 1fr;
   padding-top: 14px;
