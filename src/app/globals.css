@@ -21,21 +21,21 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #071418;
-  --surface: #0d2026;
-  --surface-strong: #122a31;
-  --ink: #e8f3f6;
-  --text: #e8f3f6;
-  --muted: #9fb8bf;
-  --line: #24434c;
-  --line-strong: #315864;
-  --accent: #5bb6d1;
-  --accent-dark: #84d3e8;
-  --accent-2: #ef7d7d;
-  --danger: #ef7d7d;
-  --accent-3: #6bd3be;
-  --soft: #12313a;
-  --soft-strong: #193f4a;
+  --bg: #081114;
+  --surface: #101d22;
+  --surface-strong: #16282e;
+  --ink: #edf6f7;
+  --text: #edf6f7;
+  --muted: #a8bcc1;
+  --line: #2a454d;
+  --line-strong: #3a606b;
+  --accent: #42a9c5;
+  --accent-dark: #75c7db;
+  --accent-2: #e56f6f;
+  --danger: #e56f6f;
+  --accent-3: #58bea9;
+  --soft: #1b333b;
+  --soft-strong: #21434d;
   --shadow: 0 14px 34px rgba(0, 0, 0, 0.32);
   --shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.24);
 }
@@ -336,7 +336,7 @@ a {
 }
 
 :root[data-theme="dark"] .theme-toggle-switch {
-  background: rgba(91, 182, 209, 0.18);
+  background: rgba(66, 169, 197, 0.2);
 }
 
 :root[data-theme="dark"] .theme-toggle-switch span {
@@ -4755,12 +4755,12 @@ tbody tr:hover {
 
 :root[data-theme="dark"] body {
   background:
-    linear-gradient(180deg, rgba(91, 182, 209, 0.09), transparent 260px),
+    linear-gradient(180deg, rgba(66, 169, 197, 0.08), transparent 260px),
     var(--bg);
 }
 
 :root[data-theme="dark"] .sidebar {
-  background: rgba(9, 24, 29, 0.95);
+  background: rgba(8, 17, 20, 0.96);
   box-shadow: 10px 0 30px rgba(0, 0, 0, 0.24);
 }
 
@@ -4778,6 +4778,7 @@ tbody tr:hover {
 :root[data-theme="dark"] .management-form input,
 :root[data-theme="dark"] .management-form select,
 :root[data-theme="dark"] .management-form textarea,
+:root[data-theme="dark"] .status-input-shell textarea,
 :root[data-theme="dark"] .filter-grid select,
 :root[data-theme="dark"] .link-request-resolution input,
 :root[data-theme="dark"] .link-request-resolution select,
@@ -4793,6 +4794,24 @@ tbody tr:hover {
 :root[data-theme="dark"] .event-toolbar input,
 :root[data-theme="dark"] .event-toolbar select,
 :root[data-theme="dark"] .event-selector-panel select {
+  background: var(--surface-strong);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: rgba(168, 188, 193, 0.72);
+}
+
+:root[data-theme="dark"] .primary-button {
+  background: linear-gradient(180deg, #3aa1bd, #1f6f84);
+  color: #f7fdff;
+  box-shadow: 0 10px 22px rgba(4, 13, 16, 0.34);
+}
+
+:root[data-theme="dark"] .secondary-button {
+  border-color: var(--line);
   background: var(--surface-strong);
   color: var(--ink);
 }
@@ -4830,8 +4849,55 @@ tbody tr:hover {
 :root[data-theme="dark"] .attendance-aggregate-panel,
 :root[data-theme="dark"] .group-attendance-snapshot {
   background:
-    linear-gradient(180deg, rgba(91, 182, 209, 0.08), transparent 86px),
+    linear-gradient(180deg, rgba(66, 169, 197, 0.07), transparent 86px),
     var(--surface);
+}
+
+:root[data-theme="dark"] .status-composer-panel {
+  border-color: rgba(66, 169, 197, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(66, 169, 197, 0.12), transparent 230px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 120px),
+    var(--surface);
+}
+
+:root[data-theme="dark"] .status-composer-heading {
+  border-bottom-color: rgba(168, 188, 193, 0.16);
+}
+
+:root[data-theme="dark"] .status-input-shell textarea {
+  background: #0d191d;
+  color: var(--ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="dark"] .status-input-shell textarea:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px rgba(66, 169, 197, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="dark"] .status-counter {
+  border-color: var(--line);
+  background: var(--surface-strong);
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .status-quick-list button {
+  border-color: rgba(66, 169, 197, 0.24);
+  background: #14262c;
+  color: #c8e8ef;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .status-quick-list button:hover,
+:root[data-theme="dark"] .status-quick-list button:focus-visible {
+  border-color: rgba(117, 199, 219, 0.44);
+  background: #1b333b;
+  color: #ffffff;
 }
 
 :root[data-theme="dark"] .feedback-item,
@@ -4934,7 +5000,7 @@ tbody tr:hover {
 :root[data-theme="dark"] .account-pill.connected,
 :root[data-theme="dark"] .attendance-toggle.present,
 :root[data-theme="dark"] .snapshot-status.present {
-  background: rgba(91, 182, 209, 0.16);
+  background: rgba(66, 169, 197, 0.16);
   color: var(--accent-dark);
 }
 
@@ -4955,7 +5021,7 @@ tbody tr:hover {
 }
 
 :root[data-theme="dark"] .attendance-card.present {
-  background: linear-gradient(90deg, rgba(91, 182, 209, 0.18), rgba(13, 32, 38, 0.96) 42%);
+  background: linear-gradient(90deg, rgba(66, 169, 197, 0.16), rgba(16, 29, 34, 0.96) 42%);
 }
 
 :root[data-theme="dark"] .attendance-card.absent {
@@ -4964,7 +5030,7 @@ tbody tr:hover {
 
 :root[data-theme="dark"] .attendance-card.excused,
 :root[data-theme="dark"] .snapshot-member-row.all-present > strong {
-  background: linear-gradient(90deg, rgba(107, 211, 190, 0.14), rgba(13, 32, 38, 0.96) 42%);
+  background: linear-gradient(90deg, rgba(88, 190, 169, 0.14), rgba(16, 29, 34, 0.96) 42%);
 }
 
 :root[data-theme="dark"] .attendance-type-action,
@@ -5003,6 +5069,6 @@ tbody tr:hover {
 
 @media (max-width: 760px) {
   :root[data-theme="dark"] .sidebar {
-    background: rgba(9, 24, 29, 0.92);
+    background: rgba(8, 17, 20, 0.94);
   }
 }
