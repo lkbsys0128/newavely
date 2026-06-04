@@ -4929,6 +4929,7 @@ tbody tr:hover {
 
 :root[data-theme="dark"] .feedback-item,
 :root[data-theme="dark"] .feedback-admin-form,
+:root[data-theme="dark"] .link-delete-form,
 :root[data-theme="dark"] .care-item,
 :root[data-theme="dark"] .summary-row,
 :root[data-theme="dark"] .attendance-row,
@@ -4965,6 +4966,7 @@ tbody tr:hover {
 :root[data-theme="dark"] .aggregate-group-row,
 :root[data-theme="dark"] .absence-watch-row,
 :root[data-theme="dark"] .dashboard-rate-pill,
+:root[data-theme="dark"] .snapshot-mini-metrics article,
 :root[data-theme="dark"] .merge-choice-row,
 :root[data-theme="dark"] .ministry-label-editor,
 :root[data-theme="dark"] .link-request-summary,
@@ -4973,7 +4975,8 @@ tbody tr:hover {
 :root[data-theme="dark"] .onboarding-request-admin,
 :root[data-theme="dark"] .group-card-overview div,
 :root[data-theme="dark"] .attendance-toolbar,
-:root[data-theme="dark"] .event-toolbar {
+:root[data-theme="dark"] .event-toolbar,
+:root[data-theme="dark"] .event-switcher {
   background: var(--surface-strong);
 }
 
@@ -5010,6 +5013,26 @@ tbody tr:hover {
 :root[data-theme="dark"] .role-member-overlay {
   background: var(--surface-strong);
   color: var(--ink);
+}
+
+:root[data-theme="dark"] .theme-toggle-mark,
+:root[data-theme="dark"] .statistics-table-row,
+:root[data-theme="dark"] .snapshot-member-row > strong,
+:root[data-theme="dark"] .snapshot-member-row > .snapshot-status {
+  background: #14262c;
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .snapshot-grid-head,
+:root[data-theme="dark"] .snapshot-mini-metrics span,
+:root[data-theme="dark"] .snapshot-mini-metrics small {
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .snapshot-mini-metrics strong,
+:root[data-theme="dark"] .statistics-table-row span:first-child,
+:root[data-theme="dark"] .group-card-overview strong {
+  color: var(--accent-dark);
 }
 
 :root[data-theme="dark"] .status-pill,
