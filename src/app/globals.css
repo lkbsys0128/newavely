@@ -3646,22 +3646,9 @@ tbody tr:hover {
 }
 
 .attendance-type-action-main {
-  display: grid;
-  grid-template-columns: minmax(66px, 0.8fr) minmax(76px, 1fr);
-  align-items: center;
-  gap: 0;
+  display: block;
   min-width: 0;
   min-height: 42px;
-}
-
-.attendance-type-action-main strong {
-  color: var(--ink);
-  font-size: 0.82rem;
-  line-height: 1.1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0 10px;
 }
 
 .attendance-toggle {
@@ -3672,7 +3659,6 @@ tbody tr:hover {
   min-width: 0;
   min-height: 42px;
   border: 0;
-  border-left: 1px solid var(--line);
   border-radius: 0;
   padding: 0 10px;
   background: #eef4f6;
@@ -3680,6 +3666,8 @@ tbody tr:hover {
   font-size: 0.78rem;
   font-weight: 950;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .attendance-toggle.present {
@@ -4369,16 +4357,6 @@ tbody tr:hover {
 
   .attendance-card .attendance-type-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .attendance-type-action-main {
-    grid-template-columns: minmax(56px, 0.9fr) minmax(58px, 1fr);
-    min-height: 40px;
-  }
-
-  .attendance-type-action-main strong {
-    padding: 0 7px;
-    font-size: 0.78rem;
   }
 
   .attendance-type-action {

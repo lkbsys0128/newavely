@@ -2727,17 +2727,18 @@ function AttendanceRow({
       <div className="attendance-actions attendance-type-actions">
         {visibleAttendanceEvents.map((event) => {
           const eventStatus = getMemberAttendanceStatus(member, event.id);
+          const eventLabel = event.title === "주일 예배" ? "예배" : event.title;
           return (
             <div className={`attendance-type-action ${eventStatus}`} key={event.id}>
               <div className="attendance-type-action-main">
-                <strong>{event.title}</strong>
                 <button
+                  aria-label={`${event.title} ${attendanceStatusLabels[eventStatus]}`}
                   className={`attendance-toggle ${eventStatus}`}
                   disabled={!canManageAttendance || isPending}
                   onClick={() => onToggleEvent(event, eventStatus !== "present")}
                   type="button"
                 >
-                  {attendanceStatusLabels[eventStatus]}
+                  {eventLabel} {attendanceStatusLabels[eventStatus]}
                 </button>
               </div>
             </div>
