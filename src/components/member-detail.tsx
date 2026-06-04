@@ -25,6 +25,7 @@ import {
   baptismStatusOptions,
   calculateKoreanAge,
   genderOptions,
+  getMemberMinistryValues,
   jobOptions,
   ministryOptions,
   normalizeBaptismStatus,
@@ -66,7 +67,11 @@ export function MemberDetailPageContent({
   const canManageRoles = hasPermission(user.role, "roles:manage");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
   const assignableMembers = members.filter((item) => item.status !== "inactive" && !isMergedPlaceholderMember(item));
-  const additionalFieldDefinitions = customFieldDefinitions.filter((field) => field.key !== "english_name");
+  const additionalFieldDefinitions = customFieldDefinitions.filter(
+    (field) => !["english_name", "ministries", "ministry_1", "ministry_2"].includes(field.key),
+  );
+  const selectedMinistries = getMemberMinistryValues(member.customFields);
+  const ministryChoices = [...new Set([...ministryOptions, ...selectedMinistries])];
   const currentMemberId =
     assignableMembers.find((item) => item.authUserId === user.id)?.id ??
     assignableMembers.find((item) => item.email === user.email)?.id ??
@@ -274,10 +279,34 @@ export function MemberDetailPageContent({
         <section className="panel" id="custom-fields">
           <div className="panel-heading">
             <h2>추가 정보</h2>
-            <span>{additionalFieldDefinitions.length}개 항목</span>
+            <span>사역팀 · {additionalFieldDefinitions.length}개 항목</span>
           </div>
           <form action={customFieldsAction} className="management-form">
             <input name="id" type="hidden" value={member.id} />
+            <section className="ministry-label-editor full-width" aria-label="사역팀">
+              <div className="ministry-label-heading">
+                <div>
+                  <strong>사역팀</strong>
+                  <span>해당 멤버가 섬기는 사역을 모두 선택하세요.</span>
+                </div>
+                <span>{selectedMinistries.length}개</span>
+              </div>
+              <input name="custom_ministries" type="hidden" value="" />
+              <div className="ministry-label-list">
+                {ministryChoices.map((ministry) => (
+                  <label className="ministry-label-chip" key={ministry}>
+                    <input
+                      name="custom_ministries"
+                      type="checkbox"
+                      value={ministry}
+                      defaultChecked={selectedMinistries.includes(ministry)}
+                      disabled={!canManageMembers}
+                    />
+                    <span>{ministry}</span>
+                  </label>
+                ))}
+              </div>
+            </section>
             {additionalFieldDefinitions.map((field) => (
               <label key={field.id} className={field.fieldType === "boolean" ? "checkbox-label" : undefined}>
                 {field.label}
@@ -293,8 +322,8 @@ export function MemberDetailPageContent({
             {additionalFieldDefinitions.length === 0 ? (
               <article className="care-item full-width">
                 <div className="person-block">
-                  <strong>아직 추가 정보 항목이 없습니다</strong>
-                  <span>아래에서 항목을 만들면 이 멤버에게 값을 입력할 수 있습니다.</span>
+                  <strong>사역팀 외 추가 정보 항목이 없습니다</strong>
+                  <span>필요하면 아래에서 항목을 만들 수 있습니다.</span>
                 </div>
               </article>
             ) : null}
@@ -303,7 +332,7 @@ export function MemberDetailPageContent({
               <button
                 className="primary-button"
                 type="submit"
-                disabled={!canManageMembers || isSavingCustomFields || additionalFieldDefinitions.length === 0}
+                disabled={!canManageMembers || isSavingCustomFields}
               >
                 추가 정보 저장
               </button>

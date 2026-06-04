@@ -43,6 +43,19 @@ export function normalizeMinistryValue(value: unknown) {
   return legacyMinistryLabels[normalized] ?? normalized;
 }
 
+export function normalizeMinistryList(value: unknown) {
+  const values = Array.isArray(value) ? value : [value];
+  return [...new Set(values.map((item) => normalizeMinistryValue(item)).filter(Boolean))];
+}
+
+export function getMemberMinistryValues(customFields: Record<string, unknown>) {
+  return normalizeMinistryList([
+    ...normalizeMinistryList(customFields.ministries),
+    customFields.ministry_1,
+    customFields.ministry_2,
+  ]);
+}
+
 export function appendCurrentOption(options: readonly string[], value: unknown) {
   const normalized = String(value ?? "").trim();
   if (!normalized || options.includes(normalized)) return [...options];

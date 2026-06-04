@@ -478,6 +478,16 @@ test("member roster can be exported to Google Sheets without internal fields", (
   assert.match(googleSheetsSource, /:clear/);
 });
 
+test("member detail manages multiple ministry labels", () => {
+  assert.match(memberDetailSource, /getMemberMinistryValues\(member\.customFields\)/);
+  assert.match(memberDetailSource, /custom_ministries/);
+  assert.match(memberDetailSource, /ministry-label-chip/);
+  assert.match(memberDetailSource, /!\["english_name", "ministries", "ministry_1", "ministry_2"\]\.includes\(field\.key\)/);
+  assert.match(actionsSource, /normalizeMinistryList\(normalized\.ministries\)/);
+  assert.match(actionsSource, /normalized\.ministry_1 = ministries\[0\] \?\? null/);
+  assert.match(globalCssSource, /\.ministry-label-chip input:checked \+ span/);
+});
+
 test("profile link request panel only appears for the current onboarding member", () => {
   assert.match(profilePageSource, /showLinkRequest={member\.status === "new"}/);
   assert.match(memberDetailSource, /request\.requesterMemberId === member\.id/);

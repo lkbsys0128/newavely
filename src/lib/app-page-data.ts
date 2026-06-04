@@ -14,7 +14,7 @@ import type {
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { scopeMembersForRole } from "@/lib/member-visibility";
 import { isMergedPlaceholderMember } from "@/lib/member-filters";
-import { calculateKoreanAge, ministryOptions, normalizeJobValue, normalizeMinistryValue } from "@/lib/member-field-options";
+import { calculateKoreanAge, getMemberMinistryValues, ministryOptions, normalizeJobValue } from "@/lib/member-field-options";
 import { createClient } from "@/lib/supabase/server";
 import {
   ensureAttendanceEvent,
@@ -512,10 +512,7 @@ function getAgeBucketLabel(member: Member) {
 }
 
 function getMemberMinistries(member: Member) {
-  return [
-    normalizeMinistryValue(getCustomFieldString(member, "ministry_1")),
-    normalizeMinistryValue(getCustomFieldString(member, "ministry_2")),
-  ].filter(Boolean);
+  return getMemberMinistryValues(member.customFields);
 }
 
 function getCustomFieldString(member: Member, key: string) {

@@ -54,9 +54,9 @@ import {
   baptismStatusOptions,
   calculateKoreanAge,
   ministryOptions,
+  getMemberMinistryValues,
   normalizeBaptismStatus,
   normalizeJobValue,
-  normalizeMinistryValue,
 } from "@/lib/member-field-options";
 import { getMemberEnglishName } from "@/lib/member-names";
 import { SectionNav } from "@/components/section-nav";
@@ -622,9 +622,7 @@ function buildMinistryRosters(members: Member[]): InsightBucket[] {
   buckets.set("미입력", []);
 
   for (const member of members) {
-    const ministries = [getCustomFieldString(member, "ministry_1"), getCustomFieldString(member, "ministry_2")]
-      .map((value) => normalizeMinistryValue(value))
-      .filter(Boolean);
+    const ministries = getMemberMinistryValues(member.customFields);
     const uniqueMinistries = [...new Set(ministries)];
 
     if (uniqueMinistries.length === 0) {
@@ -747,10 +745,7 @@ function getAgeBucketLabel(member: Member) {
 }
 
 function getMemberMinistries(member: Member) {
-  return [
-    normalizeMinistryValue(getCustomFieldString(member, "ministry_1")),
-    normalizeMinistryValue(getCustomFieldString(member, "ministry_2")),
-  ].filter(Boolean);
+  return getMemberMinistryValues(member.customFields);
 }
 
 function getCustomFieldString(member: Member, key: string) {

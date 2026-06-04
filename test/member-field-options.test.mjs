@@ -6,8 +6,10 @@ const {
   baptismStatusOptions,
   calculateKoreanAge,
   genderOptions,
+  getMemberMinistryValues,
   jobOptions,
   ministryOptions,
+  normalizeMinistryList,
   normalizeBaptismStatus,
   normalizeJobValue,
   normalizeMinistryValue,
@@ -24,6 +26,18 @@ test("legacy imported labels normalize to current choices", () => {
   assert.equal(normalizeJobValue("사회인"), "직장인");
   assert.equal(normalizeBaptismStatus("X"), "교회 처음");
   assert.equal(normalizeMinistryValue("예배 진행팀"), "예배운영팀");
+});
+
+test("member ministries support multiple labels and legacy fields", () => {
+  assert.deepEqual(Array.from(normalizeMinistryList(["찬양팀", "예배 진행팀", "", "찬양팀"])), ["찬양팀", "예배운영팀"]);
+  assert.deepEqual(
+    Array.from(getMemberMinistryValues({
+      ministries: ["찬양팀", "웰컴팀"],
+      ministry_1: "예배 진행팀",
+      ministry_2: "찬양팀",
+    })),
+    ["찬양팀", "웰컴팀", "예배운영팀"],
+  );
 });
 
 test("calculateKoreanAge returns 만 나이 from birthdate", () => {
