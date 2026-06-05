@@ -266,10 +266,12 @@ test("common aggregate stats use unscoped server data while pages receive scoped
   assert.match(appPageDataSource, /members: scopedMembers/);
   assert.match(appPageDataSource, /globalStats,/);
   assert.match(appPageDataSource, /statisticsSummary: buildStatisticsSummary\(activeMembers\)/);
+  assert.match(appPageDataSource, /dashboardInsights: buildDashboardInsights\(activeMembers, groups\)/);
   assert.match(appPageDataSource, /groupPage: buildGroupPageStats\(activeMembers, groups\)/);
   assert.match(appPageDataSource, /attendance: \{/);
   assert.match(dashboardSource, /globalStats\?\.groupPage/);
   assert.match(dashboardSource, /globalStats\?\.attendance/);
+  assert.match(dashboardSource, /globalStats\?\.dashboardInsights \?\? buildDashboardInsights\(activeMembers, groups\)/);
   assert.match(dashboardSource, /displayCurrentAttendanceRate/);
   assert.match(dashboardSource, /displayAggregateGroupStats/);
 });

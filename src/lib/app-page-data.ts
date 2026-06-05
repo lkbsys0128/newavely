@@ -80,6 +80,37 @@ export type StatisticsSummary = {
   ministry: StatSummaryRow[];
 };
 
+export type InsightMember = {
+  id: string;
+  name: string;
+  meta?: string;
+};
+
+export type BirthdayInsightMember = InsightMember & {
+  day: number;
+};
+
+export type InsightBucket = {
+  label: string;
+  members: InsightMember[];
+};
+
+export type BirthdayMonthBucket = {
+  month: number;
+  label: string;
+  members: BirthdayInsightMember[];
+};
+
+export type DashboardInsights = {
+  statisticsSummary: StatisticsSummary;
+  upcomingBirthdays: BirthdayMonthBucket[];
+  birthdayMonths: BirthdayMonthBucket[];
+  groupRosters: InsightBucket[];
+  ministryRosters: InsightBucket[];
+  jobDistribution: InsightBucket[];
+  ageDistribution: InsightBucket[];
+};
+
 export type GroupPageStats = {
   activeMembers: number;
   assignedMembers: number;
@@ -152,6 +183,7 @@ export type AttendancePageStats = {
 export type GlobalAppStats = {
   dashboardMetrics: DashboardMetrics;
   statisticsSummary: StatisticsSummary;
+  dashboardInsights: DashboardInsights;
   groupPage: GroupPageStats;
   groupAttendanceSummary: GroupAttendanceSummary[];
   attendance: AttendancePageStats;
@@ -200,6 +232,7 @@ export function buildGlobalAppStats(members: Member[], groups: Group[], attendan
   return {
     dashboardMetrics,
     statisticsSummary: buildStatisticsSummary(activeMembers),
+    dashboardInsights: buildDashboardInsights(activeMembers, groups),
     groupPage: buildGroupPageStats(activeMembers, groups),
     groupAttendanceSummary: buildDashboardGroupAttendanceSummary(attendanceMembers, groups, attendanceEvents),
     attendance: {
@@ -238,6 +271,132 @@ function buildStatisticsSummary(members: Member[]): StatisticsSummary {
     job: toStatRows(jobCounts, members.length),
     ministry: ministryCounts,
   };
+}
+
+function buildDashboardInsights(members: Member[], groups: Group[]): DashboardInsights {
+  const sortedMembers = [...members].sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    statisticsSummary: buildStatisticsSummary(sortedMembers),
+    upcomingBirthdays: buildUpcomingBirthdayMonths(sortedMembers),
+    birthdayMonths: buildBirthdayMonths(sortedMembers),
+    groupRosters: buildGroupRosters(sortedMembers, groups),
+    ministryRosters: buildMinistryRosters(sortedMembers),
+    jobDistribution: buildJobDistribution(sortedMembers),
+    ageDistribution: buildAgeDistribution(sortedMembers),
+  };
+}
+
+function buildUpcomingBirthdayMonths(members: Member[], today = new Date()): BirthdayMonthBucket[] {
+  const currentMonth = today.getMonth() + 1;
+  const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+  const birthdayMonths = buildBirthdayMonths(members);
+
+  return [currentMonth, nextMonth].map((month, index) => ({
+    ...birthdayMonths[month - 1],
+    label: index === 0 ? "이번달" : "다음달",
+  }));
+}
+
+function buildBirthdayMonths(members: Member[]): BirthdayMonthBucket[] {
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const monthMembers: BirthdayInsightMember[] = [];
+
+    for (const member of members) {
+      const birthdate = getCustomFieldString(member, "birthdate");
+      const [, birthMonth, birthDay] = birthdate.split("-").map(Number);
+      if (birthMonth !== month || !birthDay) continue;
+
+      monthMembers.push({
+        id: member.id,
+        name: member.displayName,
+        day: birthDay,
+        meta: `${birthDay}일${member.groupName ? ` · ${member.groupName}` : ""}`,
+      });
+    }
+
+    monthMembers.sort((a, b) => a.day - b.day || a.name.localeCompare(b.name));
+
+    return { month, label: `${month}월`, members: monthMembers };
+  });
+}
+
+function buildGroupRosters(members: Member[], groups: Group[]): InsightBucket[] {
+  const groupBuckets = groups.map((group) => ({
+    label: group.name,
+    members: members
+      .filter((member) => member.groupId === group.id)
+      .map((member) => ({
+        id: member.id,
+        name: member.displayName,
+        meta: member.id === group.leaderMemberId ? "리더" : undefined,
+      })),
+  }));
+
+  const unassignedMembers = members
+    .filter((member) => !member.groupId)
+    .map((member) => ({ id: member.id, name: member.displayName, meta: "미배정" }));
+
+  return [...groupBuckets, { label: "미배정", members: unassignedMembers }];
+}
+
+function buildMinistryRosters(members: Member[]): InsightBucket[] {
+  const buckets = new Map<string, InsightMember[]>();
+  for (const option of ministryOptions) buckets.set(option, []);
+  buckets.set("미입력", []);
+
+  for (const member of members) {
+    const ministries = getMemberMinistryValues(member.customFields);
+    const uniqueMinistries = [...new Set(ministries)];
+
+    if (uniqueMinistries.length === 0) {
+      buckets.get("미입력")?.push({ id: member.id, name: member.displayName, meta: member.groupName || undefined });
+      continue;
+    }
+
+    for (const ministry of uniqueMinistries) {
+      if (!buckets.has(ministry)) buckets.set(ministry, []);
+      buckets.get(ministry)?.push({ id: member.id, name: member.displayName, meta: member.groupName || undefined });
+    }
+  }
+
+  return [...buckets.entries()].map(([label, bucketMembers]) => ({ label, members: bucketMembers }));
+}
+
+function buildJobDistribution(members: Member[]): InsightBucket[] {
+  const labels = ["학생", "사회인", "기타", "미입력"];
+  const buckets = new Map(labels.map((label) => [label, [] as InsightMember[]]));
+
+  for (const member of members) {
+    const normalizedJob = normalizeJobValue(getCustomFieldString(member, "job"));
+    const bucketLabel = getJobBucketLabel(member);
+    buckets.get(bucketLabel)?.push({
+      id: member.id,
+      name: member.displayName,
+      meta: bucketLabel === "기타" && normalizedJob !== "기타" ? normalizedJob : member.groupName || undefined,
+    });
+  }
+
+  return labels.map((label) => ({ label, members: buckets.get(label) ?? [] }));
+}
+
+function buildAgeDistribution(members: Member[]): InsightBucket[] {
+  const labels = ["10대", "20대", "30대", "40대 이상", "미입력"];
+  const buckets = new Map(labels.map((label) => [label, [] as InsightMember[]]));
+
+  for (const member of members) {
+    const age = Number(calculateKoreanAge(getCustomFieldString(member, "birthdate")));
+    const label = getAgeBucketLabel(member);
+
+    buckets.get(label)?.push({
+      id: member.id,
+      name: member.displayName,
+      meta: label === "미입력" ? member.groupName || undefined : `만 ${age}세`,
+    });
+  }
+
+  return labels.map((label) => ({ label, members: buckets.get(label) ?? [] }));
 }
 
 function buildGroupPageStats(members: Member[], groups: Group[]): GroupPageStats {

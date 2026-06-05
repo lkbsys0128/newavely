@@ -120,7 +120,7 @@ export function DashboardOverview({
   const attendanceRate = metrics.attendanceEligibleMembers
     ? Math.round((metrics.presentMembers / metrics.attendanceEligibleMembers) * 100)
     : 0;
-  const dashboardInsights = buildDashboardInsights(activeMembers, groups);
+  const dashboardInsights = globalStats?.dashboardInsights ?? buildDashboardInsights(activeMembers, groups);
   const statisticsSummary = globalStats?.statisticsSummary ?? dashboardInsights.statisticsSummary;
   const currentMember = members.find((member) => member.authUserId === user.id) ?? members.find((member) => member.email === user.email);
   const ledGroup = currentMember ? groups.find((group) => group.leaderMemberId === currentMember.id) : undefined;
