@@ -28,6 +28,7 @@ import {
   getMemberLinkRequests,
   getMemberStatusMessages,
   getOrCreateCurrentMember,
+  getPublicDashboardData,
 } from "@/lib/supabase/data";
 
 export type AppUser = {
@@ -274,6 +275,14 @@ export function enrichMemberStatusMessages(messages: MemberStatusMessage[], memb
       };
     })
     .filter((message): message is MemberStatusMessage => Boolean(message));
+}
+
+function isMissingPublicDashboardDataRpc(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const maybeError = error as { code?: unknown; message?: unknown };
+  const code = typeof maybeError.code === "string" ? maybeError.code : "";
+  const message = typeof maybeError.message === "string" ? maybeError.message : "";
+  return code === "PGRST202" || code === "42883" || message.includes("get_public_dashboard_");
 }
 
 function buildStatisticsSummary(members: Member[]): StatisticsSummary {
@@ -757,7 +766,13 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
     const auditLogs = hasPermission(currentMember.role, "roles:manage") ? await getAuditLogs(supabase) : undefined;
     const deletedAuthUsers = hasPermission(currentMember.role, "roles:manage") ? await getDeletedAuthUsers(supabase) : [];
     const importantLinks = hasPermission(currentMember.role, "links:read") ? await getImportantLinks(supabase) : [];
-    const memberStatusMessages = enrichMemberStatusMessages(await getMemberStatusMessages(supabase), dashboardData.members);
+    let publicDashboardData = dashboardData;
+    try {
+      publicDashboardData = await getPublicDashboardData(supabase, options?.attendanceEventId);
+    } catch (error) {
+      if (!isMissingPublicDashboardDataRpc(error)) throw error;
+    }
+    const memberStatusMessages = enrichMemberStatusMessages(await getMemberStatusMessages(supabase), publicDashboardData.members);
     const adminFeedbackMessages = await getAdminFeedbackMessages(
       supabase,
       currentMember.id,
@@ -775,10 +790,10 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       members: dashboardData.members,
     });
     const globalStats = buildGlobalAppStats(
-      dashboardData.members,
-      dashboardData.groups,
-      dashboardData.attendanceEvents,
-      dashboardData.attendanceEventId,
+      publicDashboardData.members,
+      publicDashboardData.groups,
+      publicDashboardData.attendanceEvents,
+      publicDashboardData.attendanceEventId,
     );
 
     return {
@@ -789,7 +804,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       attendanceEventId: dashboardData.attendanceEventId,
       attendanceEvents: dashboardData.attendanceEvents,
       members: scopedMembers,
-      groups: dashboardData.groups,
+      groups: publicDashboardData.groups,
       memberLinkRequests,
       auditLogs,
       deletedAuthUsers,

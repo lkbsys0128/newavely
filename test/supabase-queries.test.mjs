@@ -25,6 +25,7 @@ const importantLinksSource = readFileSync(new URL("../db/021_important_links.sql
 const memberStatusMessagesSource = readFileSync(new URL("../db/022_member_status_messages.sql", import.meta.url), "utf8");
 const staffLeaderParitySource = readFileSync(new URL("../db/023_staff_leader_parity.sql", import.meta.url), "utf8");
 const adminFeedbackMessagesSource = readFileSync(new URL("../db/024_admin_feedback_messages.sql", import.meta.url), "utf8");
+const publicDashboardDataSource = readFileSync(new URL("../db/026_public_dashboard_data.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -262,6 +263,12 @@ test("attendance check screen summarizes selected group worship and group attend
 test("dashboard metric cards use role-independent server metrics", () => {
   assert.match(appPageDataSource, /export function buildDashboardMetrics/);
   assert.match(appPageDataSource, /export function buildGlobalAppStats/);
+  assert.match(dataSource, /export async function getPublicDashboardData/);
+  assert.match(dataSource, /get_public_dashboard_members/);
+  assert.match(dataSource, /get_public_dashboard_groups/);
+  assert.match(appPageDataSource, /publicDashboardData = await getPublicDashboardData/);
+  assert.match(appPageDataSource, /isMissingPublicDashboardDataRpc/);
+  assert.match(appPageDataSource, /code === "PGRST202"/);
   assert.match(appPageDataSource, /globalStats = buildGlobalAppStats\(/);
   assert.match(homePageSource, /dashboardMetrics=\{readyData\.dashboardMetrics\}/);
   assert.match(homePageSource, /globalStats=\{readyData\.globalStats\}/);
@@ -275,8 +282,14 @@ test("dashboard metric cards use role-independent server metrics", () => {
 });
 
 test("common aggregate stats use unscoped server data while pages receive scoped members", () => {
+  assert.match(publicDashboardDataSource, /security definer/);
+  assert.match(publicDashboardDataSource, /grant execute on function get_public_dashboard_members\(\) to authenticated/);
+  assert.match(publicDashboardDataSource, /jsonb_build_object\(\s*'english_name'/);
+  assert.doesNotMatch(publicDashboardDataSource, /'phone'/);
   assert.match(appPageDataSource, /const scopedMembers = scopeMembersForRole/);
   assert.match(appPageDataSource, /members: scopedMembers/);
+  assert.match(appPageDataSource, /publicDashboardData\.members/);
+  assert.match(appPageDataSource, /publicDashboardData\.groups/);
   assert.match(appPageDataSource, /globalStats,/);
   assert.match(appPageDataSource, /statisticsSummary: buildStatisticsSummary\(activeMembers\)/);
   assert.match(appPageDataSource, /dashboardInsights: buildDashboardInsights\(activeMembers, groups\)/);
@@ -586,7 +599,7 @@ test("member status messages are short self-managed dashboard updates", () => {
   assert.match(appPageDataSource, /export function enrichMemberStatusMessages/);
   assert.match(appPageDataSource, /memberName: member\.displayName/);
   assert.match(appPageDataSource, /groupName: member\.groupName/);
-  assert.match(appPageDataSource, /getMemberStatusMessages\(supabase\), dashboardData\.members/);
+  assert.match(appPageDataSource, /getMemberStatusMessages\(supabase\), publicDashboardData\.members/);
   assert.match(actionsSource, /export async function updateMyStatusMessage/);
   assert.match(actionsSource, /max\(80/);
   assert.match(homePageSource, /memberStatusMessages=\{readyData\.memberStatusMessages\}/);
