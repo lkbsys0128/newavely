@@ -59,6 +59,7 @@ import {
   normalizeJobValue,
 } from "@/lib/member-field-options";
 import { getMemberEnglishName } from "@/lib/member-names";
+import { getPageEmoji } from "@/lib/ui-emojis";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
 
@@ -3721,12 +3722,17 @@ function PageHeader({
 }) {
   return (
     <header className="topbar">
-      <div>
-        <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-        <p className="meta">
-          {user.name} · {roleLabels[user.role]} 권한
-        </p>
+      <div className="topbar-title-group">
+        <span className="ui-emoji page-title-emoji" aria-hidden="true">
+          {getPageEmoji(title)}
+        </span>
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h1>{title}</h1>
+          <p className="meta">
+            {user.name} · {roleLabels[user.role]} 권한
+          </p>
+        </div>
       </div>
       {children ? <div className="topbar-actions">{children}</div> : null}
     </header>

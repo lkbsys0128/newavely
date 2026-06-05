@@ -43,6 +43,7 @@ const profilePageSource = readFileSync(new URL("../src/app/profile/page.tsx", im
 const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
 const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const mobileAwareNavSource = readFileSync(new URL("../src/components/mobile-aware-nav.tsx", import.meta.url), "utf8");
+const uiEmojisSource = readFileSync(new URL("../src/lib/ui-emojis.ts", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
   assert.match(dataSource, /id, auth_user_id, name/);
@@ -186,6 +187,18 @@ test("pages expose section navigation anchors for operator workflows", () => {
   assert.match(dashboardSource, /#link-requests/);
   assert.match(memberDetailSource, /#basic-info/);
   assert.match(memberDetailSource, /#care-followups/);
+});
+
+test("app chrome uses compact emoji accents without replacing labels", () => {
+  assert.match(uiEmojisSource, /getPageEmoji/);
+  assert.match(uiEmojisSource, /getSectionEmoji/);
+  assert.match(sectionNavSource, /section-nav-emoji/);
+  assert.match(mobileAwareNavSource, /nav-emoji/);
+  assert.match(dashboardSource, /page-title-emoji/);
+  assert.match(memberDetailSource, /page-title-emoji/);
+  assert.match(globalCssSource, /\.page-title-emoji/);
+  assert.match(globalCssSource, /\.nav-emoji/);
+  assert.match(globalCssSource, /\.section-nav-emoji/);
 });
 
 test("dashboard exposes roster insight sections for operators", () => {
