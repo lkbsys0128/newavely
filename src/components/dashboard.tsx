@@ -1197,6 +1197,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 커스텀 메모
                 <textarea name="notes" defaultValue={selectedMember.notes} disabled={!canManageMembers} />
               </label>
+              <MemberMinistryEditor member={selectedMember} disabled={!canManageMembers} />
               <div className="form-actions member-detail-actions full-width">
                 {memberDetailMessageMemberId === selectedMember.id ? <ActionMessage state={updateMemberState} /> : null}
                 <button className="primary-button" type="submit" disabled={!canManageMembers || isUpdatingMember}>
@@ -1319,6 +1320,38 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
       </DisclosurePanel>
 
     </>
+  );
+}
+
+function MemberMinistryEditor({ member, disabled }: { member: Member; disabled: boolean }) {
+  const selectedMinistries = getMemberMinistryValues(member.customFields);
+  const ministryChoices = [...new Set([...ministryOptions, ...selectedMinistries])];
+
+  return (
+    <section className="ministry-label-editor full-width" aria-label="사역팀 수정">
+      <div className="ministry-label-heading">
+        <div>
+          <strong>사역팀</strong>
+          <span>이 멤버가 섬기는 사역을 모두 선택하세요.</span>
+        </div>
+        <span>{selectedMinistries.length}개</span>
+      </div>
+      <input name="custom_ministries" type="hidden" value="" />
+      <div className="ministry-label-list">
+        {ministryChoices.map((ministry) => (
+          <label className="ministry-label-chip" key={ministry}>
+            <input
+              name="custom_ministries"
+              type="checkbox"
+              value={ministry}
+              defaultChecked={selectedMinistries.includes(ministry)}
+              disabled={disabled}
+            />
+            <span>{ministry}</span>
+          </label>
+        ))}
+      </div>
+    </section>
   );
 }
 

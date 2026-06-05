@@ -493,6 +493,9 @@ test("member roster can be exported to Google Sheets without internal fields", (
 
 test("member detail manages multiple ministry labels", () => {
   assert.match(dashboardSource, /MemberMinistryLabels/);
+  assert.match(dashboardSource, /MemberMinistryEditor/);
+  assert.match(dashboardSource, /aria-label="사역팀 수정"/);
+  assert.match(dashboardSource, /name="custom_ministries"/);
   assert.match(dashboardSource, /member-ministry-labels/);
   assert.match(dashboardSource, /member-detail-ministry-summary/);
   assert.match(memberDetailSource, /getMemberMinistryValues\(member\.customFields\)/);
@@ -500,6 +503,8 @@ test("member detail manages multiple ministry labels", () => {
   assert.match(memberDetailSource, /custom_ministries/);
   assert.match(memberDetailSource, /ministry-label-chip/);
   assert.match(memberDetailSource, /!\["english_name", "ministries", "ministry_1", "ministry_2"\]\.includes\(field\.key\)/);
+  assert.match(actionsSource, /formData\.has\("custom_ministries"\)/);
+  assert.match(actionsSource, /formData\.getAll\("custom_ministries"\)/);
   assert.match(actionsSource, /normalizeMinistryList\(normalized\.ministries\)/);
   assert.match(actionsSource, /normalized\.ministry_1 = ministries\[0\] \?\? null/);
   assert.match(globalCssSource, /\.ministry-label-chip input:checked \+ span/);
