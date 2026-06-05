@@ -565,6 +565,10 @@ test("member status messages are short self-managed dashboard updates", () => {
   assert.match(dataSource, /export async function getMemberStatusMessages/);
   assert.match(dataSource, /member_status_messages/);
   assert.match(appPageDataSource, /memberStatusMessages/);
+  assert.match(appPageDataSource, /export function enrichMemberStatusMessages/);
+  assert.match(appPageDataSource, /memberName: member\.displayName/);
+  assert.match(appPageDataSource, /groupName: member\.groupName/);
+  assert.match(appPageDataSource, /getMemberStatusMessages\(supabase\), dashboardData\.members/);
   assert.match(actionsSource, /export async function updateMyStatusMessage/);
   assert.match(actionsSource, /max\(80/);
   assert.match(homePageSource, /memberStatusMessages=\{readyData\.memberStatusMessages\}/);
