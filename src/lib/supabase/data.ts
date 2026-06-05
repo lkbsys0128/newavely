@@ -24,6 +24,27 @@ type DbGroup = {
   leader?: { name: string | null } | Array<{ name: string | null }> | null;
 };
 
+type DbPublicDashboardGroup = {
+  id: string;
+  name: string;
+  leader_member_id: string | null;
+  leader_name: string | null;
+};
+
+type DbPublicDashboardMember = {
+  id: string;
+  name: string;
+  group_id: string | null;
+  group_name: string | null;
+  status: "active" | "new" | "care" | "inactive";
+  custom_fields: Record<string, unknown> | null;
+  is_merged_placeholder: boolean;
+  attendance_records?: Array<{
+    event_id: string;
+    status: "present" | "absent" | "excused";
+  }> | null;
+};
+
 type DbMember = {
   id: string;
   auth_user_id: string | null;
@@ -423,6 +444,80 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
       present: Boolean(member.attendance_records?.some((record) => record.event_id === selectedEvent?.id && record.status === "present")),
       attendanceHistory,
       careFollowups,
+    };
+    return {
+      ...mappedMember,
+      displayName: formatMemberDisplayName(mappedMember),
+    };
+  });
+
+  return {
+    attendanceEventId: selectedEvent?.id,
+    attendanceDate: selectedEvent?.eventDate ?? "2026-05-24",
+    attendanceTitle: selectedEvent?.title ?? "주일 예배",
+    attendanceEvents,
+    groups,
+    members,
+  };
+}
+
+export async function getPublicDashboardData(supabase: SupabaseClient, selectedEventId?: string) {
+  const { data: eventsData, error: eventsError } = await supabase
+    .from("attendance_events")
+    .select("id, event_date, title")
+    .order("event_date", { ascending: false })
+    .order("title", { ascending: true });
+
+  if (eventsError) throw eventsError;
+
+  const attendanceEvents = (eventsData as unknown as DbAttendanceEvent[]).map<AttendanceEvent>((event) => ({
+    id: event.id,
+    eventDate: event.event_date,
+    title: event.title,
+  }));
+  const selectedEvent = attendanceEvents.find((event) => event.id === selectedEventId) ?? attendanceEvents[0];
+
+  const { data: groupsData, error: groupsError } = await supabase.rpc("get_public_dashboard_groups");
+  if (groupsError) throw groupsError;
+
+  const { data: membersData, error: membersError } = await supabase.rpc("get_public_dashboard_members");
+  if (membersError) throw membersError;
+
+  const groups = ((groupsData ?? []) as unknown as DbPublicDashboardGroup[]).map<Group>((group) => ({
+    id: group.id,
+    name: group.name,
+    leaderMemberId: group.leader_member_id,
+    leaderName: group.leader_name ?? "미배정",
+  }));
+
+  const members = ((membersData ?? []) as unknown as DbPublicDashboardMember[]).map<Member>((member) => {
+    const attendanceHistory = (member.attendance_records ?? []).map((record) => ({
+      eventId: record.event_id,
+      eventDate: "",
+      title: "",
+      status: record.status,
+      note: "",
+      excuseStartDate: "",
+      excuseEndDate: "",
+    }));
+    const mappedMember = {
+      id: member.id,
+      authUserId: null,
+      name: member.name,
+      displayName: member.name,
+      phone: "",
+      groupId: member.group_id,
+      groupName: member.group_name ?? "미배정",
+      role: "member" as Role,
+      status: member.status,
+      email: member.is_merged_placeholder ? `${member.id}@merged.local` : "",
+      address: "",
+      baptismStatus: "",
+      notes: "",
+      customFields: member.custom_fields ?? {},
+      present: Boolean(member.attendance_records?.some((record) => record.event_id === selectedEvent?.id && record.status === "present")),
+      attendanceHistory,
+      careFollowups: [],
     };
     return {
       ...mappedMember,
