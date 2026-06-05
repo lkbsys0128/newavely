@@ -2059,18 +2059,30 @@ tbody tr:hover {
 }
 
 .member-ministry-label {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   min-height: 24px;
-  border: 1px solid rgba(47, 145, 181, 0.24);
-  border-radius: 4px;
-  padding: 2px 7px;
-  background: rgba(47, 145, 181, 0.08);
+  border: 1px solid rgba(47, 145, 181, 0.22);
+  border-radius: 999px;
+  padding: 3px 9px 3px 8px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(224, 247, 252, 0.88));
   color: var(--accent-dark);
   font-size: 0.72rem;
   font-weight: 900;
   line-height: 1;
   white-space: nowrap;
+  box-shadow: 0 5px 14px rgba(47, 145, 181, 0.09);
+}
+
+.member-ministry-label::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #45b8d6;
+  box-shadow: 0 0 0 3px rgba(69, 184, 214, 0.14);
 }
 
 .member-ministry-empty {
@@ -5363,8 +5375,14 @@ tbody tr:hover {
 
 :root[data-theme="dark"] .member-ministry-label {
   border-color: rgba(105, 211, 236, 0.24);
-  background: rgba(105, 211, 236, 0.12);
+  background: linear-gradient(135deg, rgba(20, 38, 44, 0.96), rgba(24, 72, 85, 0.76));
   color: var(--accent-strong);
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="dark"] .member-ministry-label::before {
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 3px rgba(105, 211, 236, 0.16);
 }
 
 :root[data-theme="dark"] .snapshot-grid-head,
