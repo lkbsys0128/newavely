@@ -32,6 +32,7 @@ import {
   normalizeJobValue,
   normalizeMinistryValue,
 } from "@/lib/member-field-options";
+import { getPageEmoji } from "@/lib/ui-emojis";
 import type { AppUser } from "@/lib/app-page-data";
 import type { CustomFieldDefinition, Group, Member, MemberLinkRequest, MemberStatusMessage } from "@/lib/types";
 
@@ -127,14 +128,19 @@ export function MemberDetailPageContent({
   return (
     <>
       <header className="topbar">
-        <div>
-          <p className="eyebrow">{eyebrow}</p>
-          <h1>{member.displayName}</h1>
-          <p className="meta">
-            {member.groupName} · {statusLabels[member.status]}
-            {googleAccountName ? ` · Google 이름 ${googleAccountName}` : ""}
-          </p>
-          <MemberMinistrySummary ministries={selectedMinistries} />
+        <div className="topbar-title-group">
+          <span className="ui-emoji page-title-emoji" aria-hidden="true">
+            {getPageEmoji(eyebrow)}
+          </span>
+          <div>
+            <p className="eyebrow">{eyebrow}</p>
+            <h1>{member.displayName}</h1>
+            <p className="meta">
+              {member.groupName} · {statusLabels[member.status]}
+              {googleAccountName ? ` · Google 이름 ${googleAccountName}` : ""}
+            </p>
+            <MemberMinistrySummary ministries={selectedMinistries} />
+          </div>
         </div>
         <div className="topbar-actions">
           <Link className="secondary-button" href={backHref}>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getSectionEmoji } from "@/lib/ui-emojis";
 
 const navItems = [
   { href: "/", label: "대시보드" },
@@ -34,7 +35,10 @@ export function MobileAwareNav() {
           key={item.href}
           onClick={closeMobileMenu}
         >
-          {item.label}
+          <span className="ui-emoji nav-emoji" aria-hidden="true">
+            {getSectionEmoji(item.label)}
+          </span>
+          <span>{item.label}</span>
         </Link>
       ))}
     </nav>

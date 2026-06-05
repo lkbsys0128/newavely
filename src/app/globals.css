@@ -351,6 +351,7 @@ a {
 .nav-list a {
   display: flex;
   align-items: center;
+  gap: 10px;
   min-height: 42px;
   border-radius: 8px;
   padding: 0 13px;
@@ -362,10 +363,35 @@ a {
     transform 160ms ease;
 }
 
+.nav-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  border: 1px solid rgba(47, 145, 181, 0.17);
+  border-radius: 8px;
+  background: rgba(47, 145, 181, 0.08);
+  font-size: 0.9rem;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
 .nav-list a:hover {
   background: var(--soft);
   color: var(--accent-dark);
   transform: translateX(2px);
+}
+
+.nav-list a:hover .nav-emoji,
+.nav-list a[aria-current="page"] .nav-emoji {
+  border-color: rgba(47, 145, 181, 0.28);
+  background: #ffffff;
+  transform: scale(1.05);
+  box-shadow: var(--shadow-soft);
 }
 
 .auth-card {
@@ -739,6 +765,34 @@ a {
   margin-bottom: 24px;
 }
 
+.topbar-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.ui-emoji {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  line-height: 1;
+}
+
+.page-title-emoji {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(47, 145, 181, 0.2);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.1) 36%),
+    linear-gradient(135deg, rgba(222, 247, 252, 0.92), rgba(255, 255, 255, 0.94));
+  box-shadow: 0 12px 28px rgba(47, 145, 181, 0.13);
+  font-size: 1.55rem;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: var(--accent);
@@ -808,6 +862,7 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 7px;
   min-height: 46px;
   border: 0;
   border-right: 1px solid rgba(47, 145, 181, 0.18);
@@ -819,6 +874,19 @@ h3 {
   text-decoration: none;
   white-space: nowrap;
   box-shadow: inset 0 -3px 0 transparent;
+}
+
+.section-nav-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(47, 145, 181, 0.18);
+  border-radius: 999px;
+  background: rgba(47, 145, 181, 0.08);
+  font-size: 0.78rem;
+  box-shadow: 0 5px 12px rgba(47, 145, 181, 0.06);
 }
 
 .section-nav a:hover,
@@ -4592,6 +4660,17 @@ tbody tr:hover {
     justify-content: flex-start;
   }
 
+  .topbar-title-group {
+    align-items: flex-start;
+  }
+
+  .page-title-emoji {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    font-size: 1.35rem;
+  }
+
   .topbar-actions > *,
   .panel-heading > form,
   .panel-heading > button,
@@ -4654,6 +4733,11 @@ tbody tr:hover {
   .section-nav a {
     min-height: 42px;
     padding: 0 14px;
+  }
+
+  .section-nav-emoji {
+    width: 22px;
+    height: 22px;
   }
 
   .attendance-check-controls {
@@ -5179,11 +5263,24 @@ tbody tr:hover {
   color: var(--muted);
 }
 
+:root[data-theme="dark"] .page-title-emoji,
+:root[data-theme="dark"] .nav-emoji,
+:root[data-theme="dark"] .section-nav-emoji {
+  border-color: rgba(105, 211, 236, 0.22);
+  background: rgba(105, 211, 236, 0.11);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+}
+
 :root[data-theme="dark"] .nav-list a:hover,
 :root[data-theme="dark"] .sign-out-button:hover:not(:disabled),
 :root[data-theme="dark"] .section-nav a:hover,
 :root[data-theme="dark"] .section-nav a:focus-visible {
   color: var(--accent-dark);
+}
+
+:root[data-theme="dark"] .nav-list a:hover .nav-emoji,
+:root[data-theme="dark"] .nav-list a[aria-current="page"] .nav-emoji {
+  background: rgba(105, 211, 236, 0.18);
 }
 
 :root[data-theme="dark"] .login-card,
