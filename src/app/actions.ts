@@ -505,6 +505,9 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     const nextCustomFields = normalizeSubmittedCustomFields({
       ...existingCustomFields,
       english_name: nextEnglishName,
+      ...(canManageMembers && formData.has("custom_ministries")
+        ? { ministries: formData.getAll("custom_ministries").map((value) => String(value)) }
+        : {}),
     });
     const currentRole = beforeData.role as Role;
     const requestedRole = parsed.role as Role;
