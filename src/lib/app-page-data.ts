@@ -255,6 +255,27 @@ export function buildGlobalAppStats(members: Member[], groups: Group[], attendan
   };
 }
 
+export function enrichMemberStatusMessages(messages: MemberStatusMessage[], members: Member[]): MemberStatusMessage[] {
+  const membersById = new Map(
+    members
+      .filter((member) => !isMergedPlaceholderMember(member))
+      .map((member) => [member.id, member]),
+  );
+
+  return messages
+    .map((message) => {
+      const member = membersById.get(message.memberId);
+      if (!member || member.status === "inactive") return null;
+
+      return {
+        ...message,
+        memberName: member.displayName,
+        groupName: member.groupName,
+      };
+    })
+    .filter((message): message is MemberStatusMessage => Boolean(message));
+}
+
 function buildStatisticsSummary(members: Member[]): StatisticsSummary {
   const genderCounts = countByLabels(members, ["남", "여", "미입력"], (member) => {
     const gender = getCustomFieldString(member, "gender");
@@ -736,7 +757,7 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
     const auditLogs = hasPermission(currentMember.role, "roles:manage") ? await getAuditLogs(supabase) : undefined;
     const deletedAuthUsers = hasPermission(currentMember.role, "roles:manage") ? await getDeletedAuthUsers(supabase) : [];
     const importantLinks = hasPermission(currentMember.role, "links:read") ? await getImportantLinks(supabase) : [];
-    const memberStatusMessages = await getMemberStatusMessages(supabase);
+    const memberStatusMessages = enrichMemberStatusMessages(await getMemberStatusMessages(supabase), dashboardData.members);
     const adminFeedbackMessages = await getAdminFeedbackMessages(
       supabase,
       currentMember.id,
