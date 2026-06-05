@@ -2034,6 +2034,75 @@ tbody tr:hover {
   box-shadow: inset 3px 0 0 var(--accent-dark);
 }
 
+.member-name-cell {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.member-name-cell strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-ministry-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.member-ministry-labels.compact {
+  gap: 4px;
+  max-width: 220px;
+}
+
+.member-ministry-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  border: 1px solid rgba(47, 145, 181, 0.22);
+  border-radius: 999px;
+  padding: 3px 9px 3px 8px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(224, 247, 252, 0.88));
+  color: var(--accent-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 5px 14px rgba(47, 145, 181, 0.09);
+}
+
+.member-ministry-label::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #45b8d6;
+  box-shadow: 0 0 0 3px rgba(69, 184, 214, 0.14);
+}
+
+.member-ministry-empty {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.member-detail-ministry-summary {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-ministry-labels {
+  margin-top: 10px;
+}
+
 .member-detail-backdrop {
   position: fixed;
   inset: 0;
@@ -5302,6 +5371,18 @@ tbody tr:hover {
 :root[data-theme="dark"] .snapshot-member-row > .snapshot-status {
   background: #14262c;
   color: var(--ink);
+}
+
+:root[data-theme="dark"] .member-ministry-label {
+  border-color: rgba(105, 211, 236, 0.24);
+  background: linear-gradient(135deg, rgba(20, 38, 44, 0.96), rgba(24, 72, 85, 0.76));
+  color: var(--accent-strong);
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="dark"] .member-ministry-label::before {
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 3px rgba(105, 211, 236, 0.16);
 }
 
 :root[data-theme="dark"] .snapshot-grid-head,

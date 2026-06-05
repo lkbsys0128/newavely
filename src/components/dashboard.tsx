@@ -1045,7 +1045,10 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                     onClick={() => openMemberDetail(member.id)}
                   >
                     <td>
-                      <strong>{member.displayName}</strong>
+                      <div className="member-name-cell">
+                        <strong>{member.displayName}</strong>
+                        <MemberMinistryLabels member={member} compact />
+                      </div>
                     </td>
                     <td>{member.groupName}</td>
                     {!isSoonjang ? (
@@ -1117,6 +1120,12 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               닫기
             </button>
           </div>
+          {selectedMember ? (
+            <div className="member-detail-ministry-summary">
+              <span className="field-note">사역팀</span>
+              <MemberMinistryLabels member={selectedMember} showEmpty />
+            </div>
+          ) : null}
           {selectedMember ? (
             <form
               action={updateMemberAction}
@@ -1310,6 +1319,32 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
       </DisclosurePanel>
 
     </>
+  );
+}
+
+function MemberMinistryLabels({
+  member,
+  compact = false,
+  showEmpty = false,
+}: {
+  member: Member;
+  compact?: boolean;
+  showEmpty?: boolean;
+}) {
+  const ministries = getMemberMinistryValues(member.customFields);
+
+  if (ministries.length === 0) {
+    return showEmpty ? <span className="member-ministry-empty">사역팀 미배정</span> : null;
+  }
+
+  return (
+    <div className={`member-ministry-labels${compact ? " compact" : ""}`} aria-label={`${member.displayName} 사역팀`}>
+      {ministries.map((ministry) => (
+        <span className="member-ministry-label" key={ministry}>
+          {ministry}
+        </span>
+      ))}
+    </div>
   );
 }
 

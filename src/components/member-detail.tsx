@@ -134,6 +134,7 @@ export function MemberDetailPageContent({
             {member.groupName} · {statusLabels[member.status]}
             {googleAccountName ? ` · Google 이름 ${googleAccountName}` : ""}
           </p>
+          <MemberMinistrySummary ministries={selectedMinistries} />
         </div>
         <div className="topbar-actions">
           <Link className="secondary-button" href={backHref}>
@@ -552,6 +553,22 @@ export function MemberDetailPageContent({
         </>
       ) : null}
     </>
+  );
+}
+
+function MemberMinistrySummary({ ministries }: { ministries: string[] }) {
+  if (ministries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="member-ministry-labels topbar-ministry-labels" aria-label="사역팀">
+      {ministries.map((ministry) => (
+        <span className="member-ministry-label" key={ministry}>
+          {ministry}
+        </span>
+      ))}
+    </div>
   );
 }
 
