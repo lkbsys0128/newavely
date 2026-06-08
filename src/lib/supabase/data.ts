@@ -278,7 +278,9 @@ export async function getOrCreateCurrentMember(
   };
 }
 
-function getLosAngelesToday() {
+const DEFAULT_ATTENDANCE_TITLES = ["주일 예배", "순모임"] as const;
+
+function getLosAngelesDateParts(date = new Date()) {
   const formatter = new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
     month: "2-digit",
@@ -286,16 +288,28 @@ function getLosAngelesToday() {
     weekday: "short",
     year: "numeric",
   });
-  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map((part) => [part.type, part.value]));
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
   return {
-    date: `${parts.year}-${parts.month}-${parts.day}`,
-    isSunday: parts.weekday === "Sun",
+    day: parts.day,
+    month: parts.month,
+    weekday: parts.weekday,
+    year: parts.year,
   };
+}
+
+export function getLosAngelesMostRecentSunday(date = new Date()) {
+  const parts = getLosAngelesDateParts(date);
+  const weekdayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(parts.weekday);
+  const losAngelesDateAtNoonUtc = new Date(
+    Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), 12),
+  );
+  losAngelesDateAtNoonUtc.setUTCDate(losAngelesDateAtNoonUtc.getUTCDate() - Math.max(weekdayIndex, 0));
+  return losAngelesDateAtNoonUtc.toISOString().slice(0, 10);
 }
 
 export async function ensureAttendanceEvent(
   supabase: SupabaseClient,
-  options: { autoCreateSundayWorship?: boolean; createdByMemberId?: string } = {},
+  options: { autoCreateSundayWorship?: boolean; createdByMemberId?: string; targetDate?: string } = {},
 ) {
   const { count: eventCount, error: eventCountError } = await supabase
     .from("attendance_events")
@@ -304,22 +318,24 @@ export async function ensureAttendanceEvent(
   if (eventCountError) throw eventCountError;
 
   const eventsToEnsure: Array<{ event_date: string; title: string; created_by_member_id?: string }> = [];
-  const today = getLosAngelesToday();
-
-  if (options.autoCreateSundayWorship && today.isSunday) {
-    for (const title of ["주일 예배", "순모임"]) {
-      eventsToEnsure.push({
-        event_date: today.date,
+  if (options.autoCreateSundayWorship) {
+    const eventDate = options.targetDate || getLosAngelesMostRecentSunday();
+    for (const title of DEFAULT_ATTENDANCE_TITLES) {
+      const event = {
+        event_date: eventDate,
         title,
-        created_by_member_id: options.createdByMemberId,
-      });
+        ...(options.createdByMemberId ? { created_by_member_id: options.createdByMemberId } : {}),
+      };
+      eventsToEnsure.push(event);
     }
   } else if (!eventCount) {
-    eventsToEnsure.push({
-      event_date: "2026-05-24",
-      title: "주일 예배",
-      created_by_member_id: options.createdByMemberId,
-    });
+    for (const title of DEFAULT_ATTENDANCE_TITLES) {
+      eventsToEnsure.push({
+        event_date: "2026-05-24",
+        title,
+        ...(options.createdByMemberId ? { created_by_member_id: options.createdByMemberId } : {}),
+      });
+    }
   }
 
   for (const event of eventsToEnsure) {

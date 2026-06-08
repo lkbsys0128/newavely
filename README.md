@@ -259,12 +259,22 @@ Vercel에 필요한 환경 변수:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `CRON_SECRET`
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL`
 - `GOOGLE_PRIVATE_KEY`
 - `GOOGLE_SHEET_ID`
 - `GOOGLE_SHEET_NAME`
 
 자세한 배포 설정은 `DEPLOYMENT.md`를 참고합니다.
+
+### 주일 출석 이벤트 자동 생성
+
+Production에서는 Vercel Cron이 매주 일요일 `18:00 UTC`에 `/api/cron/ensure-sunday-attendance`를 호출합니다. 이 작업은 시애틀 기준 가장 최근 주일 날짜에 `주일 예배`와 `순모임` 출석 이벤트가 모두 있는지 확인하고, 없으면 자동으로 만듭니다.
+
+- `CRON_SECRET`: Cron route 보호용 임의의 긴 문자열입니다.
+- `SUPABASE_SERVICE_ROLE_KEY`: 서버 자동화가 RLS에 막히지 않고 출석 이벤트를 만들기 위한 Supabase service role key입니다. 브라우저에 노출되면 안 됩니다.
+- 누락된 주일을 수동 보정해야 하면 관리자만 Vercel 로그/route 호출 환경에서 `?date=YYYY-MM-DD` 형식으로 특정 날짜를 지정할 수 있습니다.
 
 ### Google Sheet 교적부 내보내기
 
