@@ -3566,6 +3566,19 @@ tbody tr:hover {
   width: 100%;
 }
 
+.group-admin-tools {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.group-rename-form,
+.group-edit-form {
+  padding-top: 0;
+  border-top: 0;
+}
+
 .group-members-modal {
   width: min(560px, calc(100vw - 32px));
 }
