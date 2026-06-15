@@ -449,6 +449,12 @@ test("attendance stats can aggregate all events by group and event type", () => 
 test("group management uses active member choices and supports audited delete", () => {
   assert.match(dashboardSource, /groupLeaderOptions/);
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
+  assert.match(actionsSource, /export async function renameGroup/);
+  assert.match(actionsSource, /action: "group\.rename"/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("groups:write"\)/);
+  assert.match(dashboardSource, /renameGroup/);
+  assert.match(dashboardSource, /순 이름 변경/);
+  assert.match(dashboardSource, /이름 변경/);
   assert.match(actionsSource, /export async function deleteGroup/);
   assert.match(actionsSource, /action: "group.delete"/);
   assert.match(actionsSource, /assignLeaderToGroup/);
@@ -462,6 +468,7 @@ test("group management uses active member choices and supports audited delete", 
   assert.match(dashboardSource, /GroupMembersModal/);
   assert.match(dashboardSource, /멤버 보기/);
   assert.match(dashboardSource, /상세보기/);
+  assert.match(dashboardSource, /group-admin-tools/);
   assert.match(dashboardSource, /group-card-overview/);
   assert.doesNotMatch(dashboardSource, /group-card-stats/);
   assert.doesNotMatch(dashboardSource, /확인을 위해 순 이름을 입력/);

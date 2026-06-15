@@ -19,6 +19,7 @@ import {
   rejectMemberLinkRequest,
   reopenMemberLinkRequest,
   reactivateMember,
+  renameGroup,
   restoreDeletedAuthUser,
   toggleAttendance,
   updateAttendanceReason,
@@ -1393,9 +1394,11 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
   const [groupPendingDelete, setGroupPendingDelete] = useState<Group | null>(null);
   const [groupMembersModal, setGroupMembersModal] = useState<Group | null>(null);
   const [lastUpdatedGroupId, setLastUpdatedGroupId] = useState<string | null>(null);
+  const [lastRenamedGroupId, setLastRenamedGroupId] = useState<string | null>(null);
   const [lastDeletedGroupId, setLastDeletedGroupId] = useState<string | null>(null);
   const [createGroupState, createGroupAction, isCreatingGroup] = useActionState(createGroup, initialActionState);
   const [updateGroupState, updateGroupAction, isUpdatingGroup] = useActionState(updateGroup, initialActionState);
+  const [renameGroupState, renameGroupAction, isRenamingGroup] = useActionState(renameGroup, initialActionState);
   const [deleteGroupState, deleteGroupAction, isDeletingGroup] = useActionState(deleteGroup, initialActionState);
   const activeMembers = members
     .filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member))
@@ -1510,16 +1513,31 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
                 멤버 보기
               </button>
               {canManageGroups ? (
+                <div className="group-admin-tools">
+                  <form
+                    action={renameGroupAction}
+                    className="management-form group-rename-form"
+                    onSubmit={() => setLastRenamedGroupId(group.id)}
+                  >
+                    <input name="id" type="hidden" value={group.id} />
+                    <label>
+                      순 이름 변경
+                      <input name="name" required defaultValue={group.name} />
+                    </label>
+                    <div className="form-actions">
+                      {lastRenamedGroupId === group.id ? <ActionMessage state={renameGroupState} /> : null}
+                      <button className="secondary-button" type="submit" disabled={isRenamingGroup}>
+                        이름 변경
+                      </button>
+                    </div>
+                  </form>
                 <form
                   action={updateGroupAction}
                   className="management-form group-edit-form"
                   onSubmit={() => setLastUpdatedGroupId(group.id)}
                 >
                   <input name="id" type="hidden" value={group.id} />
-                  <label>
-                    이름
-                    <input name="name" required defaultValue={group.name} />
-                  </label>
+                  <input name="name" type="hidden" value={group.name} />
                   <label>
                     리더
                     <select name="leaderMemberId" defaultValue={group.leaderMemberId ?? ""}>
@@ -1533,9 +1551,10 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
                   </label>
                   {lastUpdatedGroupId === group.id ? <ActionMessage state={updateGroupState} /> : null}
                   <button className="secondary-button" type="submit" disabled={isUpdatingGroup}>
-                    저장
+                    리더 저장
                   </button>
                 </form>
+                </div>
               ) : null}
               {canDeleteGroups ? (
                 <div className="group-delete-form">

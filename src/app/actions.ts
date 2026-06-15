@@ -126,6 +126,11 @@ const updateGroupSchema = groupSchema.extend({
   id: z.string().uuid(),
 });
 
+const renameGroupSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1, "순 이름을 입력해주세요."),
+});
+
 const deleteGroupSchema = z.object({
   id: z.string().uuid(),
 });
@@ -1976,6 +1981,51 @@ export async function updateGroup(_previousState: ActionState, formData: FormDat
     });
     revalidateAppData();
     return "순을 저장했습니다.";
+  });
+}
+
+export async function renameGroup(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("groups:write");
+    const parsed = renameGroupSchema.parse({
+      id: formData.get("id"),
+      name: formData.get("name"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("groups")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+
+    if (beforeError) throw beforeError;
+
+    const beforeName = String(beforeData.name ?? "").trim();
+    if (beforeName === parsed.name) {
+      return "이미 같은 순 이름입니다.";
+    }
+
+    const { data: afterData, error } = await supabase
+      .from("groups")
+      .update({
+        name: parsed.name,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "group.rename",
+      targetTable: "groups",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "순 이름을 변경했습니다.";
   });
 }
 
