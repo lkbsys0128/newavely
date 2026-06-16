@@ -353,13 +353,31 @@ export function formatSupabaseError(error: unknown) {
 }
 
 export async function getDashboardData(supabase: SupabaseClient, selectedEventId?: string) {
-  const { data: eventsData, error: eventsError } = await supabase
-    .from("attendance_events")
-    .select("id, event_date, title")
-    .order("event_date", { ascending: false })
-    .order("title", { ascending: true });
+  const [
+    { data: eventsData, error: eventsError },
+    { data: groupsData, error: groupsError },
+    { data: membersData, error: membersError },
+  ] = await Promise.all([
+    supabase
+      .from("attendance_events")
+      .select("id, event_date, title")
+      .order("event_date", { ascending: false })
+      .order("title", { ascending: true }),
+    supabase
+      .from("groups")
+      .select("id, name, leader_member_id, leader:members!groups_leader_member_id_fkey(name)")
+      .order("name"),
+    supabase
+      .from("members")
+      .select(
+        "id, auth_user_id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events(event_date, title)), care_followups!care_followups_member_id_fkey(id, status, note, assigned_to_member_id, created_at, completed_at, assigned_to:members!care_followups_assigned_to_member_id_fkey(name))",
+      )
+      .order("name"),
+  ]);
 
   if (eventsError) throw eventsError;
+  if (groupsError) throw groupsError;
+  if (membersError) throw membersError;
 
   const attendanceEvents = (eventsData as unknown as DbAttendanceEvent[]).map<AttendanceEvent>((event) => ({
     id: event.id,
@@ -368,22 +386,6 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
   }));
 
   const selectedEvent = attendanceEvents.find((event) => event.id === selectedEventId) ?? attendanceEvents[0];
-
-  const { data: groupsData, error: groupsError } = await supabase
-    .from("groups")
-    .select("id, name, leader_member_id, leader:members!groups_leader_member_id_fkey(name)")
-    .order("name");
-
-  if (groupsError) throw groupsError;
-
-  const { data: membersData, error: membersError } = await supabase
-    .from("members")
-    .select(
-      "id, auth_user_id, name, email, phone, address, baptism_status, role, status, custom_fields, care_notes, group_id, groups!members_group_id_fkey(name), attendance_records!attendance_records_member_id_fkey(event_id, status, note, excuse_start_date, excuse_end_date, attendance_events(event_date, title)), care_followups!care_followups_member_id_fkey(id, status, note, assigned_to_member_id, created_at, completed_at, assigned_to:members!care_followups_assigned_to_member_id_fkey(name))",
-    )
-    .order("name");
-
-  if (membersError) throw membersError;
 
   const groups = (groupsData as unknown as DbGroup[]).map<Group>((group) => {
     const leader = Array.isArray(group.leader) ? group.leader[0] : group.leader;
@@ -462,13 +464,23 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
 }
 
 export async function getPublicDashboardData(supabase: SupabaseClient, selectedEventId?: string) {
-  const { data: eventsData, error: eventsError } = await supabase
-    .from("attendance_events")
-    .select("id, event_date, title")
-    .order("event_date", { ascending: false })
-    .order("title", { ascending: true });
+  const [
+    { data: eventsData, error: eventsError },
+    { data: groupsData, error: groupsError },
+    { data: membersData, error: membersError },
+  ] = await Promise.all([
+    supabase
+      .from("attendance_events")
+      .select("id, event_date, title")
+      .order("event_date", { ascending: false })
+      .order("title", { ascending: true }),
+    supabase.rpc("get_public_dashboard_groups"),
+    supabase.rpc("get_public_dashboard_members"),
+  ]);
 
   if (eventsError) throw eventsError;
+  if (groupsError) throw groupsError;
+  if (membersError) throw membersError;
 
   const attendanceEvents = (eventsData as unknown as DbAttendanceEvent[]).map<AttendanceEvent>((event) => ({
     id: event.id,
@@ -476,12 +488,6 @@ export async function getPublicDashboardData(supabase: SupabaseClient, selectedE
     title: event.title,
   }));
   const selectedEvent = attendanceEvents.find((event) => event.id === selectedEventId) ?? attendanceEvents[0];
-
-  const { data: groupsData, error: groupsError } = await supabase.rpc("get_public_dashboard_groups");
-  if (groupsError) throw groupsError;
-
-  const { data: membersData, error: membersError } = await supabase.rpc("get_public_dashboard_members");
-  if (membersError) throw membersError;
 
   const groups = ((groupsData ?? []) as unknown as DbPublicDashboardGroup[]).map<Group>((group) => ({
     id: group.id,

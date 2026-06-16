@@ -272,6 +272,7 @@ test("dashboard metric cards use role-independent server metrics", () => {
   assert.match(dataSource, /export async function getPublicDashboardData/);
   assert.match(dataSource, /get_public_dashboard_members/);
   assert.match(dataSource, /get_public_dashboard_groups/);
+  assert.match(appPageDataSource, /if \(!hasPermission\(currentMember\.role, "members:write"\)\)/);
   assert.match(appPageDataSource, /publicDashboardData = await getPublicDashboardData/);
   assert.match(appPageDataSource, /isMissingPublicDashboardDataRpc/);
   assert.match(appPageDataSource, /code === "PGRST202"/);
@@ -285,6 +286,14 @@ test("dashboard metric cards use role-independent server metrics", () => {
   assert.match(dashboardSource, /globalStats\?\.groupAttendanceSummary/);
   assert.match(dashboardSource, /metrics\.totalMembers/);
   assert.match(dashboardSource, /metrics\.attendanceEligibleMembers/);
+});
+
+test("app page data avoids avoidable serial fetches", () => {
+  assert.match(dataSource, /Promise\.all\(\[\s*supabase\s*\.from\("attendance_events"\)/);
+  assert.match(dataSource, /supabase\.rpc\("get_public_dashboard_groups"\)/);
+  assert.match(dataSource, /supabase\.rpc\("get_public_dashboard_members"\)/);
+  assert.match(appPageDataSource, /const \[\s*allCustomFieldDefinitions,\s*auditLogs,\s*deletedAuthUsers,\s*importantLinks,\s*memberStatusMessagesData,\s*adminFeedbackMessages,\s*memberLinkRequests,\s*\] = await Promise\.all/);
+  assert.match(appPageDataSource, /canManageRoles \? getAuditLogs\(supabase\) : Promise\.resolve\(undefined\)/);
 });
 
 test("common aggregate stats use unscoped server data while pages receive scoped members", () => {
@@ -612,7 +621,8 @@ test("member status messages are short self-managed dashboard updates", () => {
   assert.match(appPageDataSource, /export function enrichMemberStatusMessages/);
   assert.match(appPageDataSource, /memberName: member\.displayName/);
   assert.match(appPageDataSource, /groupName: member\.groupName/);
-  assert.match(appPageDataSource, /getMemberStatusMessages\(supabase\), publicDashboardData\.members/);
+  assert.match(appPageDataSource, /getMemberStatusMessages\(supabase\)/);
+  assert.match(appPageDataSource, /enrichMemberStatusMessages\(memberStatusMessagesData, publicDashboardData\.members\)/);
   assert.match(actionsSource, /export async function updateMyStatusMessage/);
   assert.match(actionsSource, /max\(80/);
   assert.match(homePageSource, /memberStatusMessages=\{readyData\.memberStatusMessages\}/);
