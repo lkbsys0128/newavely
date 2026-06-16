@@ -205,6 +205,23 @@ export type AppPageData =
   | OnboardingAppPageData
   | ReadyAppPageData;
 
+type AppPageKind =
+  | "dashboard"
+  | "attendance"
+  | "members"
+  | "member-detail"
+  | "profile"
+  | "groups"
+  | "permissions"
+  | "audit"
+  | "feedback"
+  | "links";
+
+type AppPageDataOptions = {
+  attendanceEventId?: string;
+  page?: AppPageKind;
+};
+
 export function buildDashboardMetrics(members: Member[], groups: Group[]): DashboardMetrics {
   const visibleMembers = members.filter((member) => !isMergedPlaceholderMember(member));
   const activeMembers = visibleMembers.filter((member) => member.status !== "inactive");
@@ -709,7 +726,7 @@ function getCustomFieldString(member: Member, key: string) {
   return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
 }
 
-export async function getAppPageData(options?: { attendanceEventId?: string }): Promise<AppPageData> {
+export async function getAppPageData(options: AppPageDataOptions = {}): Promise<AppPageData> {
   if (!hasSupabaseEnv()) {
     return { status: "setup" };
   }
@@ -765,7 +782,14 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
         if (!isMissingPublicDashboardDataRpc(error)) throw error;
       }
     }
+    const page = options.page ?? "dashboard";
     const canManageRoles = hasPermission(currentMember.role, "roles:manage");
+    const shouldLoadCustomFields = page === "profile" || page === "member-detail";
+    const shouldLoadAuditLogs = page === "audit";
+    const shouldLoadDeletedAuthUsers = page === "permissions";
+    const shouldLoadImportantLinks = page === "links";
+    const shouldLoadMemberStatusMessages = page === "dashboard";
+    const shouldLoadAdminFeedback = canManageRoles || page === "feedback";
     const [
       allCustomFieldDefinitions,
       auditLogs,
@@ -775,12 +799,14 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       adminFeedbackMessages,
       memberLinkRequests,
     ] = await Promise.all([
-      hasPermission(currentMember.role, "members:read") ? getCustomFieldDefinitions(supabase) : Promise.resolve([]),
-      canManageRoles ? getAuditLogs(supabase) : Promise.resolve(undefined),
-      canManageRoles ? getDeletedAuthUsers(supabase) : Promise.resolve([]),
-      hasPermission(currentMember.role, "links:read") ? getImportantLinks(supabase) : Promise.resolve([]),
-      getMemberStatusMessages(supabase),
-      getAdminFeedbackMessages(supabase, currentMember.id, canManageRoles),
+      shouldLoadCustomFields && hasPermission(currentMember.role, "members:read")
+        ? getCustomFieldDefinitions(supabase)
+        : Promise.resolve([]),
+      shouldLoadAuditLogs && canManageRoles ? getAuditLogs(supabase) : Promise.resolve(undefined),
+      shouldLoadDeletedAuthUsers && canManageRoles ? getDeletedAuthUsers(supabase) : Promise.resolve([]),
+      shouldLoadImportantLinks && hasPermission(currentMember.role, "links:read") ? getImportantLinks(supabase) : Promise.resolve([]),
+      shouldLoadMemberStatusMessages ? getMemberStatusMessages(supabase) : Promise.resolve([]),
+      shouldLoadAdminFeedback ? getAdminFeedbackMessages(supabase, currentMember.id, canManageRoles) : Promise.resolve([]),
       getMemberLinkRequests(supabase, currentMember.id, canManageRoles),
     ]);
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")

@@ -5,7 +5,7 @@ import { getAppPageData } from "@/lib/app-page-data";
 export const dynamic = "force-dynamic";
 
 export default async function PermissionsPage() {
-  const data = await getAppPageData();
+  const data = await getAppPageData({ page: "permissions" });
 
   return (
     <AppPageGate data={data}>

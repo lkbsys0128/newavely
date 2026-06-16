@@ -5,7 +5,7 @@ import { getAppPageData } from "@/lib/app-page-data";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const data = await getAppPageData();
+  const data = await getAppPageData({ page: "dashboard" });
 
   return (
     <AppPageGate data={data}>

@@ -5,7 +5,7 @@ import { getAppPageData } from "@/lib/app-page-data";
 export const dynamic = "force-dynamic";
 
 export default async function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, data] = await Promise.all([params, getAppPageData()]);
+  const [{ id }, data] = await Promise.all([params, getAppPageData({ page: "member-detail" })]);
 
   return (
     <AppPageGate data={data}>
