@@ -1177,6 +1177,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                     </option>
                   ))}
                 </select>
+                {!canManageRoles ? <input name="role" type="hidden" value={selectedMember.role} /> : null}
               </label>
               <label>
                 상태
