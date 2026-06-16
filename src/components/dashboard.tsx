@@ -3340,72 +3340,78 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                   <div className="link-request-target">
                     <div className="person-block">
                       <strong>관리자 확인 필요</strong>
-                      <span>연결 대상 · {request.targetEmail || (request.targetMemberId ? "이메일 없음" : "관리자가 선택 필요")}</span>
+                      <span>
+                        요청자가 선택한 대상 · {request.targetName}
+                        {request.targetEmail ? ` · ${request.targetEmail}` : request.targetMemberId ? " · 이메일 없음" : ""}
+                      </span>
                     </div>
-                    <strong>{request.targetName}</strong>
+                    <strong>승인 전에 올바른 교적으로 바꿀 수 있습니다</strong>
                   </div>
-                  {!request.targetMemberId ? (
-                    <div className="link-request-resolution">
+                  <div className="link-request-resolution">
+                    <label>
+                      처리 방식
+                      <select name="createTargetMode" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
+                        <option value="existing">기존 교적에 연결</option>
+                        <option value="new">새 교적 생성 후 연결</option>
+                      </select>
+                    </label>
+                    <label>
+                      승인할 교적 멤버
+                      <select
+                        name="targetMemberId"
+                        form={`approve-link-request-${request.id}`}
+                        defaultValue={request.targetMemberId ?? ""}
+                        disabled={!canManageRoles}
+                      >
+                        <option value="">선택</option>
+                        {unlinkedActiveMembers.map((member) => (
+                          <option key={member.id} value={member.id}>
+                            {member.displayName} · {member.groupName} · {member.email || "이메일 없음"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="new-member-inline-fields">
                       <label>
-                        처리 방식
-                        <select name="createTargetMode" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
-                          <option value="existing">기존 교적에 연결</option>
-                          <option value="new">새 교적 생성 후 연결</option>
-                        </select>
+                        새 이름
+                        <input
+                          name="newMemberName"
+                          form={`approve-link-request-${request.id}`}
+                          placeholder={request.requesterName}
+                          disabled={!canManageRoles}
+                        />
                       </label>
                       <label>
-                        기존 교적 멤버
-                        <select name="targetMemberId" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
-                          <option value="">선택</option>
-                          {unlinkedActiveMembers.map((member) => (
-                            <option key={member.id} value={member.id}>
-                              {member.displayName} · {member.groupName} · {member.email || "이메일 없음"}
+                        이메일
+                        <input
+                          name="newMemberEmail"
+                          form={`approve-link-request-${request.id}`}
+                          placeholder={request.requesterEmail || "선택 입력"}
+                          disabled={!canManageRoles}
+                        />
+                      </label>
+                      <label>
+                        전화번호
+                        <input
+                          name="newMemberPhone"
+                          form={`approve-link-request-${request.id}`}
+                          placeholder="선택 입력"
+                          disabled={!canManageRoles}
+                        />
+                      </label>
+                      <label>
+                        순
+                        <select name="newMemberGroupId" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
+                          <option value="">미배정</option>
+                          {groups.map((group) => (
+                            <option key={group.id} value={group.id}>
+                              {group.name}
                             </option>
                           ))}
                         </select>
                       </label>
-                      <div className="new-member-inline-fields">
-                        <label>
-                          새 이름
-                          <input
-                            name="newMemberName"
-                            form={`approve-link-request-${request.id}`}
-                            placeholder={request.requesterName}
-                            disabled={!canManageRoles}
-                          />
-                        </label>
-                        <label>
-                          이메일
-                          <input
-                            name="newMemberEmail"
-                            form={`approve-link-request-${request.id}`}
-                            placeholder={request.requesterEmail || "선택 입력"}
-                            disabled={!canManageRoles}
-                          />
-                        </label>
-                        <label>
-                          전화번호
-                          <input
-                            name="newMemberPhone"
-                            form={`approve-link-request-${request.id}`}
-                            placeholder="선택 입력"
-                            disabled={!canManageRoles}
-                          />
-                        </label>
-                        <label>
-                          순
-                          <select name="newMemberGroupId" form={`approve-link-request-${request.id}`} disabled={!canManageRoles}>
-                            <option value="">미배정</option>
-                            {groups.map((group) => (
-                              <option key={group.id} value={group.id}>
-                                {group.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
                     </div>
-                  ) : null}
+                  </div>
                   <div className="request-actions">
                     <form action={approveAction} id={`approve-link-request-${request.id}`}>
                       <input name="id" type="hidden" value={request.id} />

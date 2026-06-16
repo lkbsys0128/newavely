@@ -108,7 +108,13 @@ test("link request decisions support rejection and new member creation", () => {
   assert.match(actionsSource, /요청이 이미 정리되었습니다/);
   assert.match(actionsSource, /교적 연결 요청이 거절되었습니다/);
   assert.match(actionsSource, /member\.create_for_link_request/);
+  assert.match(actionsSource, /parsed\.createTargetMode === "existing"/);
+  assert.match(actionsSource, /target_member_id: targetMemberId/);
+  assert.match(actionsSource, /이미 다른 Google 계정에 연결된 교적입니다/);
   assert.match(actionsSource, /member_link_request\.reopen/);
+  assert.match(dashboardSource, /승인할 교적 멤버/);
+  assert.match(dashboardSource, /defaultValue=\{request\.targetMemberId \?\? ""\}/);
+  assert.match(dashboardSource, /승인 전에 올바른 교적으로 바꿀 수 있습니다/);
   assert.match(dashboardSource, /새 교적 생성 후 연결/);
   assert.match(dashboardSource, /거절된 요청 다시 검토/);
   assert.match(dashboardSource, /reopenMemberLinkRequest/);
