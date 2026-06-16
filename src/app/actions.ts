@@ -474,28 +474,29 @@ export async function createMember(_previousState: ActionState, formData: FormDa
 export async function updateMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase, currentMember } = await getAuthorizedCurrentMember("members:read");
-
-    const parsed = updateMemberSchema.parse({
-      id: formData.get("id"),
-      name: formData.get("name"),
-      englishName: formData.get("englishName"),
-      phone: formData.get("phone"),
-      groupId: formData.get("groupId"),
-      email: formData.get("email"),
-      address: formData.get("address"),
-      baptismStatus: formData.get("baptismStatus"),
-      notes: formData.get("notes"),
-      role: formData.get("role"),
-      status: formData.get("status"),
-    });
+    const id = z.string().uuid().parse(formData.get("id"));
 
     const { data: beforeData, error: beforeError } = await supabase
       .from("members")
       .select("*")
-      .eq("id", parsed.id)
+      .eq("id", id)
       .single();
 
     if (beforeError) throw beforeError;
+
+    const parsed = updateMemberSchema.parse({
+      id,
+      name: formData.get("name"),
+      englishName: formData.get("englishName"),
+      phone: formData.get("phone"),
+      groupId: formData.has("groupId") ? formData.get("groupId") : beforeData.group_id,
+      email: formData.get("email"),
+      address: formData.get("address"),
+      baptismStatus: formData.get("baptismStatus"),
+      notes: formData.get("notes"),
+      role: formData.has("role") ? formData.get("role") : beforeData.role,
+      status: formData.has("status") ? formData.get("status") : beforeData.status,
+    });
     const isOwnProfileUpdate = currentMember.id === parsed.id;
     const canManageMembers = hasPermission(currentMember.role, "members:write");
     if (!canManageMembers && !isOwnProfileUpdate) {
