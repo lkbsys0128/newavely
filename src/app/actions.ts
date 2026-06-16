@@ -900,9 +900,11 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
       .single();
 
     if (requestError) throw requestError;
-    let targetMemberId = (request.target_member_id as string | null) ?? null;
+    let targetMemberId = parsed.createTargetMode === "existing"
+      ? parsed.targetMemberId ?? ((request.target_member_id as string | null) ?? null)
+      : null;
 
-    if (!targetMemberId && parsed.createTargetMode === "new") {
+    if (parsed.createTargetMode === "new") {
       if (!parsed.newMemberName) throw new Error("새 교적 이름을 입력해주세요.");
 
       const { data: newMember, error: newMemberError } = await supabase
@@ -932,12 +934,22 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
     }
 
     if (!targetMemberId) {
-      targetMemberId = parsed.targetMemberId ?? null;
-    }
-
-    if (!targetMemberId) {
       throw new Error("연결할 교적 멤버를 선택해주세요.");
     }
+
+    if (targetMemberId === (request.requester_member_id as string)) {
+      throw new Error("요청자 본인 교적으로는 연결할 수 없습니다.");
+    }
+
+    const { data: targetMember, error: targetMemberError } = await supabase
+      .from("members")
+      .select("id, status, auth_user_id")
+      .eq("id", targetMemberId)
+      .single();
+
+    if (targetMemberError) throw targetMemberError;
+    if (targetMember.status === "inactive") throw new Error("비활성화된 멤버에는 연결할 수 없습니다.");
+    if (targetMember.auth_user_id) throw new Error("이미 다른 Google 계정에 연결된 교적입니다.");
 
     const mergeFormData = new FormData();
     mergeFormData.set("survivorMemberId", request.requester_member_id as string);
@@ -964,6 +976,7 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
     const approvedAt = new Date().toISOString();
     const approvedPayload = {
       status: "approved",
+      target_member_id: targetMemberId,
       resolved_at: approvedAt,
       resolved_by_member_id: currentMember.id,
     };
