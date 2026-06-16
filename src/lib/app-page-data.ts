@@ -757,32 +757,36 @@ export async function getAppPageData(options?: { attendanceEventId?: string }): 
       };
     }
 
-    const allCustomFieldDefinitions = hasPermission(currentMember.role, "members:read")
-      ? await getCustomFieldDefinitions(supabase)
-      : [];
+    let publicDashboardData = dashboardData;
+    if (!hasPermission(currentMember.role, "members:write")) {
+      try {
+        publicDashboardData = await getPublicDashboardData(supabase, options?.attendanceEventId);
+      } catch (error) {
+        if (!isMissingPublicDashboardDataRpc(error)) throw error;
+      }
+    }
+    const canManageRoles = hasPermission(currentMember.role, "roles:manage");
+    const [
+      allCustomFieldDefinitions,
+      auditLogs,
+      deletedAuthUsers,
+      importantLinks,
+      memberStatusMessagesData,
+      adminFeedbackMessages,
+      memberLinkRequests,
+    ] = await Promise.all([
+      hasPermission(currentMember.role, "members:read") ? getCustomFieldDefinitions(supabase) : Promise.resolve([]),
+      canManageRoles ? getAuditLogs(supabase) : Promise.resolve(undefined),
+      canManageRoles ? getDeletedAuthUsers(supabase) : Promise.resolve([]),
+      hasPermission(currentMember.role, "links:read") ? getImportantLinks(supabase) : Promise.resolve([]),
+      getMemberStatusMessages(supabase),
+      getAdminFeedbackMessages(supabase, currentMember.id, canManageRoles),
+      getMemberLinkRequests(supabase, currentMember.id, canManageRoles),
+    ]);
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
       ? allCustomFieldDefinitions
       : allCustomFieldDefinitions.filter((field) => !field.isSensitive);
-    const auditLogs = hasPermission(currentMember.role, "roles:manage") ? await getAuditLogs(supabase) : undefined;
-    const deletedAuthUsers = hasPermission(currentMember.role, "roles:manage") ? await getDeletedAuthUsers(supabase) : [];
-    const importantLinks = hasPermission(currentMember.role, "links:read") ? await getImportantLinks(supabase) : [];
-    let publicDashboardData = dashboardData;
-    try {
-      publicDashboardData = await getPublicDashboardData(supabase, options?.attendanceEventId);
-    } catch (error) {
-      if (!isMissingPublicDashboardDataRpc(error)) throw error;
-    }
-    const memberStatusMessages = enrichMemberStatusMessages(await getMemberStatusMessages(supabase), publicDashboardData.members);
-    const adminFeedbackMessages = await getAdminFeedbackMessages(
-      supabase,
-      currentMember.id,
-      hasPermission(currentMember.role, "roles:manage"),
-    );
-    const memberLinkRequests = await getMemberLinkRequests(
-      supabase,
-      currentMember.id,
-      hasPermission(currentMember.role, "roles:manage"),
-    );
+    const memberStatusMessages = enrichMemberStatusMessages(memberStatusMessagesData, publicDashboardData.members);
     const scopedMembers = scopeMembersForRole({
       role: currentMember.role,
       currentMemberId: currentMember.id,
