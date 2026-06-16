@@ -292,8 +292,19 @@ test("app page data avoids avoidable serial fetches", () => {
   assert.match(dataSource, /Promise\.all\(\[\s*supabase\s*\.from\("attendance_events"\)/);
   assert.match(dataSource, /supabase\.rpc\("get_public_dashboard_groups"\)/);
   assert.match(dataSource, /supabase\.rpc\("get_public_dashboard_members"\)/);
+  assert.match(appPageDataSource, /type AppPageKind =/);
+  assert.match(appPageDataSource, /const page = options\.page \?\? "dashboard"/);
+  assert.match(appPageDataSource, /const shouldLoadCustomFields = page === "profile" \|\| page === "member-detail"/);
+  assert.match(appPageDataSource, /const shouldLoadAuditLogs = page === "audit"/);
+  assert.match(appPageDataSource, /const shouldLoadImportantLinks = page === "links"/);
+  assert.match(appPageDataSource, /const shouldLoadMemberStatusMessages = page === "dashboard"/);
   assert.match(appPageDataSource, /const \[\s*allCustomFieldDefinitions,\s*auditLogs,\s*deletedAuthUsers,\s*importantLinks,\s*memberStatusMessagesData,\s*adminFeedbackMessages,\s*memberLinkRequests,\s*\] = await Promise\.all/);
-  assert.match(appPageDataSource, /canManageRoles \? getAuditLogs\(supabase\) : Promise\.resolve\(undefined\)/);
+  assert.match(appPageDataSource, /shouldLoadAuditLogs && canManageRoles \? getAuditLogs\(supabase\) : Promise\.resolve\(undefined\)/);
+  assert.match(homePageSource, /getAppPageData\(\{ page: "dashboard" \}\)/);
+  assert.match(profilePageSource, /getAppPageData\(\{ page: "profile" \}\)/);
+  assert.match(feedbackPageSource, /getAppPageData\(\{ page: "feedback" \}\)/);
+  assert.doesNotMatch(globalCssSource, /cdn\.jsdelivr\.net/);
+  assert.match(globalCssSource, /content-visibility: auto/);
 });
 
 test("common aggregate stats use unscoped server data while pages receive scoped members", () => {

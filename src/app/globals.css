@@ -1,5 +1,3 @@
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css");
-
 :root {
   color-scheme: light;
   --bg: #f5f9fb;
@@ -61,8 +59,8 @@ body {
     var(--bg);
   color: var(--ink);
   font-family:
-    "Pretendard Variable", Pretendard, Inter, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    "Pretendard Variable", Pretendard, Inter, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-feature-settings:
     "tnum" 1,
     "cv03" 1;
@@ -75,6 +73,18 @@ body {
 .page-transition {
   min-width: 0;
   animation: pageEnter var(--motion-slow) var(--motion-ease) both;
+}
+
+.member-status-card,
+.link-card,
+.feedback-item,
+.summary-row,
+.audit-row,
+.role-management-row,
+.group-card,
+.attendance-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
 }
 
 .page-loading {

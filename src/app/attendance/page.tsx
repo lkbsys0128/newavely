@@ -10,7 +10,7 @@ export default async function AttendancePage({
   searchParams: Promise<{ eventId?: string }>;
 }) {
   const { eventId } = await searchParams;
-  const data = await getAppPageData({ attendanceEventId: eventId });
+  const data = await getAppPageData({ attendanceEventId: eventId, page: "attendance" });
 
   return (
     <AppPageGate data={data}>
