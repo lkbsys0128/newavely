@@ -430,7 +430,7 @@ export async function createMember(_previousState: ActionState, formData: FormDa
       address: formData.get("address"),
       baptismStatus: formData.get("baptismStatus"),
       notes: formData.get("notes"),
-      role: formData.get("role"),
+      role: formData.get("role") || "member",
       status: formData.get("status"),
     });
 

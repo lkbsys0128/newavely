@@ -931,13 +931,14 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
           </label>
           <label>
             역할
-            <select name="role" disabled={!canManageRoles}>
+            <select name="role" defaultValue="member" disabled={!canManageRoles}>
               {assignableRoleEntries.map(([role, label]) => (
                 <option key={role} value={role}>
                   {label}
                 </option>
               ))}
             </select>
+            {!canManageRoles ? <input name="role" type="hidden" value="member" /> : null}
           </label>
           <label>
             상태
