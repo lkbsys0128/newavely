@@ -674,6 +674,12 @@ test("member role can self-serve profile groups and attendance without admin con
   assert.match(schemaSource, /group_id is not distinct from current_member_group_id\(\)/);
 });
 
+test("new member creation defaults to member role for non-role managers", () => {
+  assert.match(actionsSource, /role: formData\.get\("role"\) \|\| "member"/);
+  assert.match(dashboardSource, /<select name="role" defaultValue="member" disabled=\{!canManageRoles\}>/);
+  assert.match(dashboardSource, /!canManageRoles \? <input name="role" type="hidden" value="member" \/> : null/);
+});
+
 test("admin feedback inbox lets users message admins and admins update status", () => {
   assert.match(schemaSource, /create table admin_feedback_messages/);
   assert.match(adminFeedbackMessagesSource, /users can create own feedback messages/);
