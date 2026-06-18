@@ -8,6 +8,7 @@ const navItems = [
   { href: "/", label: "대시보드" },
   { href: "/profile", label: "내 프로필" },
   { href: "/members", label: "멤버" },
+  { href: "/new-family", label: "새가족" },
   { href: "/groups", label: "순" },
   { href: "/attendance", label: "출석" },
   { href: "/links", label: "링크" },

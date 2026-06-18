@@ -10,6 +10,7 @@ import type {
   Member,
   MemberLinkRequest,
   MemberStatusMessage,
+  NewFamilyApplicant,
 } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { scopeMembersForRole } from "@/lib/member-visibility";
@@ -27,6 +28,7 @@ import {
   getImportantLinks,
   getMemberLinkRequests,
   getMemberStatusMessages,
+  getNewFamilyApplicants,
   getOrCreateCurrentMember,
   getPublicDashboardData,
 } from "@/lib/supabase/data";
@@ -53,6 +55,7 @@ export type ReadyAppPageData = {
   importantLinks: ImportantLink[];
   memberStatusMessages: MemberStatusMessage[];
   adminFeedbackMessages: AdminFeedbackMessage[];
+  newFamilyApplicants: NewFamilyApplicant[];
   customFieldDefinitions: CustomFieldDefinition[];
   dashboardMetrics: DashboardMetrics;
   globalStats: GlobalAppStats;
@@ -215,6 +218,7 @@ type AppPageKind =
   | "permissions"
   | "audit"
   | "feedback"
+  | "new-family"
   | "links";
 
 type AppPageDataOptions = {
@@ -790,6 +794,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
     const shouldLoadImportantLinks = page === "links";
     const shouldLoadMemberStatusMessages = page === "dashboard";
     const shouldLoadAdminFeedback = canManageRoles || page === "feedback";
+    const shouldLoadNewFamilyApplicants = page === "new-family";
     const [
       allCustomFieldDefinitions,
       auditLogs,
@@ -798,6 +803,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       memberStatusMessagesData,
       adminFeedbackMessages,
       memberLinkRequests,
+      newFamilyApplicants,
     ] = await Promise.all([
       shouldLoadCustomFields && hasPermission(currentMember.role, "members:read")
         ? getCustomFieldDefinitions(supabase)
@@ -808,6 +814,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       shouldLoadMemberStatusMessages ? getMemberStatusMessages(supabase) : Promise.resolve([]),
       shouldLoadAdminFeedback ? getAdminFeedbackMessages(supabase, currentMember.id, canManageRoles) : Promise.resolve([]),
       getMemberLinkRequests(supabase, currentMember.id, canManageRoles),
+      shouldLoadNewFamilyApplicants && canManageRoles ? getNewFamilyApplicants(supabase) : Promise.resolve([]),
     ]);
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
       ? allCustomFieldDefinitions
@@ -841,6 +848,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       importantLinks,
       memberStatusMessages,
       adminFeedbackMessages,
+      newFamilyApplicants,
       customFieldDefinitions,
       dashboardMetrics: globalStats.dashboardMetrics,
       globalStats,

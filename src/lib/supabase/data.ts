@@ -11,6 +11,7 @@ import type {
   Member,
   MemberLinkRequest,
   MemberStatusMessage,
+  NewFamilyApplicant,
 } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 import { formatMemberDisplayName } from "@/lib/member-names";
@@ -43,6 +44,24 @@ type DbPublicDashboardMember = {
     event_id: string;
     status: "present" | "absent" | "excused";
   }> | null;
+};
+
+type DbNewFamilyApplicant = {
+  id: string;
+  source_row_number: number;
+  submitted_at: string | null;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  group_interest: string | null;
+  memo: string | null;
+  status: NewFamilyApplicant["status"];
+  source_data: Record<string, unknown> | null;
+  converted_member_id: string | null;
+  converted_at: string | null;
+  last_synced_at: string;
+  created_at: string;
+  updated_at: string;
 };
 
 type DbMember = {
@@ -685,6 +704,40 @@ export async function getAdminFeedbackMessages(
       resolvedAt: item.resolved_at,
     };
   });
+}
+
+export async function getNewFamilyApplicants(supabase: SupabaseClient): Promise<NewFamilyApplicant[]> {
+  const { data, error } = await supabase
+    .from("new_family_applicants")
+    .select(
+      "id, source_row_number, submitted_at, name, email, phone, group_interest, memo, status, source_data, converted_member_id, converted_at, last_synced_at, created_at, updated_at",
+    )
+    .order("submitted_at", { ascending: false, nullsFirst: false })
+    .order("source_row_number", { ascending: false })
+    .limit(300);
+
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  return ((data ?? []) as DbNewFamilyApplicant[]).map((applicant) => ({
+    id: applicant.id,
+    sourceRowNumber: applicant.source_row_number,
+    submittedAt: applicant.submitted_at,
+    name: applicant.name,
+    email: applicant.email ?? "",
+    phone: applicant.phone ?? "",
+    groupInterest: applicant.group_interest ?? "",
+    memo: applicant.memo ?? "",
+    status: applicant.status,
+    sourceData: applicant.source_data ?? {},
+    convertedMemberId: applicant.converted_member_id,
+    convertedAt: applicant.converted_at,
+    lastSyncedAt: applicant.last_synced_at,
+    createdAt: applicant.created_at,
+    updatedAt: applicant.updated_at,
+  }));
 }
 
 export async function getDeletedAuthUsers(supabase: SupabaseClient): Promise<DeletedAuthUser[]> {

@@ -7,6 +7,7 @@ import { hasPermission, type Role } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
 import { canDeleteMemberRole, canUseDeleteActions, getRoleChangeBlockReason } from "@/lib/role-policy";
 import { replaceGoogleSheetValues } from "@/lib/google-sheets";
+import { syncNewFamilyApplicantsFromSheet } from "@/lib/new-family-sync";
 import {
   calculateKoreanAge,
   normalizeBaptismStatus,
@@ -100,6 +101,17 @@ const updateAdminFeedbackSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(["open", "reviewing", "resolved", "closed"]),
   adminNote: nullableText,
+});
+
+const updateNewFamilyApplicantSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["new", "contacted", "in_progress", "completed", "archived"]),
+  memo: nullableText,
+});
+
+const convertNewFamilyApplicantSchema = z.object({
+  id: z.string().uuid(),
+  groupId: nullableUuid,
 });
 
 const createMemberLinkRequestSchema = z.object({
@@ -334,6 +346,7 @@ function revalidateAppData() {
   revalidatePath("/attendance");
   revalidatePath("/links");
   revalidatePath("/feedback");
+  revalidatePath("/new-family");
   revalidatePath("/permissions");
   revalidatePath("/audit");
 }
@@ -674,6 +687,144 @@ export async function exportMembersToGoogleSheet(_previousState: ActionState, _f
         sheetName: result.sheetName,
       },
     };
+  });
+}
+
+export async function syncNewFamilyApplicants(_previousState: ActionState, _formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const result = await syncNewFamilyApplicantsFromSheet(supabase);
+
+    await writeAuditLog({
+      supabase,
+      action: "new_family.sync_google_sheet",
+      targetTable: "new_family_applicants",
+      metadata: {
+        spreadsheetId: result.spreadsheetId,
+        sheetName: result.sheetName,
+        rowCount: result.syncedRows,
+      },
+    });
+
+    revalidateAppData();
+    return {
+      message: `새가족 신청 ${result.syncedRows}건을 Google Sheet에서 동기화했습니다.`,
+      data: {
+        spreadsheetUrl: result.spreadsheetUrl,
+        spreadsheetId: result.spreadsheetId,
+        sheetName: result.sheetName,
+      },
+    };
+  });
+}
+
+export async function updateNewFamilyApplicant(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = updateNewFamilyApplicantSchema.parse({
+      id: formData.get("id"),
+      status: formData.get("status"),
+      memo: formData.get("memo"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("new_family_applicants")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
+      .from("new_family_applicants")
+      .update({
+        status: parsed.status,
+        memo: parsed.memo,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+
+    await writeAuditLog({
+      supabase,
+      action: "new_family.update",
+      targetTable: "new_family_applicants",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: afterData as Record<string, unknown>,
+    });
+
+    revalidateAppData();
+    return "새가족 상태를 저장했습니다.";
+  });
+}
+
+export async function convertNewFamilyApplicantToMember(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = convertNewFamilyApplicantSchema.parse({
+      id: formData.get("id"),
+      groupId: formData.get("groupId"),
+    });
+
+    const { data: applicant, error: applicantError } = await supabase
+      .from("new_family_applicants")
+      .select("*")
+      .eq("id", parsed.id)
+      .single();
+    if (applicantError) throw applicantError;
+    if (applicant.converted_member_id) throw new Error("이미 멤버로 등록된 새가족입니다.");
+
+    const placeholderEmail = `new-family-${applicant.id}@placeholder.local`;
+    const { data: insertedMember, error: insertError } = await supabase
+      .from("members")
+      .insert({
+        name: applicant.name,
+        email: applicant.email || placeholderEmail,
+        phone: applicant.phone || "미입력",
+        group_id: parsed.groupId,
+        role: "member",
+        status: "new",
+        care_notes: applicant.memo || "새가족 신청에서 등록됨",
+        custom_fields: {
+          source: "new_family_google_form",
+          new_family_applicant_id: applicant.id,
+          group_interest: applicant.group_interest,
+        },
+      })
+      .select("*")
+      .single();
+    if (insertError) throw insertError;
+
+    const convertedAt = new Date().toISOString();
+    const { data: updatedApplicant, error: updateError } = await supabase
+      .from("new_family_applicants")
+      .update({
+        status: "completed",
+        converted_member_id: insertedMember.id,
+        converted_at: convertedAt,
+        updated_at: convertedAt,
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+    if (updateError) throw updateError;
+
+    await writeAuditLog({
+      supabase,
+      action: "new_family.convert_to_member",
+      targetTable: "new_family_applicants",
+      targetId: parsed.id,
+      beforeData: applicant as Record<string, unknown>,
+      afterData: updatedApplicant as Record<string, unknown>,
+      metadata: {
+        memberId: insertedMember.id,
+      },
+    });
+
+    revalidateAppData();
+    return "새가족을 멤버 로스터에 등록했습니다.";
   });
 }
 

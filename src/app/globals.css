@@ -78,6 +78,7 @@ body {
 .member-status-card,
 .link-card,
 .feedback-item,
+.new-family-card,
 .summary-row,
 .audit-row,
 .role-management-row,
@@ -2580,6 +2581,116 @@ tbody tr:hover {
 
 .sheet-link-modal {
   border-color: rgba(47, 145, 181, 0.24);
+}
+
+.new-family-sync-panel,
+.new-family-filter-panel,
+.new-family-card-main,
+.new-family-update-form,
+.new-family-convert-form {
+  display: grid;
+  gap: 12px;
+}
+
+.new-family-sync-panel {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.new-family-filter-panel {
+  grid-template-columns: minmax(220px, 1fr) 220px;
+}
+
+.new-family-list {
+  display: grid;
+  gap: 14px;
+}
+
+.new-family-card {
+  display: grid;
+  gap: 16px;
+}
+
+.new-family-card-main {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.new-family-card-main h2 {
+  margin: 8px 0 4px;
+}
+
+.new-family-contact {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.new-family-update-form {
+  grid-template-columns: minmax(150px, 220px) minmax(220px, 1fr) auto;
+  align-items: end;
+}
+
+.new-family-convert-form {
+  grid-template-columns: minmax(180px, 260px) auto;
+  justify-content: end;
+  align-items: end;
+}
+
+.new-family-status.new {
+  background: rgba(42, 143, 175, 0.14);
+  color: var(--brand-deep);
+}
+
+.new-family-status.contacted,
+.new-family-status.in_progress {
+  background: rgba(244, 194, 95, 0.18);
+  color: #8a5a00;
+}
+
+.new-family-status.completed {
+  background: rgba(62, 179, 138, 0.16);
+  color: #1f7a5d;
+}
+
+.new-family-status.archived {
+  background: var(--soft);
+  color: var(--muted);
+}
+
+.new-family-raw {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.new-family-raw summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.new-family-raw dl {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.new-family-raw dl div {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 8px;
+}
+
+.new-family-raw dt {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.new-family-raw dd {
+  margin: 0;
 }
 
 .compact-action-form {
@@ -5621,6 +5732,19 @@ tbody tr:hover {
 }
 
 @media (max-width: 760px) {
+  .new-family-sync-panel,
+  .new-family-filter-panel,
+  .new-family-card-main,
+  .new-family-update-form,
+  .new-family-convert-form,
+  .new-family-raw dl div {
+    grid-template-columns: 1fr;
+  }
+
+  .new-family-contact {
+    justify-items: start;
+  }
+
   :root[data-theme="dark"] .sidebar {
     background: rgba(8, 17, 20, 0.94);
   }

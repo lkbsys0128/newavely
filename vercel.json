@@ -15,5 +15,11 @@
         }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/sync-new-family",
+      "schedule": "0 3 * * 1"
+    }
   ]
 }

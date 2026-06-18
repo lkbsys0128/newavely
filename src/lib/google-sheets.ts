@@ -11,6 +11,13 @@ export type SheetSyncResult = {
   updatedColumns: number;
 };
 
+export type SheetReadResult = {
+  spreadsheetId: string;
+  sheetName: string;
+  spreadsheetUrl: string;
+  values: string[][];
+};
+
 function base64UrlEncode(value: string | Buffer) {
   return Buffer.from(value).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
@@ -77,6 +84,35 @@ async function callSheetsApi(path: string, accessToken: string, init: RequestIni
 
   if (response.status === 204) return null;
   return response.json();
+}
+
+async function getFirstSheetName(spreadsheetId: string, accessToken: string) {
+  const metadata = (await callSheetsApi(`${spreadsheetId}?fields=sheets.properties.title`, accessToken)) as {
+    sheets?: Array<{ properties?: { title?: string } }>;
+  };
+  const title = metadata.sheets?.[0]?.properties?.title?.trim();
+  if (!title) throw new Error("Google Sheet 탭 이름을 찾을 수 없습니다.");
+  return title;
+}
+
+export async function readGoogleSheetValues({
+  spreadsheetId,
+  sheetName,
+}: {
+  spreadsheetId: string;
+  sheetName?: string;
+}): Promise<SheetReadResult> {
+  const accessToken = await getGoogleAccessToken();
+  const resolvedSheetName = sheetName?.trim() || (await getFirstSheetName(spreadsheetId, accessToken));
+  const encodedRange = encodeURIComponent(`${resolvedSheetName}!A:ZZ`);
+  const result = (await callSheetsApi(`${spreadsheetId}/values/${encodedRange}`, accessToken)) as { values?: string[][] };
+
+  return {
+    spreadsheetId,
+    sheetName: resolvedSheetName,
+    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+    values: result.values ?? [],
+  };
 }
 
 export async function replaceGoogleSheetValues(rows: string[][]): Promise<SheetSyncResult> {
