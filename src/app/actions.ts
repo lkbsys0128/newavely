@@ -707,12 +707,20 @@ export async function syncNewFamilyApplicants(_previousState: ActionState, _form
     });
 
     revalidateAppData();
+    const details =
+      result.syncedRows > 0
+        ? `${result.sheetName} 탭에서 ${result.readRows}행을 읽고 ${result.syncedRows}건을 동기화했습니다.`
+        : `${result.sheetName} 탭에서 ${result.readRows}행을 읽었지만 등록 가능한 새가족 이름을 찾지 못했습니다.`;
     return {
-      message: `새가족 신청 ${result.syncedRows}건을 Google Sheet에서 동기화했습니다.`,
+      message: details,
       data: {
         spreadsheetUrl: result.spreadsheetUrl,
         spreadsheetId: result.spreadsheetId,
         sheetName: result.sheetName,
+        readRows: result.readRows,
+        parsedRows: result.parsedRows,
+        skippedRows: result.skippedRows,
+        scannedSheetNames: result.scannedSheetNames.join(", "),
       },
     };
   });

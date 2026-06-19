@@ -113,6 +113,7 @@ export async function syncNewFamilyApplicantsFromSheet(supabase: SupabaseLike) {
   const sheetName = process.env.NEW_FAMILY_SHEET_NAME?.trim();
   const sheet = await readGoogleSheetValues({ spreadsheetId, sheetName });
   const rows = buildRows(sheet.values, sheet.spreadsheetId, sheet.sheetName);
+  const readRows = Math.max(sheet.values.length - 1, 0);
 
   if (rows.length === 0) {
     return {
@@ -120,6 +121,10 @@ export async function syncNewFamilyApplicantsFromSheet(supabase: SupabaseLike) {
       sheetName: sheet.sheetName,
       spreadsheetUrl: sheet.spreadsheetUrl,
       syncedRows: 0,
+      readRows,
+      parsedRows: 0,
+      skippedRows: readRows,
+      scannedSheetNames: sheet.scannedSheetNames,
     };
   }
 
@@ -135,5 +140,9 @@ export async function syncNewFamilyApplicantsFromSheet(supabase: SupabaseLike) {
     sheetName: sheet.sheetName,
     spreadsheetUrl: sheet.spreadsheetUrl,
     syncedRows: count ?? rows.length,
+    readRows,
+    parsedRows: rows.length,
+    skippedRows: Math.max(readRows - rows.length, 0),
+    scannedSheetNames: sheet.scannedSheetNames,
   };
 }

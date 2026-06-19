@@ -709,11 +709,14 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(appPageDataSource, /"new-family"/);
   assert.match(appPageDataSource, /shouldLoadNewFamilyApplicants && canManageRoles/);
   assert.match(googleSheetsSource, /export async function readGoogleSheetValues/);
+  assert.match(googleSheetsSource, /scannedSheetNames/);
+  assert.match(googleSheetsSource, /values\.length > 1/);
   assert.match(newFamilySyncSource, /1T-DD9i7lBoFqK6qHXKSKeEgs-FOsq24c8dWzwLWFGrg/);
   assert.match(newFamilySyncSource, /normalizedKey\.includes\(alias\)/);
   assert.match(newFamilySyncSource, /function pickLikelyName/);
   assert.match(newFamilySyncSource, /source_key: `\$\{spreadsheetId\}:\$\{sheetName\}:\$\{sourceRowNumber\}`/);
   assert.match(actionsSource, /export async function syncNewFamilyApplicants/);
+  assert.match(actionsSource, /행을 읽었지만 등록 가능한 새가족 이름을 찾지 못했습니다/);
   assert.match(actionsSource, /export async function updateNewFamilyApplicant/);
   assert.match(actionsSource, /export async function convertNewFamilyApplicantToMember/);
   assert.match(actionsSource, /action: "new_family\.convert_to_member"/);
