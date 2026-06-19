@@ -27,6 +27,7 @@ const staffLeaderParitySource = readFileSync(new URL("../db/023_staff_leader_par
 const adminFeedbackMessagesSource = readFileSync(new URL("../db/024_admin_feedback_messages.sql", import.meta.url), "utf8");
 const publicDashboardDataSource = readFileSync(new URL("../db/026_public_dashboard_data.sql", import.meta.url), "utf8");
 const newFamilyApplicantsSource = readFileSync(new URL("../db/027_new_family_applicants.sql", import.meta.url), "utf8");
+const newFamilyStatusFlowSource = readFileSync(new URL("../db/028_new_family_status_flow.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -703,8 +704,13 @@ test("admin feedback inbox lets users message admins and admins update status", 
 
 test("new family applicants sync from Google Sheets into an admin-only roster", () => {
   assert.match(schemaSource, /create table new_family_applicants/);
+  assert.match(schemaSource, /week_3/);
   assert.match(newFamilyApplicantsSource, /current_member_role\(\) in \('owner', 'admin'\)/);
   assert.match(newFamilyApplicantsSource, /source_key text not null unique/);
+  assert.match(newFamilyStatusFlowSource, /where status = 'in_progress'/);
+  assert.match(newFamilyStatusFlowSource, /week_1/);
+  assert.match(newFamilyStatusFlowSource, /week_2/);
+  assert.match(newFamilyStatusFlowSource, /week_3/);
   assert.match(dataSource, /export async function getNewFamilyApplicants/);
   assert.match(appPageDataSource, /"new-family"/);
   assert.match(appPageDataSource, /shouldLoadNewFamilyApplicants && canManageRoles/);
@@ -718,6 +724,7 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(actionsSource, /export async function syncNewFamilyApplicants/);
   assert.match(actionsSource, /행을 읽었지만 등록 가능한 새가족 이름을 찾지 못했습니다/);
   assert.match(actionsSource, /export async function updateNewFamilyApplicant/);
+  assert.match(actionsSource, /week_3/);
   assert.match(actionsSource, /export async function convertNewFamilyApplicantToMember/);
   assert.match(actionsSource, /action: "new_family\.convert_to_member"/);
   assert.match(newFamilyCronSource, /CRON_SECRET/);
@@ -726,8 +733,12 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(newFamilyPageSource, /NewFamilyPageContent/);
   assert.match(dashboardSource, /export function NewFamilyPageContent/);
   assert.match(dashboardSource, /new-family-metrics/);
+  assert.match(dashboardSource, /newFamilyStatusOrder/);
+  assert.match(dashboardSource, /수료예정/);
+  assert.match(dashboardSource, /sortBy/);
   assert.match(dashboardSource, /아직 동기화된 새가족 신청이 없습니다/);
   assert.match(dashboardSource, /멤버로 등록/);
   assert.match(mobileAwareNavSource, /href: "\/new-family"/);
-  assert.match(globalCssSource, /new-family-card/);
+  assert.match(globalCssSource, /new-family-stage-panel/);
+  assert.match(globalCssSource, /new-family-row/);
 });

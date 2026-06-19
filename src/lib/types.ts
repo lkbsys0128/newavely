@@ -141,7 +141,7 @@ export type NewFamilyApplicant = {
   phone: string;
   groupInterest: string;
   memo: string;
-  status: "new" | "contacted" | "in_progress" | "completed" | "archived";
+  status: "new" | "contacted" | "week_1" | "week_2" | "week_3" | "completed" | "archived";
   sourceData: Record<string, unknown>;
   convertedMemberId: string | null;
   convertedAt: string | null;

@@ -1748,29 +1748,71 @@ export function LinksPageContent({ user, importantLinks = [] }: AppDataProps) {
 const newFamilyStatusLabels: Record<NewFamilyApplicant["status"], string> = {
   new: "새 신청",
   contacted: "연락 완료",
-  in_progress: "진행 중",
+  week_1: "1주차",
+  week_2: "2주차",
+  week_3: "수료예정",
   completed: "수료/등록",
   archived: "보관",
 };
+
+const newFamilyStatusOrder: NewFamilyApplicant["status"][] = [
+  "new",
+  "contacted",
+  "week_1",
+  "week_2",
+  "week_3",
+  "completed",
+  "archived",
+];
+
+type NewFamilySort = "latest" | "oldest" | "name" | "status";
+
+const newFamilySortLabels: Record<NewFamilySort, string> = {
+  latest: "최신순",
+  oldest: "오래된순",
+  name: "이름순",
+  status: "상태순",
+};
+
+function getNewFamilyTimestamp(applicant: NewFamilyApplicant) {
+  return new Date(applicant.submittedAt ?? applicant.createdAt ?? applicant.updatedAt).getTime() || 0;
+}
 
 export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }: AppDataProps) {
   const canManageNewFamily = hasPermission(user.role, "roles:manage");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<NewFamilyApplicant["status"] | "all">("all");
+  const [sortBy, setSortBy] = useState<NewFamilySort>("latest");
   const [syncState, syncAction, isSyncing] = useActionState(syncNewFamilyApplicants, initialActionState);
   const [updateState, updateAction, isUpdating] = useActionState(updateNewFamilyApplicant, initialActionState);
   const [convertState, convertAction, isConverting] = useActionState(convertNewFamilyApplicantToMember, initialActionState);
   const normalizedQuery = query.trim().toLowerCase();
-  const visibleApplicants = newFamilyApplicants.filter((applicant) => {
-    if (statusFilter !== "all" && applicant.status !== statusFilter) return false;
-    if (!normalizedQuery) return true;
-    return [applicant.name, applicant.email, applicant.phone, applicant.groupInterest, applicant.memo]
-      .filter(Boolean)
-      .some((value) => value.toLowerCase().includes(normalizedQuery));
-  });
+  const visibleApplicants = [...newFamilyApplicants]
+    .filter((applicant) => {
+      if (statusFilter !== "all" && applicant.status !== statusFilter) return false;
+      if (!normalizedQuery) return true;
+      return [applicant.name, applicant.email, applicant.phone, applicant.groupInterest, applicant.memo]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedQuery));
+    })
+    .sort((first, second) => {
+      if (sortBy === "oldest") return getNewFamilyTimestamp(first) - getNewFamilyTimestamp(second);
+      if (sortBy === "name") return first.name.localeCompare(second.name, "ko");
+      if (sortBy === "status") {
+        return newFamilyStatusOrder.indexOf(first.status) - newFamilyStatusOrder.indexOf(second.status);
+      }
+      return getNewFamilyTimestamp(second) - getNewFamilyTimestamp(first);
+    });
+  const statusCounts = newFamilyStatusOrder.reduce(
+    (counts, status) => ({
+      ...counts,
+      [status]: newFamilyApplicants.filter((applicant) => applicant.status === status).length,
+    }),
+    {} as Record<NewFamilyApplicant["status"], number>,
+  );
   const activeCount = newFamilyApplicants.filter((applicant) => applicant.status !== "completed" && applicant.status !== "archived").length;
+  const readyCount = newFamilyApplicants.filter((applicant) => applicant.status === "week_3").length;
   const completedCount = newFamilyApplicants.filter((applicant) => applicant.status === "completed").length;
-  const archivedCount = newFamilyApplicants.filter((applicant) => applicant.status === "archived").length;
   const latestSync = newFamilyApplicants
     .map((applicant) => applicant.lastSyncedAt)
     .sort()
@@ -1810,18 +1852,40 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
         <article className="metric-card">
           <span>진행 중</span>
           <strong>{activeCount}</strong>
-          <small>새 신청/연락/진행</small>
+          <small>새 신청부터 수료예정까지</small>
+        </article>
+        <article className="metric-card">
+          <span>수료예정</span>
+          <strong>{readyCount}</strong>
+          <small>3주차 확인 필요</small>
         </article>
         <article className="metric-card">
           <span>수료/등록</span>
           <strong>{completedCount}</strong>
           <small>멤버 roster 전환</small>
         </article>
-        <article className="metric-card">
-          <span>보관</span>
-          <strong>{archivedCount}</strong>
-          <small>숨겨둔 신청</small>
-        </article>
+      </section>
+
+      <section className="panel new-family-stage-panel" aria-label="새가족 상태 흐름">
+        <button
+          className={`new-family-stage-chip ${statusFilter === "all" ? "is-active" : ""}`}
+          type="button"
+          onClick={() => setStatusFilter("all")}
+        >
+          <span>전체</span>
+          <strong>{newFamilyApplicants.length}</strong>
+        </button>
+        {newFamilyStatusOrder.map((status) => (
+          <button
+            className={`new-family-stage-chip ${statusFilter === status ? "is-active" : ""} ${status}`}
+            type="button"
+            key={status}
+            onClick={() => setStatusFilter(status)}
+          >
+            <span>{newFamilyStatusLabels[status]}</span>
+            <strong>{statusCounts[status]}</strong>
+          </button>
+        ))}
       </section>
 
       <section className="panel new-family-sync-panel" id="new-family-sync">
@@ -1848,7 +1912,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
             autoComplete="off"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="이름, 이메일, 전화, 메모"
+            placeholder="이름, 이메일, 전화, 순, 메모"
           />
         </label>
         <label>
@@ -1866,80 +1930,99 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
             ))}
           </select>
         </label>
+        <label>
+          정렬
+          <select
+            autoComplete="off"
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as NewFamilySort)}
+          >
+            {Object.entries(newFamilySortLabels).map(([sort, label]) => (
+              <option key={sort} value={sort}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
       </section>
 
       <section className="new-family-list" id="new-family-roster">
         {visibleApplicants.map((applicant) => {
           const sourceEntries = Object.entries(applicant.sourceData).filter(([, value]) => String(value ?? "").trim());
           return (
-            <article className="panel new-family-card" key={applicant.id}>
-              <div className="new-family-card-main">
-                <div>
-                  <span className={`status-pill new-family-status ${applicant.status}`}>{newFamilyStatusLabels[applicant.status]}</span>
-                  <h2>{applicant.name}</h2>
-                  <p className="meta">
+            <article className="panel new-family-row" key={applicant.id}>
+              <div className="new-family-row-main">
+                <span className={`new-family-status-dot ${applicant.status}`} aria-hidden="true" />
+                <div className="new-family-person">
+                  <strong>{applicant.name}</strong>
+                  <span>
                     {applicant.submittedAt ? formatShortDateTime(applicant.submittedAt) : `Sheet ${applicant.sourceRowNumber}행`}
                     {applicant.groupInterest ? ` · ${applicant.groupInterest}` : ""}
-                  </p>
+                  </span>
                 </div>
+                <span className={`status-pill new-family-status ${applicant.status}`}>{newFamilyStatusLabels[applicant.status]}</span>
                 <div className="new-family-contact">
                   <span>{applicant.phone || "전화 미입력"}</span>
                   <span>{applicant.email || "이메일 미입력"}</span>
                 </div>
               </div>
+              <details className="new-family-row-details">
+                <summary>관리</summary>
+                <div className="new-family-row-expanded">
+                  <form action={updateAction} className="new-family-update-form">
+                    <input name="id" type="hidden" value={applicant.id} />
+                    <label>
+                      상태
+                      <select name="status" defaultValue={applicant.status}>
+                        {newFamilyStatusOrder.map((status) => (
+                          <option key={status} value={status}>
+                            {newFamilyStatusLabels[status]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      메모
+                      <input name="memo" defaultValue={applicant.memo} placeholder="연락/수료 진행 메모" />
+                    </label>
+                    <button className="secondary-button" type="submit" disabled={isUpdating}>
+                      저장
+                    </button>
+                  </form>
 
-              <form action={updateAction} className="new-family-update-form">
-                <input name="id" type="hidden" value={applicant.id} />
-                <label>
-                  상태
-                  <select name="status" defaultValue={applicant.status}>
-                    {Object.entries(newFamilyStatusLabels).map(([status, label]) => (
-                      <option key={status} value={status}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  메모
-                  <input name="memo" defaultValue={applicant.memo} placeholder="연락/수료 진행 메모" />
-                </label>
-                <button className="secondary-button" type="submit" disabled={isUpdating}>
-                  저장
-                </button>
-              </form>
+                  <form action={convertAction} className="new-family-convert-form">
+                    <input name="id" type="hidden" value={applicant.id} />
+                    <label>
+                      등록할 순
+                      <select name="groupId" defaultValue="">
+                        <option value="">미배정</option>
+                        {groups.map((group) => (
+                          <option key={group.id} value={group.id}>
+                            {group.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button className="primary-button" type="submit" disabled={isConverting || Boolean(applicant.convertedMemberId)}>
+                      {applicant.convertedMemberId ? "등록 완료" : "멤버로 등록"}
+                    </button>
+                  </form>
 
-              <form action={convertAction} className="new-family-convert-form">
-                <input name="id" type="hidden" value={applicant.id} />
-                <label>
-                  등록할 순
-                  <select name="groupId" defaultValue="">
-                    <option value="">미배정</option>
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button className="primary-button" type="submit" disabled={isConverting || Boolean(applicant.convertedMemberId)}>
-                  {applicant.convertedMemberId ? "등록 완료" : "멤버로 등록"}
-                </button>
-              </form>
-
-              {sourceEntries.length > 0 ? (
-                <details className="new-family-raw">
-                  <summary>원본 응답 보기</summary>
-                  <dl>
-                    {sourceEntries.map(([key, value]) => (
-                      <div key={key}>
-                        <dt>{key}</dt>
-                        <dd>{String(value)}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </details>
-              ) : null}
+                  {sourceEntries.length > 0 ? (
+                    <details className="new-family-raw">
+                      <summary>원본 응답 보기</summary>
+                      <dl>
+                        {sourceEntries.map(([key, value]) => (
+                          <div key={key}>
+                            <dt>{key}</dt>
+                            <dd>{String(value)}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </details>
+                  ) : null}
+                </div>
+              </details>
             </article>
           );
         })}
@@ -1955,7 +2038,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
               <ul>
                 <li>Sheet가 service account 이메일에 공유되어 있어야 합니다.</li>
                 <li>Vercel env에 `NEW_FAMILY_SHEET_ID`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`이 필요합니다.</li>
-                <li>DB에는 `db/027_new_family_applicants.sql`이 먼저 적용되어야 합니다.</li>
+                <li>DB에는 `db/027_new_family_applicants.sql`과 `db/028_new_family_status_flow.sql`이 적용되어야 합니다.</li>
               </ul>
             ) : null}
           </article>
