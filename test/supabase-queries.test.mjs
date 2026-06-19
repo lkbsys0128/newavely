@@ -744,4 +744,6 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(mobileAwareNavSource, /href: "\/new-family"/);
   assert.match(globalCssSource, /new-family-stage-panel/);
   assert.match(globalCssSource, /new-family-management-modal/);
+  assert.match(globalCssSource, /new-family-side-form label/);
+  assert.match(globalCssSource, /feedback-admin-form label/);
 });
