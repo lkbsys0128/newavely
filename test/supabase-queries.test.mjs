@@ -51,6 +51,12 @@ const newFamilyCronSource = readFileSync(new URL("../src/app/api/cron/sync-new-f
 const vercelConfigSource = readFileSync(new URL("../vercel.json", import.meta.url), "utf8");
 const mobileAwareNavSource = readFileSync(new URL("../src/components/mobile-aware-nav.tsx", import.meta.url), "utf8");
 const uiEmojisSource = readFileSync(new URL("../src/lib/ui-emojis.ts", import.meta.url), "utf8");
+const cronAttendanceRouteSource = readFileSync(
+  new URL("../src/app/api/cron/ensure-sunday-attendance/route.ts", import.meta.url),
+  "utf8",
+);
+const supabaseEnvSource = readFileSync(new URL("../src/lib/supabase/env.ts", import.meta.url), "utf8");
+const vercelConfigSource = readFileSync(new URL("../vercel.json", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
   assert.match(dataSource, /id, auth_user_id, name/);
@@ -456,13 +462,24 @@ test("dashboard gives leaders a mobile shortcut to their group attendance", () =
 test("attendance event setup supports batch creation and Sunday auto-create in Pacific time", () => {
   assert.match(dataSource, /timeZone: "America\/Los_Angeles"/);
   assert.match(dataSource, /autoCreateSundayWorship/);
-  assert.match(dataSource, /today\.isSunday/);
-  assert.match(dataSource, /for \(const title of \["주일 예배", "순모임"\]\)/);
+  assert.match(dataSource, /getLosAngelesMostRecentSunday/);
+  assert.match(dataSource, /const DEFAULT_ATTENDANCE_TITLES = \["주일 예배", "순모임"\] as const/);
+  assert.match(dataSource, /for \(const title of DEFAULT_ATTENDANCE_TITLES\)/);
   assert.match(appPageDataSource, /hasPermission\(currentMember\.role, "attendance:write"\)/);
   assert.match(appPageDataSource, /createdByMemberId: currentMember\.id/);
   assert.match(actionsSource, /titlesToCreate/);
   assert.match(actionsSource, /\.in\("title", parsed\.titles\)/);
   assert.match(actionsSource, /이미 있던 \$\{skippedCount\}개는 건너뛰었습니다/);
+});
+
+test("weekly Sunday attendance auto-create is backed by a protected Vercel Cron route", () => {
+  assert.match(vercelConfigSource, /"path": "\/api\/cron\/ensure-sunday-attendance"/);
+  assert.match(vercelConfigSource, /"schedule": "0 18 \* \* 0"/);
+  assert.match(cronAttendanceRouteSource, /process\.env\.CRON_SECRET/);
+  assert.match(cronAttendanceRouteSource, /authorization/);
+  assert.match(cronAttendanceRouteSource, /createServiceRoleClient/);
+  assert.match(cronAttendanceRouteSource, /targetDate: eventDate/);
+  assert.match(supabaseEnvSource, /SUPABASE_SERVICE_ROLE_KEY/);
 });
 
 test("attendance stats can aggregate all events by group and event type", () => {

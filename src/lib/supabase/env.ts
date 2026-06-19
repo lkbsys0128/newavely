@@ -25,3 +25,14 @@ export function getSupabaseEnv() {
 
   return { supabaseUrl, supabaseAnonKey };
 }
+
+export function getSupabaseServiceRoleEnv() {
+  const { supabaseUrl } = getSupabaseEnv();
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseServiceRoleKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for server automation.");
+  }
+
+  return { supabaseUrl, supabaseServiceRoleKey };
+}
