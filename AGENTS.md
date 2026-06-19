@@ -177,6 +177,19 @@ npm run build
 - 다크모드는 읽기 쉬운 contrast가 우선입니다.
 - 삭제/복구 같은 위험 액션은 확인 UI와 audit log를 유지합니다.
 
+## UI 정렬/폼 품질 기준
+
+새 기능이나 새 UI를 만들 때 아래 기준을 반드시 먼저 확인합니다. 사용자가 반복해서 정렬 문제를 지적하지 않도록, 구현 단계에서 기본 품질로 처리합니다.
+
+- label과 input/select/textarea가 inline으로 붙어 보이면 안 됩니다. 폼 필드는 기본적으로 label 텍스트 위, control 아래의 grid 레이아웃을 사용합니다.
+- 새 폼을 만들면 기존 공통 폼 클래스(`member-form`, `management-form`, `reason-form` 등)를 우선 재사용합니다. 새 전용 폼 클래스를 만들 경우 `src/app/globals.css`의 공통 label/control/focus/dark-mode selector에도 반드시 포함합니다.
+- input/select/textarea는 같은 화면 안에서 높이, padding, border, radius, focus ring이 일관되어야 합니다.
+- 버튼은 필드와 붙어 있으면 안 됩니다. 최소한의 gap을 두고, primary/secondary/danger 스타일을 기존 패턴과 맞춥니다.
+- 모바일에서는 폼이 한 칼럼으로 자연스럽게 내려가야 하며, label과 control이 서로 밀리거나 화면 밖으로 넘치지 않아야 합니다.
+- modal 안의 폼은 중앙 정렬만이 아니라 내부 스크롤, 닫기 버튼, 바깥 클릭 닫기, 모바일 높이 제한까지 확인합니다.
+- 새 UI를 만든 뒤 `rg`로 비슷한 클래스와 기존 패턴을 확인하고, 같은 문제의 UI가 다른 페이지에도 있으면 함께 고칩니다.
+- 다크모드에서도 field background, border, placeholder, disabled 상태가 읽히는지 확인합니다.
+
 ## 성능 기준
 
 - `getAppPageData`는 모든 페이지에서 모든 auxiliary data를 가져오면 안 됩니다.

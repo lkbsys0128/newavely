@@ -1067,9 +1067,12 @@ h3 {
 .search-field,
 .member-form label,
 .management-form label,
+.new-family-side-form label,
+.feedback-admin-form label,
 .filter-grid label,
 .link-request-resolution label,
-.new-member-inline-fields label {
+.new-member-inline-fields label,
+.reason-form label {
   display: grid;
   gap: 7px;
   color: var(--muted);
@@ -1083,10 +1086,19 @@ h3 {
 .management-form input,
 .management-form select,
 .management-form textarea,
+.new-family-side-form input,
+.new-family-side-form select,
+.new-family-side-form textarea,
+.feedback-admin-form input,
+.feedback-admin-form select,
+.feedback-admin-form textarea,
 .filter-grid select,
 .link-request-resolution input,
 .link-request-resolution select,
-.role-management-row select {
+.role-management-row select,
+.reason-form input,
+.reason-form select,
+.reason-form textarea {
   width: 100%;
   min-height: 42px;
   border: 1px solid var(--line);
@@ -1107,17 +1119,26 @@ h3 {
 .management-form input:focus,
 .management-form select:focus,
 .management-form textarea:focus,
+.new-family-side-form input:focus,
+.new-family-side-form select:focus,
+.new-family-side-form textarea:focus,
+.feedback-admin-form input:focus,
+.feedback-admin-form select:focus,
+.feedback-admin-form textarea:focus,
 .filter-grid select:focus,
 .link-request-resolution input:focus,
 .link-request-resolution select:focus,
 .role-management-row select:focus,
 .reason-form input:focus,
+.reason-form select:focus,
 .reason-form textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(47, 145, 181, 0.14);
 }
 
-.management-form textarea {
+.management-form textarea,
+.new-family-side-form textarea,
+.feedback-admin-form textarea {
   min-height: 92px;
   padding: 12px;
   resize: vertical;
@@ -4655,25 +4676,6 @@ tbody tr:hover {
   align-items: end;
 }
 
-.reason-form label {
-  display: grid;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.reason-form input,
-.reason-form select,
-.reason-form textarea {
-  width: 100%;
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0 10px;
-  outline: none;
-}
-
 .reason-form textarea {
   min-height: 38px;
   padding: 10px;
@@ -5477,6 +5479,12 @@ tbody tr:hover {
 .management-form input,
 .management-form select,
 .management-form textarea,
+.new-family-side-form input,
+.new-family-side-form select,
+.new-family-side-form textarea,
+.feedback-admin-form input,
+.feedback-admin-form select,
+.feedback-admin-form textarea,
 .filter-grid select,
 .link-request-resolution input,
 .link-request-resolution select,
@@ -5577,6 +5585,12 @@ tbody tr:hover {
 :root[data-theme="dark"] .management-form input,
 :root[data-theme="dark"] .management-form select,
 :root[data-theme="dark"] .management-form textarea,
+:root[data-theme="dark"] .new-family-side-form input,
+:root[data-theme="dark"] .new-family-side-form select,
+:root[data-theme="dark"] .new-family-side-form textarea,
+:root[data-theme="dark"] .feedback-admin-form input,
+:root[data-theme="dark"] .feedback-admin-form select,
+:root[data-theme="dark"] .feedback-admin-form textarea,
 :root[data-theme="dark"] .status-input-shell textarea,
 :root[data-theme="dark"] .filter-grid select,
 :root[data-theme="dark"] .link-request-resolution input,
