@@ -2599,6 +2599,16 @@ tbody tr:hover {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.new-family-header-pill {
+  align-self: center;
+}
+
+.new-family-quick-summary {
+  display: none;
+  margin-top: 14px;
 }
 
 .new-family-sync-panel {
@@ -2613,6 +2623,7 @@ tbody tr:hover {
 .new-family-stage-panel {
   display: flex;
   gap: 8px;
+  margin-top: 14px;
   overflow-x: auto;
   padding: 10px 12px;
   scrollbar-width: thin;
@@ -5949,8 +5960,43 @@ tbody tr:hover {
 }
 
 @media (max-width: 760px) {
+  .new-family-header-pill {
+    font-size: 0.78rem;
+    padding: 5px 8px;
+  }
+
+  .new-family-quick-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .new-family-quick-summary span {
+    display: grid;
+    gap: 2px;
+    border-right: 1px solid var(--line);
+    padding: 9px 6px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1.1;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .new-family-quick-summary span:last-child {
+    border-right: 0;
+  }
+
+  .new-family-quick-summary strong {
+    color: var(--brand-deep);
+    font-size: 1.05rem;
+  }
+
   .new-family-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: none;
   }
 
   .new-family-sync-panel,
@@ -5963,13 +6009,18 @@ tbody tr:hover {
   }
 
   .new-family-stage-panel {
-    margin-inline: -4px;
-    padding: 10px;
+    margin-top: 12px;
+    margin-inline: 0;
+    padding: 8px;
   }
 
   .new-family-stage-chip {
-    min-width: 86px;
-    padding: 9px 10px;
+    min-width: 78px;
+    padding: 8px 9px;
+  }
+
+  .new-family-stage-chip strong {
+    font-size: 0.98rem;
   }
 
   .new-family-row {

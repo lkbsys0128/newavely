@@ -1835,7 +1835,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
   return (
     <>
       <PageHeader eyebrow="새가족 관리" title="새가족" user={user}>
-        <span className="status-pill">{activeCount}건 진행 중</span>
+        <span className="status-pill new-family-header-pill">{activeCount}건 진행 중</span>
       </PageHeader>
 
       <SectionNav
@@ -1844,6 +1844,21 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
           { href: "#new-family-roster", label: "신청 목록" },
         ]}
       />
+
+      <section className="panel new-family-quick-summary" aria-label="새가족 신청 핵심 요약">
+        <span>
+          전체 <strong>{newFamilyApplicants.length}</strong>
+        </span>
+        <span>
+          진행 <strong>{activeCount}</strong>
+        </span>
+        <span>
+          수료예정 <strong>{readyCount}</strong>
+        </span>
+        <span>
+          등록 <strong>{completedCount}</strong>
+        </span>
+      </section>
 
       <section className="new-family-metrics" aria-label="새가족 신청 요약">
         <article className="metric-card">
