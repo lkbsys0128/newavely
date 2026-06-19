@@ -105,7 +105,7 @@ const updateAdminFeedbackSchema = z.object({
 
 const updateNewFamilyApplicantSchema = z.object({
   id: z.string().uuid(),
-  status: z.enum(["new", "contacted", "in_progress", "completed", "archived"]),
+  status: z.enum(["new", "contacted", "week_1", "week_2", "week_3", "completed", "archived"]),
   memo: nullableText,
 });
 

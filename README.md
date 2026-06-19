@@ -122,6 +122,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 25. `db/025_self_service_member_profile.sql`
 26. `db/026_public_dashboard_data.sql`
 27. `db/027_new_family_applicants.sql`
+28. `db/028_new_family_status_flow.sql`
 
 주요 테이블:
 

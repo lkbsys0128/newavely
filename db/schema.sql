@@ -140,7 +140,7 @@ create table new_family_applicants (
   phone text,
   group_interest text,
   memo text,
-  status text not null default 'new' check (status in ('new', 'contacted', 'in_progress', 'completed', 'archived')),
+  status text not null default 'new' check (status in ('new', 'contacted', 'week_1', 'week_2', 'week_3', 'completed', 'archived')),
   source_data jsonb not null default '{}'::jsonb,
   converted_member_id uuid references members(id) on delete set null,
   converted_at timestamptz,
