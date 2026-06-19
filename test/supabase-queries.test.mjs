@@ -738,6 +738,7 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(dashboardSource, /sortBy/);
   assert.match(dashboardSource, /new-family-roster-layout/);
   assert.match(dashboardSource, /new-family-table/);
+  assert.match(dashboardSource, /new-family-quick-summary/);
   assert.match(dashboardSource, /아직 동기화된 새가족 신청이 없습니다/);
   assert.match(dashboardSource, /멤버로 등록/);
   assert.match(mobileAwareNavSource, /href: "\/new-family"/);
