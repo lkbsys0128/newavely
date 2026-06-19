@@ -710,6 +710,8 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(appPageDataSource, /shouldLoadNewFamilyApplicants && canManageRoles/);
   assert.match(googleSheetsSource, /export async function readGoogleSheetValues/);
   assert.match(newFamilySyncSource, /1T-DD9i7lBoFqK6qHXKSKeEgs-FOsq24c8dWzwLWFGrg/);
+  assert.match(newFamilySyncSource, /normalizedKey\.includes\(alias\)/);
+  assert.match(newFamilySyncSource, /function pickLikelyName/);
   assert.match(newFamilySyncSource, /source_key: `\$\{spreadsheetId\}:\$\{sheetName\}:\$\{sourceRowNumber\}`/);
   assert.match(actionsSource, /export async function syncNewFamilyApplicants/);
   assert.match(actionsSource, /export async function updateNewFamilyApplicant/);
@@ -720,6 +722,8 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(vercelConfigSource, /\/api\/cron\/sync-new-family/);
   assert.match(newFamilyPageSource, /NewFamilyPageContent/);
   assert.match(dashboardSource, /export function NewFamilyPageContent/);
+  assert.match(dashboardSource, /new-family-metrics/);
+  assert.match(dashboardSource, /아직 동기화된 새가족 신청이 없습니다/);
   assert.match(dashboardSource, /멤버로 등록/);
   assert.match(mobileAwareNavSource, /href: "\/new-family"/);
   assert.match(globalCssSource, /new-family-card/);

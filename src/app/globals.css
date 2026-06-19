@@ -2592,13 +2592,25 @@ tbody tr:hover {
   gap: 12px;
 }
 
+.new-family-metrics {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .new-family-sync-panel {
   grid-template-columns: 1fr auto;
   align-items: center;
+  border-color: rgba(47, 145, 181, 0.22);
+  background:
+    linear-gradient(135deg, rgba(47, 145, 181, 0.08), transparent 42%),
+    var(--card);
 }
 
 .new-family-filter-panel {
-  grid-template-columns: minmax(220px, 1fr) 220px;
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px);
+  align-items: end;
+  padding: 18px;
 }
 
 .new-family-list {
@@ -2609,6 +2621,7 @@ tbody tr:hover {
 .new-family-card {
   display: grid;
   gap: 16px;
+  border-color: rgba(47, 145, 181, 0.18);
 }
 
 .new-family-card-main {
@@ -2626,6 +2639,13 @@ tbody tr:hover {
   justify-items: end;
   color: var(--muted);
   font-weight: 700;
+}
+
+.new-family-contact span {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .new-family-update-form {
@@ -2691,6 +2711,20 @@ tbody tr:hover {
 
 .new-family-raw dd {
   margin: 0;
+}
+
+.new-family-empty-state {
+  align-items: start;
+  text-align: left;
+}
+
+.new-family-empty-state ul {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-weight: 650;
 }
 
 .compact-action-form {
@@ -5732,6 +5766,10 @@ tbody tr:hover {
 }
 
 @media (max-width: 760px) {
+  .new-family-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .new-family-sync-panel,
   .new-family-filter-panel,
   .new-family-card-main,

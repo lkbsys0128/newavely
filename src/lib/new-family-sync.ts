@@ -35,8 +35,40 @@ function normalizeHeader(value: string) {
 
 function pickValue(row: Record<string, string>, aliases: string[]) {
   const normalizedAliases = aliases.map(normalizeHeader);
-  const entry = Object.entries(row).find(([key]) => normalizedAliases.includes(normalizeHeader(key)));
+  const entry = Object.entries(row).find(([key]) => {
+    const normalizedKey = normalizeHeader(key);
+    return normalizedAliases.some((alias) => normalizedKey === alias || normalizedKey.includes(alias));
+  });
   return entry?.[1]?.trim() || null;
+}
+
+function pickLikelyName(row: Record<string, string>) {
+  const directName = pickValue(row, [
+    "name",
+    "이름",
+    "성명",
+    "성함",
+    "새가족이름",
+    "신청자",
+    "신청자이름",
+    "koreanname",
+    "한국이름",
+  ]);
+  if (directName) return directName;
+
+  const ignoredHeaders = ["timestamp", "타임스탬프", "email", "이메일", "phone", "전화", "연락", "memo", "메모", "주소"];
+  const ignored = ignoredHeaders.map(normalizeHeader);
+  const fallback = Object.entries(row).find(([key, value]) => {
+    const normalizedKey = normalizeHeader(key);
+    const normalizedValue = value.trim();
+    if (!normalizedValue) return false;
+    if (ignored.some((item) => normalizedKey.includes(item))) return false;
+    if (normalizedValue.includes("@")) return false;
+    if (/^\+?[\d\s().-]{7,}$/.test(normalizedValue)) return false;
+    return true;
+  });
+
+  return fallback?.[1]?.trim() || "";
 }
 
 function parseSubmittedAt(value: string | null) {
@@ -56,10 +88,7 @@ function buildRows(values: string[][], spreadsheetId: string, sheetName: string)
     .map((cells, index) => {
       const sourceRowNumber = index + 2;
       const sourceData = Object.fromEntries(headers.map((header, cellIndex) => [header, String(cells[cellIndex] ?? "").trim()]));
-      const name =
-        pickValue(sourceData, ["name", "이름", "성명", "새가족이름", "신청자", "신청자이름"]) ??
-        pickValue(sourceData, ["koreanname", "한국이름"]) ??
-        "";
+      const name = pickLikelyName(sourceData);
       if (!name) return null;
 
       return {
@@ -68,9 +97,9 @@ function buildRows(values: string[][], spreadsheetId: string, sheetName: string)
         submitted_at: parseSubmittedAt(pickValue(sourceData, ["timestamp", "타임스탬프", "제출시간", "신청일시"])),
         name,
         email: pickValue(sourceData, ["email", "이메일", "메일", "이메일주소"]),
-        phone: pickValue(sourceData, ["phone", "전화번호", "연락처", "휴대폰", "핸드폰"]),
-        group_interest: pickValue(sourceData, ["순", "소그룹", "희망순", "관심순", "group", "smallgroup"]),
-        memo: pickValue(sourceData, ["memo", "메모", "비고", "요청사항", "기도제목", "notes"]),
+        phone: pickValue(sourceData, ["phone", "전화번호", "전화", "연락처", "연락", "휴대폰", "핸드폰"]),
+        group_interest: pickValue(sourceData, ["순", "소그룹", "희망순", "관심순", "group", "smallgroup", "소속"]),
+        memo: pickValue(sourceData, ["memo", "메모", "비고", "요청사항", "기도제목", "notes", "남기고싶은말"]),
         source_data: sourceData,
         last_synced_at: now,
         updated_at: now,

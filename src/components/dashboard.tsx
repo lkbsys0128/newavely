@@ -1769,6 +1769,8 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
       .some((value) => value.toLowerCase().includes(normalizedQuery));
   });
   const activeCount = newFamilyApplicants.filter((applicant) => applicant.status !== "completed" && applicant.status !== "archived").length;
+  const completedCount = newFamilyApplicants.filter((applicant) => applicant.status === "completed").length;
+  const archivedCount = newFamilyApplicants.filter((applicant) => applicant.status === "archived").length;
   const latestSync = newFamilyApplicants
     .map((applicant) => applicant.lastSyncedAt)
     .sort()
@@ -1799,6 +1801,29 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
         ]}
       />
 
+      <section className="new-family-metrics" aria-label="새가족 신청 요약">
+        <article className="metric-card">
+          <span>전체 신청</span>
+          <strong>{newFamilyApplicants.length}</strong>
+          <small>Sheet 동기화 기준</small>
+        </article>
+        <article className="metric-card">
+          <span>진행 중</span>
+          <strong>{activeCount}</strong>
+          <small>새 신청/연락/진행</small>
+        </article>
+        <article className="metric-card">
+          <span>수료/등록</span>
+          <strong>{completedCount}</strong>
+          <small>멤버 roster 전환</small>
+        </article>
+        <article className="metric-card">
+          <span>보관</span>
+          <strong>{archivedCount}</strong>
+          <small>숨겨둔 신청</small>
+        </article>
+      </section>
+
       <section className="panel new-family-sync-panel" id="new-family-sync">
         <div>
           <p className="eyebrow">Google Form Intake</p>
@@ -1819,11 +1844,20 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
       <section className="panel new-family-filter-panel">
         <label>
           검색
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름, 이메일, 전화, 메모" />
+          <input
+            autoComplete="off"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="이름, 이메일, 전화, 메모"
+          />
         </label>
         <label>
           상태
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as NewFamilyApplicant["status"] | "all")}>
+          <select
+            autoComplete="off"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as NewFamilyApplicant["status"] | "all")}
+          >
             <option value="all">전체 상태</option>
             {Object.entries(newFamilyStatusLabels).map(([status, label]) => (
               <option key={status} value={status}>
@@ -1910,9 +1944,20 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
           );
         })}
         {visibleApplicants.length === 0 ? (
-          <article className="panel empty-state">
-            <strong>표시할 새가족 신청이 없습니다</strong>
-            <span>Google Sheet를 동기화하거나 필터를 조정해보세요.</span>
+          <article className="panel empty-state new-family-empty-state">
+            <strong>{newFamilyApplicants.length === 0 ? "아직 동기화된 새가족 신청이 없습니다" : "현재 필터에 맞는 신청이 없습니다"}</strong>
+            <span>
+              {newFamilyApplicants.length === 0
+                ? "Google Sheet 공유와 Vercel 환경 변수를 확인한 뒤 지금 동기화를 눌러주세요."
+                : "검색어를 지우거나 상태 필터를 전체 상태로 바꿔보세요."}
+            </span>
+            {newFamilyApplicants.length === 0 ? (
+              <ul>
+                <li>Sheet가 service account 이메일에 공유되어 있어야 합니다.</li>
+                <li>Vercel env에 `NEW_FAMILY_SHEET_ID`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`이 필요합니다.</li>
+                <li>DB에는 `db/027_new_family_applicants.sql`이 먼저 적용되어야 합니다.</li>
+              </ul>
+            ) : null}
           </article>
         ) : null}
       </section>
