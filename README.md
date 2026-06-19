@@ -20,6 +20,7 @@ src/
     members/[id]/page.tsx 멤버 상세, 커스텀 필드 값 관리
     groups/page.tsx       순 현황
     attendance/page.tsx   출석 체크
+    new-family/page.tsx   새가족 Google Form 신청 roster
     permissions/page.tsx  역할/권한 매트릭스
     auth/callback/        Supabase OAuth callback route
     actions.ts            멤버 추가, 출석 체크 등 server actions
@@ -28,6 +29,7 @@ src/
     app-page-gate.tsx     공통 setup/auth/error 처리
   lib/
     app-page-data.ts      로그인된 사용자의 공통 앱 데이터 로더
+    new-family-sync.ts    새가족 Google Sheet 읽기와 upsert 동기화
     rbac.ts               앱 역할/권한 정의
     supabase/             Supabase browser/server client와 query
     types.ts              공통 타입
@@ -61,6 +63,19 @@ npm install
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-or-anon-key
 ```
+
+Google Sheet 동기화와 Vercel Cron을 사용할 때는 아래 서버 환경 변수도 필요합니다.
+
+```txt
+GOOGLE_SERVICE_ACCOUNT_EMAIL=google-service-account@project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----...
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+CRON_SECRET=random-long-secret
+NEW_FAMILY_SHEET_ID=1T-DD9i7lBoFqK6qHXKSKeEgs-FOsq24c8dWzwLWFGrg
+NEW_FAMILY_SHEET_NAME=Form Responses 1
+```
+
+`NEW_FAMILY_SHEET_ID`는 기본값이 코드에 들어 있지만 운영에서는 Vercel 환경 변수로 명시하는 것을 권장합니다. `NEW_FAMILY_SHEET_NAME`을 비워두면 스프레드시트의 첫 번째 탭을 읽습니다.
 
 개발 서버 실행:
 
@@ -102,6 +117,11 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 20. `db/020_backfill_2026_05_31_attendance_types.sql`
 21. `db/021_important_links.sql`
 22. `db/022_member_status_messages.sql`
+23. `db/023_staff_leader_parity.sql`
+24. `db/024_admin_feedback_messages.sql`
+25. `db/025_self_service_member_profile.sql`
+26. `db/026_public_dashboard_data.sql`
+27. `db/027_new_family_applicants.sql`
 
 주요 테이블:
 
@@ -114,6 +134,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 - `member_custom_field_definitions`: 멤버별 커스텀 필드 정의
 - `important_links`: 공동체 공식 홈페이지/소셜/신청 링크 등 중요 사이트 모음
 - `member_status_messages`: 멤버별 짧은 상태 메시지/오늘의 한마디
+- `new_family_applicants`: Google Form으로 들어온 새가족 신청 roster. 기존 멤버 roster와 분리해서 관리하고, 수료/등록 시 `members`로 전환합니다.
 - `audit_logs`: 멤버/순/출석 변경에 대한 append-only 감사 로그
 
 중요한 관계:

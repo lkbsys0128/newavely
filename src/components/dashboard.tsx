@@ -9,6 +9,7 @@ import {
   createGroup,
   createImportantLink,
   createMember,
+  convertNewFamilyApplicantToMember,
   deleteAttendanceEvent,
   deleteGroup,
   deleteImportantLink,
@@ -21,12 +22,14 @@ import {
   reactivateMember,
   renameGroup,
   restoreDeletedAuthUser,
+  syncNewFamilyApplicants,
   toggleAttendance,
   updateAttendanceReason,
   updateAdminFeedbackMessage,
   updateGroup,
   updateMember,
   updateMemberRole,
+  updateNewFamilyApplicant,
   type ActionState,
 } from "@/app/actions";
 import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
@@ -42,6 +45,7 @@ import type {
   AdminFeedbackMessage,
   MemberLinkRequest,
   MemberStatusMessage,
+  NewFamilyApplicant,
 } from "@/lib/types";
 import {
   defaultMemberFilters,
@@ -74,6 +78,7 @@ type AppDataProps = {
   importantLinks?: ImportantLink[];
   memberStatusMessages?: MemberStatusMessage[];
   adminFeedbackMessages?: AdminFeedbackMessage[];
+  newFamilyApplicants?: NewFamilyApplicant[];
   dashboardMetrics?: DashboardMetrics;
   globalStats?: GlobalAppStats;
 };
@@ -281,6 +286,17 @@ function chooseAttendanceShortcutEvent(attendanceEvents: AttendanceEvent[]) {
 function formatStatusUpdatedAt(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "방금";
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function formatShortDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ko-KR", {
     month: "numeric",
     day: "numeric",
@@ -1725,6 +1741,228 @@ export function LinksPageContent({ user, importantLinks = [] }: AppDataProps) {
           <ActionMessage state={createLinkState} />
         </section>
       ) : null}
+    </>
+  );
+}
+
+const newFamilyStatusLabels: Record<NewFamilyApplicant["status"], string> = {
+  new: "새 신청",
+  contacted: "연락 완료",
+  in_progress: "진행 중",
+  completed: "수료/등록",
+  archived: "보관",
+};
+
+export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }: AppDataProps) {
+  const canManageNewFamily = hasPermission(user.role, "roles:manage");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<NewFamilyApplicant["status"] | "all">("all");
+  const [syncState, syncAction, isSyncing] = useActionState(syncNewFamilyApplicants, initialActionState);
+  const [updateState, updateAction, isUpdating] = useActionState(updateNewFamilyApplicant, initialActionState);
+  const [convertState, convertAction, isConverting] = useActionState(convertNewFamilyApplicantToMember, initialActionState);
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleApplicants = newFamilyApplicants.filter((applicant) => {
+    if (statusFilter !== "all" && applicant.status !== statusFilter) return false;
+    if (!normalizedQuery) return true;
+    return [applicant.name, applicant.email, applicant.phone, applicant.groupInterest, applicant.memo]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(normalizedQuery));
+  });
+  const activeCount = newFamilyApplicants.filter((applicant) => applicant.status !== "completed" && applicant.status !== "archived").length;
+  const completedCount = newFamilyApplicants.filter((applicant) => applicant.status === "completed").length;
+  const archivedCount = newFamilyApplicants.filter((applicant) => applicant.status === "archived").length;
+  const latestSync = newFamilyApplicants
+    .map((applicant) => applicant.lastSyncedAt)
+    .sort()
+    .at(-1);
+
+  if (!canManageNewFamily) {
+    return (
+      <>
+        <PageHeader eyebrow="새가족 관리" title="새가족" user={user} />
+        <section className="panel empty-state">
+          <strong>관리자 권한이 필요합니다</strong>
+          <span>새가족 신청 roster는 현재 관리자 이상만 열람할 수 있습니다.</span>
+        </section>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <PageHeader eyebrow="새가족 관리" title="새가족" user={user}>
+        <span className="status-pill">{activeCount}건 진행 중</span>
+      </PageHeader>
+
+      <SectionNav
+        items={[
+          { href: "#new-family-sync", label: "동기화" },
+          { href: "#new-family-roster", label: "신청 목록" },
+        ]}
+      />
+
+      <section className="new-family-metrics" aria-label="새가족 신청 요약">
+        <article className="metric-card">
+          <span>전체 신청</span>
+          <strong>{newFamilyApplicants.length}</strong>
+          <small>Sheet 동기화 기준</small>
+        </article>
+        <article className="metric-card">
+          <span>진행 중</span>
+          <strong>{activeCount}</strong>
+          <small>새 신청/연락/진행</small>
+        </article>
+        <article className="metric-card">
+          <span>수료/등록</span>
+          <strong>{completedCount}</strong>
+          <small>멤버 roster 전환</small>
+        </article>
+        <article className="metric-card">
+          <span>보관</span>
+          <strong>{archivedCount}</strong>
+          <small>숨겨둔 신청</small>
+        </article>
+      </section>
+
+      <section className="panel new-family-sync-panel" id="new-family-sync">
+        <div>
+          <p className="eyebrow">Google Form Intake</p>
+          <h2>새가족 신청 Sheet와 연결</h2>
+          <p className="meta">
+            주 1회 자동으로 확인하고, 필요하면 여기서 즉시 동기화할 수 있습니다.
+            {latestSync ? ` 마지막 동기화 ${formatShortDateTime(latestSync)}` : ""}
+          </p>
+        </div>
+        <form action={syncAction}>
+          <button className="primary-button" type="submit" disabled={isSyncing}>
+            {isSyncing ? "동기화 중" : "지금 동기화"}
+          </button>
+        </form>
+      </section>
+      <ActionMessage state={syncState} />
+
+      <section className="panel new-family-filter-panel">
+        <label>
+          검색
+          <input
+            autoComplete="off"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="이름, 이메일, 전화, 메모"
+          />
+        </label>
+        <label>
+          상태
+          <select
+            autoComplete="off"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as NewFamilyApplicant["status"] | "all")}
+          >
+            <option value="all">전체 상태</option>
+            {Object.entries(newFamilyStatusLabels).map(([status, label]) => (
+              <option key={status} value={status}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
+      <section className="new-family-list" id="new-family-roster">
+        {visibleApplicants.map((applicant) => {
+          const sourceEntries = Object.entries(applicant.sourceData).filter(([, value]) => String(value ?? "").trim());
+          return (
+            <article className="panel new-family-card" key={applicant.id}>
+              <div className="new-family-card-main">
+                <div>
+                  <span className={`status-pill new-family-status ${applicant.status}`}>{newFamilyStatusLabels[applicant.status]}</span>
+                  <h2>{applicant.name}</h2>
+                  <p className="meta">
+                    {applicant.submittedAt ? formatShortDateTime(applicant.submittedAt) : `Sheet ${applicant.sourceRowNumber}행`}
+                    {applicant.groupInterest ? ` · ${applicant.groupInterest}` : ""}
+                  </p>
+                </div>
+                <div className="new-family-contact">
+                  <span>{applicant.phone || "전화 미입력"}</span>
+                  <span>{applicant.email || "이메일 미입력"}</span>
+                </div>
+              </div>
+
+              <form action={updateAction} className="new-family-update-form">
+                <input name="id" type="hidden" value={applicant.id} />
+                <label>
+                  상태
+                  <select name="status" defaultValue={applicant.status}>
+                    {Object.entries(newFamilyStatusLabels).map(([status, label]) => (
+                      <option key={status} value={status}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  메모
+                  <input name="memo" defaultValue={applicant.memo} placeholder="연락/수료 진행 메모" />
+                </label>
+                <button className="secondary-button" type="submit" disabled={isUpdating}>
+                  저장
+                </button>
+              </form>
+
+              <form action={convertAction} className="new-family-convert-form">
+                <input name="id" type="hidden" value={applicant.id} />
+                <label>
+                  등록할 순
+                  <select name="groupId" defaultValue="">
+                    <option value="">미배정</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button className="primary-button" type="submit" disabled={isConverting || Boolean(applicant.convertedMemberId)}>
+                  {applicant.convertedMemberId ? "등록 완료" : "멤버로 등록"}
+                </button>
+              </form>
+
+              {sourceEntries.length > 0 ? (
+                <details className="new-family-raw">
+                  <summary>원본 응답 보기</summary>
+                  <dl>
+                    {sourceEntries.map(([key, value]) => (
+                      <div key={key}>
+                        <dt>{key}</dt>
+                        <dd>{String(value)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </details>
+              ) : null}
+            </article>
+          );
+        })}
+        {visibleApplicants.length === 0 ? (
+          <article className="panel empty-state new-family-empty-state">
+            <strong>{newFamilyApplicants.length === 0 ? "아직 동기화된 새가족 신청이 없습니다" : "현재 필터에 맞는 신청이 없습니다"}</strong>
+            <span>
+              {newFamilyApplicants.length === 0
+                ? "Google Sheet 공유와 Vercel 환경 변수를 확인한 뒤 지금 동기화를 눌러주세요."
+                : "검색어를 지우거나 상태 필터를 전체 상태로 바꿔보세요."}
+            </span>
+            {newFamilyApplicants.length === 0 ? (
+              <ul>
+                <li>Sheet가 service account 이메일에 공유되어 있어야 합니다.</li>
+                <li>Vercel env에 `NEW_FAMILY_SHEET_ID`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`이 필요합니다.</li>
+                <li>DB에는 `db/027_new_family_applicants.sql`이 먼저 적용되어야 합니다.</li>
+              </ul>
+            ) : null}
+          </article>
+        ) : null}
+      </section>
+      <ActionMessage state={updateState} />
+      <ActionMessage state={convertState} />
     </>
   );
 }

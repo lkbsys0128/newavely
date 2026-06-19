@@ -11,6 +11,14 @@ export type SheetSyncResult = {
   updatedColumns: number;
 };
 
+export type SheetReadResult = {
+  spreadsheetId: string;
+  sheetName: string;
+  spreadsheetUrl: string;
+  values: string[][];
+  scannedSheetNames: string[];
+};
+
 function base64UrlEncode(value: string | Buffer) {
   return Buffer.from(value).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
@@ -77,6 +85,67 @@ async function callSheetsApi(path: string, accessToken: string, init: RequestIni
 
   if (response.status === 204) return null;
   return response.json();
+}
+
+async function getSheetNames(spreadsheetId: string, accessToken: string) {
+  const metadata = (await callSheetsApi(`${spreadsheetId}?fields=sheets.properties.title`, accessToken)) as {
+    sheets?: Array<{ properties?: { title?: string } }>;
+  };
+  const sheetNames = metadata.sheets?.map((sheet) => sheet.properties?.title?.trim()).filter((title): title is string => Boolean(title)) ?? [];
+  if (sheetNames.length === 0) throw new Error("Google Sheet 탭 이름을 찾을 수 없습니다.");
+  return sheetNames;
+}
+
+async function readSheetRange(spreadsheetId: string, sheetName: string, accessToken: string) {
+  const encodedRange = encodeURIComponent(`${sheetName}!A:ZZ`);
+  const result = (await callSheetsApi(`${spreadsheetId}/values/${encodedRange}`, accessToken)) as { values?: string[][] };
+  return result.values ?? [];
+}
+
+export async function readGoogleSheetValues({
+  spreadsheetId,
+  sheetName,
+}: {
+  spreadsheetId: string;
+  sheetName?: string;
+}): Promise<SheetReadResult> {
+  const accessToken = await getGoogleAccessToken();
+  if (sheetName?.trim()) {
+    const resolvedSheetName = sheetName.trim();
+    return {
+      spreadsheetId,
+      sheetName: resolvedSheetName,
+      spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+      values: await readSheetRange(spreadsheetId, resolvedSheetName, accessToken),
+      scannedSheetNames: [resolvedSheetName],
+    };
+  }
+
+  const sheetNames = await getSheetNames(spreadsheetId, accessToken);
+  const scannedSheets: Array<{ name: string; values: string[][] }> = [];
+  for (const candidateSheetName of sheetNames) {
+    const values = await readSheetRange(spreadsheetId, candidateSheetName, accessToken);
+    scannedSheets.push({ name: candidateSheetName, values });
+    if (values.length > 1) {
+      return {
+        spreadsheetId,
+        sheetName: candidateSheetName,
+        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+        values,
+        scannedSheetNames: scannedSheets.map((sheet) => sheet.name),
+      };
+    }
+  }
+
+  const fallbackSheet = scannedSheets[0] ?? { name: sheetNames[0], values: [] };
+
+  return {
+    spreadsheetId,
+    sheetName: fallbackSheet.name,
+    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+    values: fallbackSheet.values,
+    scannedSheetNames: scannedSheets.map((sheet) => sheet.name),
+  };
 }
 
 export async function replaceGoogleSheetValues(rows: string[][]): Promise<SheetSyncResult> {

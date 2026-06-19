@@ -131,3 +131,21 @@ export type AdminFeedbackMessage = {
   updatedAt: string;
   resolvedAt: string | null;
 };
+
+export type NewFamilyApplicant = {
+  id: string;
+  sourceRowNumber: number;
+  submittedAt: string | null;
+  name: string;
+  email: string;
+  phone: string;
+  groupInterest: string;
+  memo: string;
+  status: "new" | "contacted" | "in_progress" | "completed" | "archived";
+  sourceData: Record<string, unknown>;
+  convertedMemberId: string | null;
+  convertedAt: string | null;
+  lastSyncedAt: string;
+  createdAt: string;
+  updatedAt: string;
+};

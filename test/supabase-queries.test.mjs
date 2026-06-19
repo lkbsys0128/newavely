@@ -26,6 +26,7 @@ const memberStatusMessagesSource = readFileSync(new URL("../db/022_member_status
 const staffLeaderParitySource = readFileSync(new URL("../db/023_staff_leader_parity.sql", import.meta.url), "utf8");
 const adminFeedbackMessagesSource = readFileSync(new URL("../db/024_admin_feedback_messages.sql", import.meta.url), "utf8");
 const publicDashboardDataSource = readFileSync(new URL("../db/026_public_dashboard_data.sql", import.meta.url), "utf8");
+const newFamilyApplicantsSource = readFileSync(new URL("../db/027_new_family_applicants.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -43,6 +44,10 @@ const onboardingSource = readFileSync(new URL("../src/components/onboarding-pane
 const profilePageSource = readFileSync(new URL("../src/app/profile/page.tsx", import.meta.url), "utf8");
 const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
 const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+const newFamilyPageSource = readFileSync(new URL("../src/app/new-family/page.tsx", import.meta.url), "utf8");
+const newFamilySyncSource = readFileSync(new URL("../src/lib/new-family-sync.ts", import.meta.url), "utf8");
+const newFamilyCronSource = readFileSync(new URL("../src/app/api/cron/sync-new-family/route.ts", import.meta.url), "utf8");
+const vercelConfigSource = readFileSync(new URL("../vercel.json", import.meta.url), "utf8");
 const mobileAwareNavSource = readFileSync(new URL("../src/components/mobile-aware-nav.tsx", import.meta.url), "utf8");
 const uiEmojisSource = readFileSync(new URL("../src/lib/ui-emojis.ts", import.meta.url), "utf8");
 
@@ -298,7 +303,7 @@ test("app page data avoids avoidable serial fetches", () => {
   assert.match(appPageDataSource, /const shouldLoadAuditLogs = page === "audit"/);
   assert.match(appPageDataSource, /const shouldLoadImportantLinks = page === "links"/);
   assert.match(appPageDataSource, /const shouldLoadMemberStatusMessages = page === "dashboard"/);
-  assert.match(appPageDataSource, /const \[\s*allCustomFieldDefinitions,\s*auditLogs,\s*deletedAuthUsers,\s*importantLinks,\s*memberStatusMessagesData,\s*adminFeedbackMessages,\s*memberLinkRequests,\s*\] = await Promise\.all/);
+  assert.match(appPageDataSource, /const \[\s*allCustomFieldDefinitions,\s*auditLogs,\s*deletedAuthUsers,\s*importantLinks,\s*memberStatusMessagesData,\s*adminFeedbackMessages,\s*memberLinkRequests,\s*newFamilyApplicants,\s*\] = await Promise\.all/);
   assert.match(appPageDataSource, /shouldLoadAuditLogs && canManageRoles \? getAuditLogs\(supabase\) : Promise\.resolve\(undefined\)/);
   assert.match(homePageSource, /getAppPageData\(\{ page: "dashboard" \}\)/);
   assert.match(profilePageSource, /getAppPageData\(\{ page: "profile" \}\)/);
@@ -694,4 +699,35 @@ test("admin feedback inbox lets users message admins and admins update status", 
   assert.match(feedbackPageSource, /FeedbackPageContent/);
   assert.match(mobileAwareNavSource, /href: "\/feedback"/);
   assert.match(globalCssSource, /feedback-inbox-panel/);
+});
+
+test("new family applicants sync from Google Sheets into an admin-only roster", () => {
+  assert.match(schemaSource, /create table new_family_applicants/);
+  assert.match(newFamilyApplicantsSource, /current_member_role\(\) in \('owner', 'admin'\)/);
+  assert.match(newFamilyApplicantsSource, /source_key text not null unique/);
+  assert.match(dataSource, /export async function getNewFamilyApplicants/);
+  assert.match(appPageDataSource, /"new-family"/);
+  assert.match(appPageDataSource, /shouldLoadNewFamilyApplicants && canManageRoles/);
+  assert.match(googleSheetsSource, /export async function readGoogleSheetValues/);
+  assert.match(googleSheetsSource, /scannedSheetNames/);
+  assert.match(googleSheetsSource, /values\.length > 1/);
+  assert.match(newFamilySyncSource, /1T-DD9i7lBoFqK6qHXKSKeEgs-FOsq24c8dWzwLWFGrg/);
+  assert.match(newFamilySyncSource, /normalizedKey\.includes\(alias\)/);
+  assert.match(newFamilySyncSource, /function pickLikelyName/);
+  assert.match(newFamilySyncSource, /source_key: `\$\{spreadsheetId\}:\$\{sheetName\}:\$\{sourceRowNumber\}`/);
+  assert.match(actionsSource, /export async function syncNewFamilyApplicants/);
+  assert.match(actionsSource, /행을 읽었지만 등록 가능한 새가족 이름을 찾지 못했습니다/);
+  assert.match(actionsSource, /export async function updateNewFamilyApplicant/);
+  assert.match(actionsSource, /export async function convertNewFamilyApplicantToMember/);
+  assert.match(actionsSource, /action: "new_family\.convert_to_member"/);
+  assert.match(newFamilyCronSource, /CRON_SECRET/);
+  assert.match(newFamilyCronSource, /createAdminClient/);
+  assert.match(vercelConfigSource, /\/api\/cron\/sync-new-family/);
+  assert.match(newFamilyPageSource, /NewFamilyPageContent/);
+  assert.match(dashboardSource, /export function NewFamilyPageContent/);
+  assert.match(dashboardSource, /new-family-metrics/);
+  assert.match(dashboardSource, /아직 동기화된 새가족 신청이 없습니다/);
+  assert.match(dashboardSource, /멤버로 등록/);
+  assert.match(mobileAwareNavSource, /href: "\/new-family"/);
+  assert.match(globalCssSource, /new-family-card/);
 });
