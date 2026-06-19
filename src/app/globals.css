@@ -78,7 +78,7 @@ body {
 .member-status-card,
 .link-card,
 .feedback-item,
-.new-family-detail-panel,
+.new-family-management-modal,
 .summary-row,
 .audit-row,
 .role-management-row,
@@ -2585,7 +2585,7 @@ tbody tr:hover {
 
 .new-family-sync-panel,
 .new-family-filter-panel,
-.new-family-detail-panel,
+.new-family-management-modal,
 .new-family-side-form,
 .new-family-row-main,
 .new-family-row-expanded,
@@ -2643,14 +2643,36 @@ tbody tr:hover {
 }
 
 .new-family-filter-panel {
-  grid-template-columns: minmax(260px, 1fr) minmax(170px, 220px) minmax(140px, 180px);
-  align-items: end;
-  padding: 18px;
+  grid-template-columns: minmax(260px, 1fr) minmax(150px, 190px) minmax(140px, 170px);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+}
+
+.new-family-control {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.new-family-control span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.new-family-control input,
+.new-family-control select {
+  min-height: 44px;
+  border-color: rgba(47, 145, 181, 0.2);
+  background: var(--card);
+  font-size: 0.92rem;
+  font-weight: 800;
 }
 
 .new-family-roster-layout {
-  align-items: start;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr);
+  display: block;
 }
 
 .new-family-table {
@@ -2661,22 +2683,29 @@ tbody tr:hover {
   font-size: 0.82rem;
 }
 
-.new-family-detail-panel {
-  position: sticky;
-  top: 90px;
-}
-
 .new-family-detail-list {
   display: grid;
-  gap: 8px;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
 }
 
 .new-family-detail-list div {
   display: grid;
-  gap: 3px;
+  gap: 6px;
   border-bottom: 1px solid var(--line-soft);
-  padding-bottom: 8px;
+  border-right: 1px solid var(--line-soft);
+  padding: 12px;
+}
+
+.new-family-detail-list div:nth-child(2n) {
+  border-right: 0;
+}
+
+.new-family-detail-list div:nth-last-child(-n + 2) {
+  border-bottom: 0;
 }
 
 .new-family-detail-list dt {
@@ -2692,7 +2721,19 @@ tbody tr:hover {
 
 .new-family-side-form {
   border-top: 1px solid var(--line-soft);
+  grid-template-columns: 1fr;
   padding-top: 12px;
+}
+
+.new-family-management-modal {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border-color: rgba(47, 145, 181, 0.24);
+}
+
+.new-family-management-modal .panel-heading {
+  align-items: start;
 }
 
 .new-family-list {
@@ -5914,9 +5955,9 @@ tbody tr:hover {
 
   .new-family-sync-panel,
   .new-family-filter-panel,
-  .new-family-roster-layout,
   .new-family-update-form,
   .new-family-convert-form,
+  .new-family-detail-list,
   .new-family-raw dl div {
     grid-template-columns: 1fr;
   }
@@ -5957,8 +5998,17 @@ tbody tr:hover {
     text-align: center;
   }
 
-  .new-family-detail-panel {
-    position: static;
+  .new-family-detail-list div,
+  .new-family-detail-list div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .new-family-detail-list div:nth-last-child(-n + 2) {
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .new-family-detail-list div:last-child {
+    border-bottom: 0;
   }
 
   .new-family-table {
