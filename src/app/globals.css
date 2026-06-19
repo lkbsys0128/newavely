@@ -78,7 +78,7 @@ body {
 .member-status-card,
 .link-card,
 .feedback-item,
-.new-family-row,
+.new-family-detail-panel,
 .summary-row,
 .audit-row,
 .role-management-row,
@@ -2585,6 +2585,8 @@ tbody tr:hover {
 
 .new-family-sync-panel,
 .new-family-filter-panel,
+.new-family-detail-panel,
+.new-family-side-form,
 .new-family-row-main,
 .new-family-row-expanded,
 .new-family-update-form,
@@ -2612,7 +2614,7 @@ tbody tr:hover {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 12px;
+  padding: 10px 12px;
   scrollbar-width: thin;
 }
 
@@ -2625,8 +2627,8 @@ tbody tr:hover {
   flex: 0 0 auto;
   gap: 8px;
   justify-content: space-between;
-  min-width: 104px;
-  padding: 10px 12px;
+  min-width: 98px;
+  padding: 8px 10px;
 }
 
 .new-family-stage-chip strong {
@@ -2644,6 +2646,53 @@ tbody tr:hover {
   grid-template-columns: minmax(260px, 1fr) minmax(170px, 220px) minmax(140px, 180px);
   align-items: end;
   padding: 18px;
+}
+
+.new-family-roster-layout {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr);
+}
+
+.new-family-table {
+  min-width: 780px;
+}
+
+.new-family-table .member-name-cell .meta {
+  font-size: 0.82rem;
+}
+
+.new-family-detail-panel {
+  position: sticky;
+  top: 90px;
+}
+
+.new-family-detail-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.new-family-detail-list div {
+  display: grid;
+  gap: 3px;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 8px;
+}
+
+.new-family-detail-list dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.new-family-detail-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.new-family-side-form {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 12px;
 }
 
 .new-family-list {
@@ -5865,6 +5914,7 @@ tbody tr:hover {
 
   .new-family-sync-panel,
   .new-family-filter-panel,
+  .new-family-roster-layout,
   .new-family-update-form,
   .new-family-convert-form,
   .new-family-raw dl div {
@@ -5905,6 +5955,14 @@ tbody tr:hover {
 
   .new-family-row-details summary {
     text-align: center;
+  }
+
+  .new-family-detail-panel {
+    position: static;
+  }
+
+  .new-family-table {
+    min-width: 680px;
   }
 
   :root[data-theme="dark"] .sidebar {

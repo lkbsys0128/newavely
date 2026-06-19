@@ -1783,6 +1783,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<NewFamilyApplicant["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<NewFamilySort>("latest");
+  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
   const [syncState, syncAction, isSyncing] = useActionState(syncNewFamilyApplicants, initialActionState);
   const [updateState, updateAction, isUpdating] = useActionState(updateNewFamilyApplicant, initialActionState);
   const [convertState, convertAction, isConverting] = useActionState(convertNewFamilyApplicantToMember, initialActionState);
@@ -1803,6 +1804,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
       }
       return getNewFamilyTimestamp(second) - getNewFamilyTimestamp(first);
     });
+  const selectedApplicant = visibleApplicants.find((applicant) => applicant.id === selectedApplicantId) ?? visibleApplicants[0] ?? null;
   const statusCounts = newFamilyStatusOrder.reduce(
     (counts, status) => ({
       ...counts,
@@ -1946,103 +1948,168 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
         </label>
       </section>
 
-      <section className="new-family-list" id="new-family-roster">
-        {visibleApplicants.map((applicant) => {
-          const sourceEntries = Object.entries(applicant.sourceData).filter(([, value]) => String(value ?? "").trim());
-          return (
-            <article className="panel new-family-row" key={applicant.id}>
-              <div className="new-family-row-main">
-                <span className={`new-family-status-dot ${applicant.status}`} aria-hidden="true" />
-                <div className="new-family-person">
-                  <strong>{applicant.name}</strong>
-                  <span>
-                    {applicant.submittedAt ? formatShortDateTime(applicant.submittedAt) : `Sheet ${applicant.sourceRowNumber}행`}
-                    {applicant.groupInterest ? ` · ${applicant.groupInterest}` : ""}
-                  </span>
+      <section className="content-grid new-family-roster-layout" id="new-family-roster">
+        <section className="panel wide">
+          <div className="panel-heading">
+            <h2>새가족 신청 목록</h2>
+            <span>{visibleApplicants.length}건</span>
+          </div>
+          <div className="table-wrap">
+            <table className="member-list-table new-family-table">
+              <thead>
+                <tr>
+                  <th>이름</th>
+                  <th>상태</th>
+                  <th>신청일</th>
+                  <th>관심 순</th>
+                  <th>연락처</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleApplicants.map((applicant) => (
+                  <tr
+                    className={selectedApplicant?.id === applicant.id ? "selected-row" : ""}
+                    key={applicant.id}
+                    onClick={() => setSelectedApplicantId(applicant.id)}
+                  >
+                    <td>
+                      <div className="member-name-cell">
+                        <strong>{applicant.name}</strong>
+                        <span className="meta">{applicant.email || "이메일 미입력"}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-pill new-family-status ${applicant.status}`}>{newFamilyStatusLabels[applicant.status]}</span>
+                    </td>
+                    <td>{applicant.submittedAt ? formatShortDateTime(applicant.submittedAt) : `Sheet ${applicant.sourceRowNumber}행`}</td>
+                    <td>{applicant.groupInterest || "미입력"}</td>
+                    <td>{applicant.phone || "미입력"}</td>
+                    <td>
+                      <button
+                        className="secondary-button table-action"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedApplicantId(applicant.id);
+                        }}
+                        type="button"
+                      >
+                        관리
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {visibleApplicants.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="empty-table-state">
+                        <strong>{newFamilyApplicants.length === 0 ? "아직 동기화된 새가족 신청이 없습니다" : "현재 필터에 맞는 신청이 없습니다"}</strong>
+                        <span>
+                          {newFamilyApplicants.length === 0
+                            ? "Google Sheet 공유와 Vercel 환경 변수를 확인한 뒤 지금 동기화를 눌러주세요."
+                            : "검색어를 지우거나 상태 필터를 전체 상태로 바꿔보세요."}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside className="panel new-family-detail-panel">
+          {selectedApplicant ? (
+            <>
+              <div className="panel-heading">
+                <div>
+                  <h2>{selectedApplicant.name}</h2>
+                  <p className="meta">
+                    {selectedApplicant.submittedAt ? formatShortDateTime(selectedApplicant.submittedAt) : `Sheet ${selectedApplicant.sourceRowNumber}행`}
+                  </p>
                 </div>
-                <span className={`status-pill new-family-status ${applicant.status}`}>{newFamilyStatusLabels[applicant.status]}</span>
-                <div className="new-family-contact">
-                  <span>{applicant.phone || "전화 미입력"}</span>
-                  <span>{applicant.email || "이메일 미입력"}</span>
-                </div>
+                <span className={`status-pill new-family-status ${selectedApplicant.status}`}>
+                  {newFamilyStatusLabels[selectedApplicant.status]}
+                </span>
               </div>
-              <details className="new-family-row-details">
-                <summary>관리</summary>
-                <div className="new-family-row-expanded">
-                  <form action={updateAction} className="new-family-update-form">
-                    <input name="id" type="hidden" value={applicant.id} />
-                    <label>
-                      상태
-                      <select name="status" defaultValue={applicant.status}>
-                        {newFamilyStatusOrder.map((status) => (
-                          <option key={status} value={status}>
-                            {newFamilyStatusLabels[status]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      메모
-                      <input name="memo" defaultValue={applicant.memo} placeholder="연락/수료 진행 메모" />
-                    </label>
-                    <button className="secondary-button" type="submit" disabled={isUpdating}>
-                      저장
-                    </button>
-                  </form>
 
-                  <form action={convertAction} className="new-family-convert-form">
-                    <input name="id" type="hidden" value={applicant.id} />
-                    <label>
-                      등록할 순
-                      <select name="groupId" defaultValue="">
-                        <option value="">미배정</option>
-                        {groups.map((group) => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button className="primary-button" type="submit" disabled={isConverting || Boolean(applicant.convertedMemberId)}>
-                      {applicant.convertedMemberId ? "등록 완료" : "멤버로 등록"}
-                    </button>
-                  </form>
-
-                  {sourceEntries.length > 0 ? (
-                    <details className="new-family-raw">
-                      <summary>원본 응답 보기</summary>
-                      <dl>
-                        {sourceEntries.map(([key, value]) => (
-                          <div key={key}>
-                            <dt>{key}</dt>
-                            <dd>{String(value)}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </details>
-                  ) : null}
+              <dl className="new-family-detail-list">
+                <div>
+                  <dt>이메일</dt>
+                  <dd>{selectedApplicant.email || "미입력"}</dd>
                 </div>
-              </details>
-            </article>
-          );
-        })}
-        {visibleApplicants.length === 0 ? (
-          <article className="panel empty-state new-family-empty-state">
-            <strong>{newFamilyApplicants.length === 0 ? "아직 동기화된 새가족 신청이 없습니다" : "현재 필터에 맞는 신청이 없습니다"}</strong>
-            <span>
-              {newFamilyApplicants.length === 0
-                ? "Google Sheet 공유와 Vercel 환경 변수를 확인한 뒤 지금 동기화를 눌러주세요."
-                : "검색어를 지우거나 상태 필터를 전체 상태로 바꿔보세요."}
-            </span>
-            {newFamilyApplicants.length === 0 ? (
-              <ul>
-                <li>Sheet가 service account 이메일에 공유되어 있어야 합니다.</li>
-                <li>Vercel env에 `NEW_FAMILY_SHEET_ID`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`이 필요합니다.</li>
-                <li>DB에는 `db/027_new_family_applicants.sql`과 `db/028_new_family_status_flow.sql`이 적용되어야 합니다.</li>
-              </ul>
-            ) : null}
-          </article>
-        ) : null}
+                <div>
+                  <dt>연락처</dt>
+                  <dd>{selectedApplicant.phone || "미입력"}</dd>
+                </div>
+                <div>
+                  <dt>관심 순</dt>
+                  <dd>{selectedApplicant.groupInterest || "미입력"}</dd>
+                </div>
+              </dl>
+
+              <form action={updateAction} className="new-family-side-form" key={`update-${selectedApplicant.id}`}>
+                <input name="id" type="hidden" value={selectedApplicant.id} />
+                <label>
+                  상태
+                  <select name="status" defaultValue={selectedApplicant.status}>
+                    {newFamilyStatusOrder.map((status) => (
+                      <option key={status} value={status}>
+                        {newFamilyStatusLabels[status]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  메모
+                  <textarea name="memo" defaultValue={selectedApplicant.memo} placeholder="연락/수료 진행 메모" rows={4} />
+                </label>
+                <button className="secondary-button" type="submit" disabled={isUpdating}>
+                  상태 저장
+                </button>
+              </form>
+
+              <form action={convertAction} className="new-family-side-form" key={`convert-${selectedApplicant.id}`}>
+                <input name="id" type="hidden" value={selectedApplicant.id} />
+                <label>
+                  등록할 순
+                  <select name="groupId" defaultValue="">
+                    <option value="">미배정</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button className="primary-button" type="submit" disabled={isConverting || Boolean(selectedApplicant.convertedMemberId)}>
+                  {selectedApplicant.convertedMemberId ? "등록 완료" : "멤버로 등록"}
+                </button>
+              </form>
+
+              {Object.entries(selectedApplicant.sourceData).filter(([, value]) => String(value ?? "").trim()).length > 0 ? (
+                <details className="new-family-raw">
+                  <summary>원본 응답 보기</summary>
+                  <dl>
+                    {Object.entries(selectedApplicant.sourceData)
+                      .filter(([, value]) => String(value ?? "").trim())
+                      .map(([key, value]) => (
+                        <div key={key}>
+                          <dt>{key}</dt>
+                          <dd>{String(value)}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                </details>
+              ) : null}
+            </>
+          ) : (
+            <div className="empty-table-state">
+              <strong>선택된 신청이 없습니다</strong>
+              <span>왼쪽 목록에서 신청자를 선택하면 상세 관리가 열립니다.</span>
+            </div>
+          )}
+        </aside>
       </section>
       <ActionMessage state={updateState} />
       <ActionMessage state={convertState} />
