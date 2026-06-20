@@ -1778,6 +1778,59 @@ function getNewFamilyTimestamp(applicant: NewFamilyApplicant) {
   return new Date(applicant.submittedAt ?? applicant.createdAt ?? applicant.updatedAt).getTime() || 0;
 }
 
+function getNewFamilySourceValue(applicant: NewFamilyApplicant, keys: string[]) {
+  for (const key of keys) {
+    const value = applicant.sourceData[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return "";
+}
+
+function getNewFamilyGender(applicant: NewFamilyApplicant) {
+  const gender = getNewFamilySourceValue(applicant, ["성별", "gender"]).toLowerCase();
+  if (gender.includes("남") || gender.includes("male")) return "남";
+  if (gender.includes("여") || gender.includes("female")) return "여";
+  return "미입력";
+}
+
+function getNewFamilyAgeBand(applicant: NewFamilyApplicant) {
+  const rawAge = getNewFamilySourceValue(applicant, ["만 나이", "age"]);
+  const age = Number.parseInt(rawAge, 10);
+  if (!Number.isFinite(age)) return "미입력";
+  if (age < 20) return "10대";
+  if (age < 30) return "20대";
+  if (age < 40) return "30대";
+  return "40대+";
+}
+
+function getNewFamilySourceLabel(applicant: NewFamilyApplicant) {
+  return getNewFamilySourceValue(applicant, ["source"]) === "legacy_new_family_csv_2026" ? "과거 CSV" : "Google Form";
+}
+
+function buildNewFamilyBreakdown<T extends string>(
+  applicants: NewFamilyApplicant[],
+  getLabel: (applicant: NewFamilyApplicant) => T,
+  preferredOrder: T[] = [],
+) {
+  const counts = new Map<T, number>();
+  for (const applicant of applicants) {
+    const label = getLabel(applicant);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .sort(([firstLabel, firstCount], [secondLabel, secondCount]) => {
+      const firstIndex = preferredOrder.indexOf(firstLabel);
+      const secondIndex = preferredOrder.indexOf(secondLabel);
+      if (firstIndex !== -1 || secondIndex !== -1) {
+        return (firstIndex === -1 ? 999 : firstIndex) - (secondIndex === -1 ? 999 : secondIndex);
+      }
+      return secondCount - firstCount || firstLabel.localeCompare(secondLabel, "ko");
+    })
+    .map(([label, count]) => ({ label, count }));
+}
+
 export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }: AppDataProps) {
   const canManageNewFamily = hasPermission(user.role, "roles:manage");
   const [query, setQuery] = useState("");
@@ -1815,6 +1868,18 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
   const activeCount = newFamilyApplicants.filter((applicant) => applicant.status !== "completed" && applicant.status !== "archived").length;
   const readyCount = newFamilyApplicants.filter((applicant) => applicant.status === "week_3").length;
   const completedCount = newFamilyApplicants.filter((applicant) => applicant.status === "completed").length;
+  const genderBreakdown = buildNewFamilyBreakdown(newFamilyApplicants, getNewFamilyGender, ["남", "여", "미입력"]);
+  const ageBreakdown = buildNewFamilyBreakdown(newFamilyApplicants, getNewFamilyAgeBand, ["10대", "20대", "30대", "40대+", "미입력"]);
+  const baptismBreakdown = buildNewFamilyBreakdown(
+    newFamilyApplicants,
+    (applicant) => getNewFamilySourceValue(applicant, ["세례 유무", "baptismStatus"]) || "미입력",
+    ["세례/입교", "유아세례", "교회 처음", "세례 X", "미입력"],
+  );
+  const assigneeBreakdown = buildNewFamilyBreakdown(
+    newFamilyApplicants,
+    (applicant) => getNewFamilySourceValue(applicant, ["담당자", "assignee", "owner"]) || "미배정",
+  ).slice(0, 6);
+  const sourceBreakdown = buildNewFamilyBreakdown(newFamilyApplicants, getNewFamilySourceLabel, ["Google Form", "과거 CSV"]);
   const latestSync = newFamilyApplicants
     .map((applicant) => applicant.lastSyncedAt)
     .sort()
@@ -1840,6 +1905,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
 
       <SectionNav
         items={[
+          { href: "#new-family-insights", label: "통계" },
           { href: "#new-family-sync", label: "동기화" },
           { href: "#new-family-roster", label: "신청 목록" },
         ]}
@@ -1881,6 +1947,14 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
           <strong>{completedCount}</strong>
           <small>멤버 roster 전환</small>
         </article>
+      </section>
+
+      <section className="new-family-insights" id="new-family-insights" aria-label="새가족 통계">
+        <NewFamilyBreakdownCard title="성별" items={genderBreakdown} total={newFamilyApplicants.length} />
+        <NewFamilyBreakdownCard title="연령대" items={ageBreakdown} total={newFamilyApplicants.length} />
+        <NewFamilyBreakdownCard title="세례/등록" items={baptismBreakdown} total={newFamilyApplicants.length} />
+        <NewFamilyBreakdownCard title="담당자" items={assigneeBreakdown} total={newFamilyApplicants.length} />
+        <NewFamilyBreakdownCard title="데이터 출처" items={sourceBreakdown} total={newFamilyApplicants.length} />
       </section>
 
       <section className="panel new-family-stage-panel" aria-label="새가족 상태 흐름">
@@ -1978,6 +2052,8 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                   <th>상태</th>
                   <th>신청일</th>
                   <th>관심 순</th>
+                  <th>담당자</th>
+                  <th>세례</th>
                   <th>연락처</th>
                   <th>관리</th>
                 </tr>
@@ -2000,6 +2076,8 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                     </td>
                     <td>{applicant.submittedAt ? formatShortDateTime(applicant.submittedAt) : `Sheet ${applicant.sourceRowNumber}행`}</td>
                     <td>{applicant.groupInterest || "미입력"}</td>
+                    <td>{getNewFamilySourceValue(applicant, ["담당자", "assignee", "owner"]) || "미배정"}</td>
+                    <td>{getNewFamilySourceValue(applicant, ["세례 유무", "baptismStatus"]) || "미입력"}</td>
                     <td>{applicant.phone || "미입력"}</td>
                     <td>
                       <button
@@ -2017,7 +2095,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                 ))}
                 {visibleApplicants.length === 0 ? (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={8}>
                       <div className="empty-table-state">
                         <strong>{newFamilyApplicants.length === 0 ? "아직 동기화된 새가족 신청이 없습니다" : "현재 필터에 맞는 신청이 없습니다"}</strong>
                         <span>
@@ -2076,6 +2154,46 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
               <div>
                 <dt>관심 순</dt>
                 <dd>{selectedApplicant.groupInterest || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>담당자</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, ["담당자", "assignee", "owner"]) || "미배정"}</dd>
+              </div>
+              <div>
+                <dt>성별</dt>
+                <dd>{getNewFamilyGender(selectedApplicant)}</dd>
+              </div>
+              <div>
+                <dt>생년월일</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, ["생년월일", "birthdate"]) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>만 나이</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, ["만 나이", "age"]) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>거주 지역</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, ["거주 지역", "address", "location"]) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>세례/등록</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, ["세례 유무", "baptismStatus"]) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>2주차 출석일</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, ["2주차 출석일"]) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>3주차 출석일</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, ["3주차 출석일"]) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>수료 예정일</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, ["수료 예정일"]) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>비고</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, ["비고", "note", "memo"]) || selectedApplicant.memo || "미입력"}</dd>
               </div>
             </dl>
 
@@ -2139,6 +2257,41 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
       <ActionMessage state={updateState} />
       <ActionMessage state={convertState} />
     </>
+  );
+}
+
+function NewFamilyBreakdownCard({
+  title,
+  items,
+  total,
+}: {
+  title: string;
+  items: { label: string; count: number }[];
+  total: number;
+}) {
+  return (
+    <article className="panel new-family-breakdown-card">
+      <div className="mini-roster-heading">
+        <strong>{title}</strong>
+        <span>{items.reduce((sum, item) => sum + item.count, 0)}명</span>
+      </div>
+      <div className="new-family-breakdown-list">
+        {items.length > 0 ? (
+          items.map((item) => {
+            const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
+            return (
+              <div className="new-family-breakdown-row" key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.count}</strong>
+                <small>{percentage}%</small>
+              </div>
+            );
+          })
+        ) : (
+          <span className="empty-mini-roster">표시할 데이터 없음</span>
+        )}
+      </div>
+    </article>
   );
 }
 

@@ -2632,6 +2632,58 @@ tbody tr:hover {
   margin-top: 14px;
 }
 
+.new-family-insights {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.new-family-breakdown-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.new-family-breakdown-list {
+  display: grid;
+  gap: 6px;
+}
+
+.new-family-breakdown-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 6px;
+  min-width: 0;
+}
+
+.new-family-breakdown-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.new-family-breakdown-row span {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.new-family-breakdown-row strong {
+  color: var(--brand-deep);
+}
+
+.new-family-breakdown-row small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .new-family-sync-panel {
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -2708,7 +2760,7 @@ tbody tr:hover {
 }
 
 .new-family-table {
-  min-width: 780px;
+  min-width: 980px;
 }
 
 .new-family-table .member-name-cell .meta {
@@ -6011,6 +6063,15 @@ tbody tr:hover {
 
   .new-family-metrics {
     display: none;
+  }
+
+  .new-family-insights {
+    grid-template-columns: 1fr;
+    margin-top: 12px;
+  }
+
+  .new-family-breakdown-card {
+    padding: 12px;
   }
 
   .new-family-sync-panel,

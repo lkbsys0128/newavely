@@ -56,7 +56,6 @@ const cronAttendanceRouteSource = readFileSync(
   "utf8",
 );
 const supabaseEnvSource = readFileSync(new URL("../src/lib/supabase/env.ts", import.meta.url), "utf8");
-const vercelConfigSource = readFileSync(new URL("../vercel.json", import.meta.url), "utf8");
 
 test("dashboard member query disambiguates group and attendance embeds", () => {
   assert.match(dataSource, /id, auth_user_id, name/);
@@ -753,6 +752,8 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(dashboardSource, /newFamilyStatusOrder/);
   assert.match(dashboardSource, /수료예정/);
   assert.match(dashboardSource, /sortBy/);
+  assert.match(dashboardSource, /NewFamilyBreakdownCard/);
+  assert.match(dashboardSource, /getNewFamilySourceValue/);
   assert.match(dashboardSource, /new-family-roster-layout/);
   assert.match(dashboardSource, /new-family-table/);
   assert.match(dashboardSource, /new-family-quick-summary/);
@@ -760,6 +761,8 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(dashboardSource, /멤버로 등록/);
   assert.match(mobileAwareNavSource, /href: "\/new-family"/);
   assert.match(globalCssSource, /new-family-stage-panel/);
+  assert.match(globalCssSource, /new-family-insights/);
+  assert.match(globalCssSource, /new-family-breakdown-card/);
   assert.match(globalCssSource, /new-family-management-modal/);
   assert.match(globalCssSource, /new-family-side-form label/);
   assert.match(globalCssSource, /feedback-admin-form label/);
