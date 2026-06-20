@@ -114,6 +114,17 @@ const convertNewFamilyApplicantSchema = z.object({
   groupId: nullableUuid,
 });
 
+function pickNewFamilySourceValue(sourceData: unknown, keys: string[]) {
+  if (!sourceData || typeof sourceData !== "object" || Array.isArray(sourceData)) return null;
+  const record = sourceData as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return null;
+}
+
 const createMemberLinkRequestSchema = z.object({
   targetMemberId: nullableUuid,
   note: nullableText,
@@ -784,6 +795,16 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
     if (applicantError) throw applicantError;
     if (applicant.converted_member_id) throw new Error("이미 멤버로 등록된 새가족입니다.");
 
+    const sourceData = applicant.source_data ?? {};
+    const address = pickNewFamilySourceValue(sourceData, ["거주 지역", "주소", "address", "location"]);
+    const baptismStatus = normalizeBaptismStatus(pickNewFamilySourceValue(sourceData, ["세례 유무", "세례/등록", "baptismStatus"]));
+    const gender = pickNewFamilySourceValue(sourceData, ["성별", "gender"]);
+    const birthdate = pickNewFamilySourceValue(sourceData, ["생년월일", "birthdate"]);
+    const age = pickNewFamilySourceValue(sourceData, ["만 나이", "age"]);
+    const assignee = pickNewFamilySourceValue(sourceData, ["담당자", "assignee", "owner"]);
+    const week2AttendanceDate = pickNewFamilySourceValue(sourceData, ["2주차 출석일"]);
+    const week3AttendanceDate = pickNewFamilySourceValue(sourceData, ["3주차 출석일"]);
+    const completionDueDate = pickNewFamilySourceValue(sourceData, ["수료 예정일"]);
     const placeholderEmail = `new-family-${applicant.id}@placeholder.local`;
     const { data: insertedMember, error: insertError } = await supabase
       .from("members")
@@ -794,11 +815,20 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
         group_id: parsed.groupId,
         role: "member",
         status: "new",
-        care_notes: applicant.memo || "새가족 신청에서 등록됨",
+        address,
+        baptism_status: baptismStatus,
+        care_notes: applicant.memo || "새가족 신청에서 멤버로 등록됨",
         custom_fields: {
-          source: "new_family_google_form",
+          source: pickNewFamilySourceValue(sourceData, ["source"]) === "legacy_new_family_csv_2026" ? "legacy_new_family_csv_2026" : "new_family_google_form",
           new_family_applicant_id: applicant.id,
           group_interest: applicant.group_interest,
+          gender,
+          birthdate,
+          age,
+          new_family_assignee: assignee,
+          new_family_week_2_attendance_date: week2AttendanceDate,
+          new_family_week_3_attendance_date: week3AttendanceDate,
+          new_family_completion_due_date: completionDueDate,
         },
       })
       .select("*")

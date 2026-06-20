@@ -2635,7 +2635,7 @@ tbody tr:hover {
 .new-family-insights {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 14px;
 }
 
@@ -2853,6 +2853,61 @@ tbody tr:hover {
   border-top: 1px solid var(--line-soft);
   grid-template-columns: 1fr;
   padding-top: 12px;
+}
+
+.inline-help-panel {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 12px;
+}
+
+.inline-help-panel strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.inline-help-panel span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.inline-help-panel.success {
+  border-color: rgba(62, 179, 138, 0.32);
+  background: rgba(62, 179, 138, 0.08);
+}
+
+.new-family-conversion-form {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 14px;
+}
+
+.new-family-conversion-form.is-suggested {
+  border-color: rgba(62, 179, 138, 0.38);
+  background:
+    linear-gradient(135deg, rgba(62, 179, 138, 0.1), transparent 44%),
+    var(--surface);
+}
+
+.conversion-preview {
+  display: grid;
+  gap: 4px;
+}
+
+.conversion-preview strong {
+  color: var(--brand-deep);
+  font-size: 1rem;
+}
+
+.conversion-preview span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.45;
 }
 
 .new-family-management-modal {

@@ -743,6 +743,9 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(actionsSource, /week_3/);
   assert.match(actionsSource, /export async function convertNewFamilyApplicantToMember/);
   assert.match(actionsSource, /action: "new_family\.convert_to_member"/);
+  assert.match(actionsSource, /pickNewFamilySourceValue/);
+  assert.match(actionsSource, /new_family_assignee/);
+  assert.match(actionsSource, /new_family_completion_due_date/);
   assert.match(newFamilyCronSource, /CRON_SECRET/);
   assert.match(newFamilyCronSource, /createAdminClient/);
   assert.match(vercelConfigSource, /\/api\/cron\/sync-new-family/);
@@ -754,11 +757,15 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(dashboardSource, /sortBy/);
   assert.match(dashboardSource, /NewFamilyBreakdownCard/);
   assert.match(dashboardSource, /getNewFamilySourceValue/);
+  assert.match(dashboardSource, /getNewFamilyExpectedGroup/);
+  assert.match(dashboardSource, /예정 순/);
   assert.match(dashboardSource, /new-family-roster-layout/);
   assert.match(dashboardSource, /new-family-table/);
   assert.match(dashboardSource, /new-family-quick-summary/);
   assert.match(dashboardSource, /아직 동기화된 새가족 신청이 없습니다/);
   assert.match(dashboardSource, /멤버로 등록/);
+  assert.match(dashboardSource, /수료\/등록은 멤버 로스터 등록으로 완료됩니다/);
+  assert.doesNotMatch(dashboardSource, /데이터 출처/);
   assert.match(mobileAwareNavSource, /href: "\/new-family"/);
   assert.match(globalCssSource, /new-family-stage-panel/);
   assert.match(globalCssSource, /new-family-insights/);
@@ -767,6 +774,7 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(globalCssSource, /new-family-status\.week_3/);
   assert.match(globalCssSource, /data-theme="dark"\] \.new-family-status\.completed/);
   assert.match(globalCssSource, /new-family-management-modal/);
+  assert.match(globalCssSource, /new-family-conversion-form/);
   assert.match(globalCssSource, /new-family-side-form label/);
   assert.match(globalCssSource, /feedback-admin-form label/);
 });
