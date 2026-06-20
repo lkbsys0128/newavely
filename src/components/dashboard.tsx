@@ -1804,10 +1804,6 @@ function getNewFamilyAgeBand(applicant: NewFamilyApplicant) {
   return "40대+";
 }
 
-function getNewFamilySourceLabel(applicant: NewFamilyApplicant) {
-  return getNewFamilySourceValue(applicant, ["source"]) === "legacy_new_family_csv_2026" ? "과거 CSV" : "Google Form";
-}
-
 function buildNewFamilyBreakdown<T extends string>(
   applicants: NewFamilyApplicant[],
   getLabel: (applicant: NewFamilyApplicant) => T,
@@ -1831,12 +1827,21 @@ function buildNewFamilyBreakdown<T extends string>(
     .map(([label, count]) => ({ label, count }));
 }
 
+function normalizeNewFamilyGroupName(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function getNewFamilyExpectedGroup(applicant: NewFamilyApplicant) {
+  return applicant.groupInterest || getNewFamilySourceValue(applicant, ["예정 순", "희망순", "관심 순", "관심순", "순"]) || "";
+}
+
 export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }: AppDataProps) {
   const canManageNewFamily = hasPermission(user.role, "roles:manage");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<NewFamilyApplicant["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<NewFamilySort>("latest");
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
+  const [selectedStatusDraft, setSelectedStatusDraft] = useState<NewFamilyApplicant["status"]>("new");
   const [syncState, syncAction, isSyncing] = useActionState(syncNewFamilyApplicants, initialActionState);
   const [updateState, updateAction, isUpdating] = useActionState(updateNewFamilyApplicant, initialActionState);
   const [convertState, convertAction, isConverting] = useActionState(convertNewFamilyApplicantToMember, initialActionState);
@@ -1845,7 +1850,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
     .filter((applicant) => {
       if (statusFilter !== "all" && applicant.status !== statusFilter) return false;
       if (!normalizedQuery) return true;
-      return [applicant.name, applicant.email, applicant.phone, applicant.groupInterest, applicant.memo]
+      return [applicant.name, applicant.email, applicant.phone, getNewFamilyExpectedGroup(applicant), applicant.memo]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery));
     })
@@ -1858,6 +1863,9 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
       return getNewFamilyTimestamp(second) - getNewFamilyTimestamp(first);
     });
   const selectedApplicant = visibleApplicants.find((applicant) => applicant.id === selectedApplicantId) ?? null;
+  useEffect(() => {
+    setSelectedStatusDraft(selectedApplicant?.status ?? "new");
+  }, [selectedApplicant?.id, selectedApplicant?.status]);
   const statusCounts = newFamilyStatusOrder.reduce(
     (counts, status) => ({
       ...counts,
@@ -1879,11 +1887,14 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
     newFamilyApplicants,
     (applicant) => getNewFamilySourceValue(applicant, ["담당자", "assignee", "owner"]) || "미배정",
   ).slice(0, 6);
-  const sourceBreakdown = buildNewFamilyBreakdown(newFamilyApplicants, getNewFamilySourceLabel, ["Google Form", "과거 CSV"]);
   const latestSync = newFamilyApplicants
     .map((applicant) => applicant.lastSyncedAt)
     .sort()
     .at(-1);
+  const selectedExpectedGroup = selectedApplicant ? getNewFamilyExpectedGroup(selectedApplicant) : "";
+  const defaultConvertGroupId =
+    groups.find((group) => normalizeNewFamilyGroupName(group.name) === normalizeNewFamilyGroupName(selectedExpectedGroup))?.id ?? "";
+  const shouldGuideToMemberCreation = selectedApplicant && selectedStatusDraft === "completed" && !selectedApplicant.convertedMemberId;
 
   if (!canManageNewFamily) {
     return (
@@ -1954,7 +1965,6 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
         <NewFamilyBreakdownCard title="연령대" items={ageBreakdown} total={newFamilyApplicants.length} />
         <NewFamilyBreakdownCard title="세례/등록" items={baptismBreakdown} total={newFamilyApplicants.length} />
         <NewFamilyBreakdownCard title="담당자" items={assigneeBreakdown} total={newFamilyApplicants.length} />
-        <NewFamilyBreakdownCard title="데이터 출처" items={sourceBreakdown} total={newFamilyApplicants.length} />
       </section>
 
       <section className="panel new-family-stage-panel" aria-label="새가족 상태 흐름">
@@ -2004,7 +2014,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
             autoComplete="off"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="이름, 이메일, 전화, 순, 메모"
+            placeholder="이름, 이메일, 전화, 예정 순, 메모"
           />
         </label>
         <label className="new-family-control">
@@ -2051,7 +2061,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                   <th>이름</th>
                   <th>상태</th>
                   <th>신청일</th>
-                  <th>관심 순</th>
+                  <th>예정 순</th>
                   <th>담당자</th>
                   <th>세례</th>
                   <th>연락처</th>
@@ -2075,7 +2085,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                       <span className={`status-pill new-family-status ${applicant.status}`}>{newFamilyStatusLabels[applicant.status]}</span>
                     </td>
                     <td>{applicant.submittedAt ? formatShortDateTime(applicant.submittedAt) : `Sheet ${applicant.sourceRowNumber}행`}</td>
-                    <td>{applicant.groupInterest || "미입력"}</td>
+                    <td>{getNewFamilyExpectedGroup(applicant) || "미입력"}</td>
                     <td>{getNewFamilySourceValue(applicant, ["담당자", "assignee", "owner"]) || "미배정"}</td>
                     <td>{getNewFamilySourceValue(applicant, ["세례 유무", "baptismStatus"]) || "미입력"}</td>
                     <td>{applicant.phone || "미입력"}</td>
@@ -2152,8 +2162,8 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                 <dd>{selectedApplicant.phone || "미입력"}</dd>
               </div>
               <div>
-                <dt>관심 순</dt>
-                <dd>{selectedApplicant.groupInterest || "미입력"}</dd>
+                <dt>예정 순</dt>
+                <dd>{getNewFamilyExpectedGroup(selectedApplicant) || "미입력"}</dd>
               </div>
               <div>
                 <dt>담당자</dt>
@@ -2201,7 +2211,11 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
               <input name="id" type="hidden" value={selectedApplicant.id} />
               <label>
                 상태
-                <select name="status" defaultValue={selectedApplicant.status}>
+                <select
+                  name="status"
+                  value={selectedStatusDraft}
+                  onChange={(event) => setSelectedStatusDraft(event.target.value as NewFamilyApplicant["status"])}
+                >
                   {newFamilyStatusOrder.map((status) => (
                     <option key={status} value={status}>
                       {newFamilyStatusLabels[status]}
@@ -2213,16 +2227,32 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                 메모
                 <textarea name="memo" defaultValue={selectedApplicant.memo} placeholder="연락/수료 진행 메모" rows={4} />
               </label>
-              <button className="secondary-button" type="submit" disabled={isUpdating}>
-                상태 저장
+              {shouldGuideToMemberCreation ? (
+                <div className="inline-help-panel success">
+                  <strong>수료/등록은 멤버 로스터 등록으로 완료됩니다</strong>
+                  <span>아래 정보를 확인하고 멤버로 등록하면 새가족 상태도 자동으로 수료/등록 처리됩니다.</span>
+                </div>
+              ) : null}
+              <button className="secondary-button" type="submit" disabled={isUpdating || Boolean(shouldGuideToMemberCreation)}>
+                {shouldGuideToMemberCreation ? "아래에서 멤버로 등록" : "상태 저장"}
               </button>
             </form>
 
-            <form action={convertAction} className="new-family-side-form" key={`convert-${selectedApplicant.id}`}>
+            <form
+              action={convertAction}
+              className={`new-family-side-form new-family-conversion-form ${shouldGuideToMemberCreation ? "is-suggested" : ""}`}
+              key={`convert-${selectedApplicant.id}-${defaultConvertGroupId}`}
+            >
               <input name="id" type="hidden" value={selectedApplicant.id} />
+              <div className="conversion-preview">
+                <strong>멤버 로스터 등록</strong>
+                <span>
+                  이름, 이메일, 연락처, 주소, 세례/등록, 예정 순 정보가 가능한 만큼 자동 기입됩니다.
+                </span>
+              </div>
               <label>
                 등록할 순
-                <select name="groupId" defaultValue="">
+                <select name="groupId" defaultValue={defaultConvertGroupId}>
                   <option value="">미배정</option>
                   {groups.map((group) => (
                     <option key={group.id} value={group.id}>
