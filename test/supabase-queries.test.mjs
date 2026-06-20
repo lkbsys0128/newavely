@@ -763,6 +763,9 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(globalCssSource, /new-family-stage-panel/);
   assert.match(globalCssSource, /new-family-insights/);
   assert.match(globalCssSource, /new-family-breakdown-card/);
+  assert.match(globalCssSource, /new-family-status\.completed/);
+  assert.match(globalCssSource, /new-family-status\.week_3/);
+  assert.match(globalCssSource, /data-theme="dark"\] \.new-family-status\.completed/);
   assert.match(globalCssSource, /new-family-management-modal/);
   assert.match(globalCssSource, /new-family-side-form label/);
   assert.match(globalCssSource, /feedback-admin-form label/);

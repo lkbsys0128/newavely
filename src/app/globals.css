@@ -2704,9 +2704,13 @@ tbody tr:hover {
 
 .new-family-stage-chip {
   align-items: center;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--text);
+  --new-family-state-bg: var(--surface);
+  --new-family-state-border: var(--line);
+  --new-family-state-text: var(--text);
+  --new-family-state-count: var(--brand-deep);
+  background: var(--new-family-state-bg);
+  border: 1px solid var(--new-family-state-border);
+  color: var(--new-family-state-text);
   display: inline-flex;
   flex: 0 0 auto;
   gap: 8px;
@@ -2716,14 +2720,56 @@ tbody tr:hover {
 }
 
 .new-family-stage-chip strong {
-  color: var(--brand-deep);
+  color: var(--new-family-state-count);
   font-size: 1.05rem;
 }
 
 .new-family-stage-chip.is-active {
-  background: linear-gradient(135deg, rgba(47, 145, 181, 0.18), rgba(47, 145, 181, 0.08));
-  border-color: rgba(47, 145, 181, 0.4);
-  box-shadow: inset 0 -2px 0 var(--brand);
+  background: var(--new-family-state-bg);
+  border-color: var(--new-family-state-border);
+  box-shadow: inset 0 -2px 0 var(--new-family-state-count);
+}
+
+.new-family-stage-chip.new {
+  --new-family-state-bg: rgba(42, 143, 175, 0.12);
+  --new-family-state-border: rgba(42, 143, 175, 0.28);
+  --new-family-state-count: #177a9d;
+}
+
+.new-family-stage-chip.contacted {
+  --new-family-state-bg: rgba(97, 132, 185, 0.13);
+  --new-family-state-border: rgba(97, 132, 185, 0.28);
+  --new-family-state-count: #3f659e;
+}
+
+.new-family-stage-chip.week_1 {
+  --new-family-state-bg: rgba(244, 194, 95, 0.18);
+  --new-family-state-border: rgba(213, 153, 41, 0.32);
+  --new-family-state-count: #8a5a00;
+}
+
+.new-family-stage-chip.week_2 {
+  --new-family-state-bg: rgba(223, 157, 83, 0.18);
+  --new-family-state-border: rgba(199, 118, 31, 0.32);
+  --new-family-state-count: #955211;
+}
+
+.new-family-stage-chip.week_3 {
+  --new-family-state-bg: rgba(126, 104, 195, 0.14);
+  --new-family-state-border: rgba(126, 104, 195, 0.32);
+  --new-family-state-count: #6653aa;
+}
+
+.new-family-stage-chip.completed {
+  --new-family-state-bg: rgba(62, 179, 138, 0.16);
+  --new-family-state-border: rgba(62, 179, 138, 0.32);
+  --new-family-state-count: #1f7a5d;
+}
+
+.new-family-stage-chip.archived {
+  --new-family-state-bg: var(--soft);
+  --new-family-state-border: var(--line);
+  --new-family-state-count: var(--muted);
 }
 
 .new-family-filter-panel {
@@ -2848,12 +2894,24 @@ tbody tr:hover {
   background: #3eb38a;
 }
 
+.new-family-status-dot.contacted {
+  background: #6184b9;
+}
+
+.new-family-status-dot.week_1 {
+  background: #d59929;
+}
+
+.new-family-status-dot.week_2 {
+  background: #c7761f;
+}
+
 .new-family-status-dot.archived {
   background: var(--muted);
 }
 
 .new-family-status-dot.week_3 {
-  background: #d8901f;
+  background: #7e68c3;
 }
 
 .new-family-person {
@@ -2929,12 +2987,24 @@ tbody tr:hover {
   color: var(--brand-deep);
 }
 
-.new-family-status.contacted,
-.new-family-status.week_1,
-.new-family-status.week_2,
-.new-family-status.week_3 {
+.new-family-status.contacted {
+  background: rgba(97, 132, 185, 0.15);
+  color: #3f659e;
+}
+
+.new-family-status.week_1 {
   background: rgba(244, 194, 95, 0.18);
   color: #8a5a00;
+}
+
+.new-family-status.week_2 {
+  background: rgba(223, 157, 83, 0.18);
+  color: #955211;
+}
+
+.new-family-status.week_3 {
+  background: rgba(126, 104, 195, 0.14);
+  color: #6653aa;
 }
 
 .new-family-status.completed {
@@ -5939,6 +6009,59 @@ tbody tr:hover {
 :root[data-theme="dark"] .snapshot-status.present {
   background: rgba(66, 169, 197, 0.16);
   color: var(--accent-dark);
+}
+
+:root[data-theme="dark"] .new-family-stage-chip.new,
+:root[data-theme="dark"] .new-family-status.new {
+  background: rgba(66, 169, 197, 0.16);
+  border-color: rgba(66, 169, 197, 0.28);
+  color: #8de2f3;
+}
+
+:root[data-theme="dark"] .new-family-stage-chip.contacted,
+:root[data-theme="dark"] .new-family-status.contacted {
+  background: rgba(130, 160, 216, 0.16);
+  border-color: rgba(130, 160, 216, 0.3);
+  color: #b8cdf6;
+}
+
+:root[data-theme="dark"] .new-family-stage-chip.week_1,
+:root[data-theme="dark"] .new-family-status.week_1 {
+  background: rgba(244, 194, 95, 0.17);
+  border-color: rgba(244, 194, 95, 0.3);
+  color: #ffd991;
+}
+
+:root[data-theme="dark"] .new-family-stage-chip.week_2,
+:root[data-theme="dark"] .new-family-status.week_2 {
+  background: rgba(235, 155, 75, 0.17);
+  border-color: rgba(235, 155, 75, 0.3);
+  color: #ffc08a;
+}
+
+:root[data-theme="dark"] .new-family-stage-chip.week_3,
+:root[data-theme="dark"] .new-family-status.week_3 {
+  background: rgba(170, 148, 242, 0.17);
+  border-color: rgba(170, 148, 242, 0.32);
+  color: #d3c8ff;
+}
+
+:root[data-theme="dark"] .new-family-stage-chip.completed,
+:root[data-theme="dark"] .new-family-status.completed {
+  background: rgba(91, 213, 170, 0.16);
+  border-color: rgba(91, 213, 170, 0.3);
+  color: #9ff0d3;
+}
+
+:root[data-theme="dark"] .new-family-stage-chip.archived,
+:root[data-theme="dark"] .new-family-status.archived {
+  background: rgba(159, 184, 191, 0.12);
+  border-color: rgba(159, 184, 191, 0.22);
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .new-family-stage-chip strong {
+  color: currentColor;
 }
 
 :root[data-theme="dark"] .attendance-pill,
