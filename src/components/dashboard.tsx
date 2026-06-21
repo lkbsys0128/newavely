@@ -3291,15 +3291,17 @@ export function AttendanceManager({
             <div
               className={`group-attendance-snapshot-grid ${attendanceOverviewEvents.length > 1 ? "two-events" : "single-event"}`}
             >
-              <div className="snapshot-grid-head member-name">이름</div>
-              {attendanceOverviewEvents.map((event) => (
-                <div className="snapshot-grid-head" key={event.id}>
-                  {event.title}
-                </div>
-              ))}
+              <div className="snapshot-grid-row snapshot-grid-header">
+                <div className="snapshot-grid-head member-name">이름</div>
+                {attendanceOverviewEvents.map((event) => (
+                  <div className="snapshot-grid-head" key={event.id}>
+                    {event.title}
+                  </div>
+                ))}
+              </div>
               {attendanceOverviewRows.map(({ member, missedCount, presentCount, statuses }) => (
                 <div
-                  className={`snapshot-member-row ${missedCount === 0 && presentCount > 0 ? "all-present" : ""}`}
+                  className={`snapshot-grid-row snapshot-member-row ${missedCount === 0 && presentCount > 0 ? "all-present" : ""}`}
                   key={member.id}
                 >
                   <button

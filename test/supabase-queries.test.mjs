@@ -260,6 +260,7 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /attendance-group-chip/);
   assert.match(dashboardSource, /AttendanceMemberActionModal/);
   assert.match(dashboardSource, /AttendanceReasonModal/);
+  assert.match(dashboardSource, /snapshot-grid-row snapshot-member-row/);
   assert.match(dashboardSource, /snapshot-member-name/);
   assert.match(dashboardSource, /snapshot-status-button/);
   assert.match(dashboardSource, /handleToggleAttendanceEvent/);
@@ -268,6 +269,8 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /사유 입력/);
   assert.match(globalCssSource, /group-attendance-snapshot/);
   assert.match(globalCssSource, /snapshot-mini-metrics/);
+  assert.match(globalCssSource, /\.snapshot-grid-row/);
+  assert.doesNotMatch(globalCssSource, /\.snapshot-member-row \{\s*display: contents/s);
   assert.match(globalCssSource, /grid-template-columns: repeat\(4, minmax\(64px, 1fr\)\)/);
   assert.match(globalCssSource, /attendance-group-strip/);
   assert.match(globalCssSource, /snapshot-member-name/);

@@ -4425,12 +4425,23 @@ tbody tr:hover {
   gap: 6px;
 }
 
-.group-attendance-snapshot-grid.two-events {
+.group-attendance-snapshot-grid.two-events,
+.group-attendance-snapshot-grid.two-events .snapshot-grid-row {
   grid-template-columns: minmax(120px, 1fr) repeat(2, minmax(86px, 0.48fr));
 }
 
-.group-attendance-snapshot-grid.single-event {
+.group-attendance-snapshot-grid.single-event,
+.group-attendance-snapshot-grid.single-event .snapshot-grid-row {
   grid-template-columns: minmax(120px, 1fr) minmax(86px, 0.48fr);
+}
+
+.snapshot-grid-row {
+  display: grid;
+  min-width: 0;
+}
+
+.snapshot-grid-header {
+  align-items: end;
 }
 
 .snapshot-grid-head {
@@ -4446,7 +4457,8 @@ tbody tr:hover {
 }
 
 .snapshot-member-row {
-  display: contents;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .snapshot-member-row > .snapshot-member-name,
@@ -4457,7 +4469,8 @@ tbody tr:hover {
 }
 
 .snapshot-member-row > .snapshot-member-name {
-  display: block;
+  display: flex;
+  align-items: center;
   overflow: hidden;
   border-radius: 6px 0 0 6px;
   padding: 8px 10px;
@@ -5518,11 +5531,13 @@ tbody tr:hover {
     font-size: 0.98rem;
   }
 
-  .group-attendance-snapshot-grid.two-events {
+  .group-attendance-snapshot-grid.two-events,
+  .group-attendance-snapshot-grid.two-events .snapshot-grid-row {
     grid-template-columns: minmax(94px, 1fr) repeat(2, minmax(64px, 0.46fr));
   }
 
-  .group-attendance-snapshot-grid.single-event {
+  .group-attendance-snapshot-grid.single-event,
+  .group-attendance-snapshot-grid.single-event .snapshot-grid-row {
     grid-template-columns: minmax(94px, 1fr) minmax(70px, 0.46fr);
   }
 
