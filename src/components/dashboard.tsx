@@ -1843,7 +1843,7 @@ function normalizeNewFamilyGroupName(value: string) {
 }
 
 function getNewFamilyExpectedGroup(applicant: NewFamilyApplicant) {
-  return applicant.groupInterest || getNewFamilySourceValue(applicant, ["예정 순", "희망순", "관심 순", "관심순", "순"]) || "";
+  return applicant.expectedGroup || applicant.groupInterest || getNewFamilySourceValue(applicant, ["예정 순", "희망순", "관심 순", "관심순", "순"]) || "";
 }
 
 export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }: AppDataProps) {
@@ -1903,6 +1903,10 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
     .sort()
     .at(-1);
   const selectedExpectedGroup = selectedApplicant ? getNewFamilyExpectedGroup(selectedApplicant) : "";
+  const selectedManualExpectedGroup = selectedApplicant?.expectedGroup ?? "";
+  const selectedManualExpectedGroupIsExisting =
+    Boolean(selectedManualExpectedGroup) &&
+    groups.some((group) => normalizeNewFamilyGroupName(group.name) === normalizeNewFamilyGroupName(selectedManualExpectedGroup));
   const defaultConvertGroupId =
     groups.find((group) => normalizeNewFamilyGroupName(group.name) === normalizeNewFamilyGroupName(selectedExpectedGroup))?.id ?? "";
   const shouldGuideToMemberCreation = selectedApplicant && selectedStatusDraft === "completed" && !selectedApplicant.convertedMemberId;
@@ -2230,6 +2234,22 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                   {newFamilyStatusOrder.map((status) => (
                     <option key={status} value={status}>
                       {newFamilyStatusLabels[status]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                예정 순
+                <select name="expectedGroup" defaultValue={selectedApplicant.expectedGroup}>
+                  <option value="">
+                    {selectedExpectedGroup ? `시트 값 사용 (${selectedExpectedGroup})` : "미입력"}
+                  </option>
+                  {selectedApplicant.expectedGroup && !selectedManualExpectedGroupIsExisting ? (
+                    <option value={selectedApplicant.expectedGroup}>{selectedApplicant.expectedGroup}</option>
+                  ) : null}
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.name}>
+                      {group.name}
                     </option>
                   ))}
                 </select>

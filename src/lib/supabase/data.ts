@@ -54,6 +54,7 @@ type DbNewFamilyApplicant = {
   email: string | null;
   phone: string | null;
   group_interest: string | null;
+  expected_group: string | null;
   memo: string | null;
   status: NewFamilyApplicant["status"];
   source_data: Record<string, unknown> | null;
@@ -726,7 +727,7 @@ export async function getNewFamilyApplicants(supabase: SupabaseClient): Promise<
   const { data, error } = await supabase
     .from("new_family_applicants")
     .select(
-      "id, source_row_number, submitted_at, name, email, phone, group_interest, memo, status, source_data, converted_member_id, converted_at, last_synced_at, created_at, updated_at",
+      "id, source_row_number, submitted_at, name, email, phone, group_interest, expected_group, memo, status, source_data, converted_member_id, converted_at, last_synced_at, created_at, updated_at",
     )
     .order("submitted_at", { ascending: false, nullsFirst: false })
     .order("source_row_number", { ascending: false })
@@ -745,6 +746,7 @@ export async function getNewFamilyApplicants(supabase: SupabaseClient): Promise<
     email: applicant.email ?? "",
     phone: applicant.phone ?? "",
     groupInterest: applicant.group_interest ?? "",
+    expectedGroup: applicant.expected_group ?? "",
     memo: applicant.memo ?? "",
     status: applicant.status,
     sourceData: applicant.source_data ?? {},

@@ -28,6 +28,7 @@ const adminFeedbackMessagesSource = readFileSync(new URL("../db/024_admin_feedba
 const publicDashboardDataSource = readFileSync(new URL("../db/026_public_dashboard_data.sql", import.meta.url), "utf8");
 const newFamilyApplicantsSource = readFileSync(new URL("../db/027_new_family_applicants.sql", import.meta.url), "utf8");
 const newFamilyStatusFlowSource = readFileSync(new URL("../db/028_new_family_status_flow.sql", import.meta.url), "utf8");
+const newFamilyExpectedGroupSource = readFileSync(new URL("../db/029_new_family_expected_group.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -732,8 +733,11 @@ test("admin feedback inbox lets users message admins and admins update status", 
 test("new family applicants sync from Google Sheets into an admin-only roster", () => {
   assert.match(schemaSource, /create table new_family_applicants/);
   assert.match(schemaSource, /week_3/);
+  assert.match(schemaSource, /expected_group text/);
   assert.match(newFamilyApplicantsSource, /current_member_role\(\) in \('owner', 'admin'\)/);
   assert.match(newFamilyApplicantsSource, /source_key text not null unique/);
+  assert.match(newFamilyApplicantsSource, /expected_group text/);
+  assert.match(newFamilyExpectedGroupSource, /add column if not exists expected_group text/);
   assert.match(newFamilyStatusFlowSource, /where status = 'in_progress'/);
   assert.match(newFamilyStatusFlowSource, /week_1/);
   assert.match(newFamilyStatusFlowSource, /week_2/);
@@ -751,6 +755,8 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(actionsSource, /export async function syncNewFamilyApplicants/);
   assert.match(actionsSource, /행을 읽었지만 등록 가능한 새가족 이름을 찾지 못했습니다/);
   assert.match(actionsSource, /export async function updateNewFamilyApplicant/);
+  assert.match(actionsSource, /expectedGroup: formData\.get\("expectedGroup"\)/);
+  assert.match(actionsSource, /expected_group: parsed\.expectedGroup/);
   assert.match(actionsSource, /week_3/);
   assert.match(actionsSource, /export async function convertNewFamilyApplicantToMember/);
   assert.match(actionsSource, /action: "new_family\.convert_to_member"/);
@@ -769,6 +775,9 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(dashboardSource, /NewFamilyBreakdownCard/);
   assert.match(dashboardSource, /getNewFamilySourceValue/);
   assert.match(dashboardSource, /getNewFamilyExpectedGroup/);
+  assert.match(dashboardSource, /applicant\.expectedGroup \|\| applicant\.groupInterest/);
+  assert.match(dashboardSource, /name="expectedGroup"/);
+  assert.match(dashboardSource, /시트 값 사용/);
   assert.match(dashboardSource, /예정 순/);
   assert.match(dashboardSource, /new-family-roster-layout/);
   assert.match(dashboardSource, /new-family-table/);
