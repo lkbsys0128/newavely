@@ -252,6 +252,9 @@ test("dashboard exposes roster insight sections for operators", () => {
 test("attendance check screen summarizes selected group worship and group attendance", () => {
   assert.match(dashboardSource, /출석현황/);
   assert.match(dashboardSource, /attendanceOverviewRows/);
+  assert.match(dashboardSource, /attendanceOverviewTitleOrder/);
+  assert.match(dashboardSource, /function getAttendanceOverviewEvents/);
+  assert.match(dashboardSource, /getAttendanceOverviewEvents\(sameDateEvents, selectedAttendanceEvent\?\.id\)/);
   assert.match(dashboardSource, /fullyPresentCount/);
   assert.match(dashboardSource, /needsCheckCount/);
   assert.match(dashboardSource, /attendanceGroupId === "unassigned" \? !member\.groupId : member\.groupId === attendanceGroupId/);
