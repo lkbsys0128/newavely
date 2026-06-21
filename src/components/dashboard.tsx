@@ -284,6 +284,11 @@ function chooseAttendanceShortcutEvent(attendanceEvents: AttendanceEvent[]) {
 }
 
 const attendanceOverviewTitleOrder = ["주일 예배", "순모임"] as const;
+const hiddenAttendanceGroupNames = new Set(["공동체 리더"]);
+
+function isVisibleAttendanceGroup(group: Group) {
+  return !hiddenAttendanceGroupNames.has(group.name.trim());
+}
 
 function getAttendanceOverviewEvents(events: AttendanceEvent[], selectedEventId?: string) {
   return attendanceOverviewTitleOrder.flatMap((title) => {
@@ -2796,6 +2801,13 @@ export function AttendanceManager({
     .sort((a, b) => b.streak - a.streak)
     .slice(0, 8);
 
+  const attendanceSelectableGroups = groups.filter(isVisibleAttendanceGroup);
+  const effectiveAttendanceGroupId =
+    attendanceGroupId === "all" ||
+    attendanceGroupId === "unassigned" ||
+    attendanceSelectableGroups.some((group) => group.id === attendanceGroupId)
+      ? attendanceGroupId
+      : "all";
   const attendanceMembers = activeMembers.filter((member) => {
     const status = getMemberAttendanceStatus(member, attendanceEventId);
     const normalizedQuery = attendanceSearchQuery.trim().toLowerCase();
@@ -2803,8 +2815,8 @@ export function AttendanceManager({
       ? [member.displayName, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery))
       : true;
     const matchesGroup =
-      attendanceGroupId === "all" ||
-      (attendanceGroupId === "unassigned" ? !member.groupId : member.groupId === attendanceGroupId);
+      effectiveAttendanceGroupId === "all" ||
+      (effectiveAttendanceGroupId === "unassigned" ? !member.groupId : member.groupId === effectiveAttendanceGroupId);
     if (attendanceFilter === "present") return matchesQuery && matchesGroup && status === "present";
     if (attendanceFilter === "absent") return matchesQuery && matchesGroup && status === "absent";
     if (attendanceFilter === "excused") return matchesQuery && matchesGroup && status === "excused";
@@ -2816,23 +2828,23 @@ export function AttendanceManager({
       ? [member.displayName, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery))
       : true;
     const matchesGroup =
-      attendanceGroupId === "all" ||
-      (attendanceGroupId === "unassigned" ? !member.groupId : member.groupId === attendanceGroupId);
+      effectiveAttendanceGroupId === "all" ||
+      (effectiveAttendanceGroupId === "unassigned" ? !member.groupId : member.groupId === effectiveAttendanceGroupId);
     return matchesQuery && matchesGroup;
   });
   const overviewGroupName =
-    attendanceGroupId === "all"
+    effectiveAttendanceGroupId === "all"
       ? "전체 순"
-      : attendanceGroupId === "unassigned"
+      : effectiveAttendanceGroupId === "unassigned"
         ? "미배정"
-        : groups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
+        : attendanceSelectableGroups.find((group) => group.id === effectiveAttendanceGroupId)?.name ?? "미배정";
   const attendanceGroupOptions = [
     { id: "all", name: "전체" },
     ...(user.role === "member"
-      ? groups
+      ? attendanceSelectableGroups
           .filter((group) => currentAttendanceMember?.groupId && group.id === currentAttendanceMember.groupId)
           .map((group) => ({ id: group.id, name: group.name }))
-      : groups.map((group) => ({ id: group.id, name: group.name }))),
+      : attendanceSelectableGroups.map((group) => ({ id: group.id, name: group.name }))),
     ...(user.role === "member" && currentAttendanceMember?.groupId ? [] : [{ id: "unassigned", name: "미배정" }]),
   ];
   const attendanceOverviewEvents = getAttendanceOverviewEvents(sameDateEvents, selectedAttendanceEvent?.id);
@@ -3239,7 +3251,7 @@ export function AttendanceManager({
         <div className="attendance-group-strip" aria-label="순 선택">
           {attendanceGroupOptions.map((group) => (
             <button
-              className={`attendance-group-chip ${attendanceGroupId === group.id ? "active" : ""}`}
+              className={`attendance-group-chip ${effectiveAttendanceGroupId === group.id ? "active" : ""}`}
               key={group.id}
               onClick={() => setAttendanceGroupId(group.id)}
               type="button"

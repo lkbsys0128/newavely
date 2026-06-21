@@ -257,8 +257,12 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /getAttendanceOverviewEvents\(sameDateEvents, selectedAttendanceEvent\?\.id\)/);
   assert.match(dashboardSource, /fullyPresentCount/);
   assert.match(dashboardSource, /needsCheckCount/);
-  assert.match(dashboardSource, /attendanceGroupId === "unassigned" \? !member\.groupId : member\.groupId === attendanceGroupId/);
+  assert.match(dashboardSource, /effectiveAttendanceGroupId === "unassigned" \? !member\.groupId : member\.groupId === effectiveAttendanceGroupId/);
   assert.match(dashboardSource, /attendanceGroupOptions/);
+  assert.match(dashboardSource, /hiddenAttendanceGroupNames/);
+  assert.match(dashboardSource, /공동체 리더/);
+  assert.match(dashboardSource, /const attendanceSelectableGroups = groups\.filter\(isVisibleAttendanceGroup\)/);
+  assert.match(dashboardSource, /effectiveAttendanceGroupId/);
   assert.match(dashboardSource, /attendance-group-strip/);
   assert.match(dashboardSource, /attendance-group-chip/);
   assert.match(dashboardSource, /AttendanceMemberActionModal/);
