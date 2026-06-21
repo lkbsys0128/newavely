@@ -2899,10 +2899,10 @@ export function AttendanceManager({
           >
             <div className="confirm-modal-copy">
               <span className="status-pill inactive">삭제 확인</span>
-              <h2 id="attendance-event-delete-title">출석 이벤트를 지울까요?</h2>
+              <h2 id="attendance-event-delete-title">이 날짜의 출석 이벤트를 지울까요?</h2>
               <p>
-                <strong>{eventPendingDelete.eventDate} · {eventPendingDelete.title}</strong> 이벤트를 삭제하면 연결된 멤버별
-                출석 기록도 함께 삭제됩니다.
+                <strong>{eventPendingDelete.eventDate}</strong> 날짜의 주일 예배와 순모임 이벤트를 함께 삭제합니다. 연결된
+                멤버별 출석 기록도 같이 정리됩니다.
               </p>
             </div>
             <div className="confirm-modal-actions">

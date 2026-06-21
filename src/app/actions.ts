@@ -1586,7 +1586,16 @@ export async function deleteAttendanceEvent(_previousState: ActionState, formDat
 
     if (beforeError) throw beforeError;
 
-    const { error } = await supabase.from("attendance_events").delete().eq("id", parsed.id);
+    const { data: pairedEvents, error: pairedEventsError } = await supabase
+      .from("attendance_events")
+      .select("*")
+      .eq("event_date", beforeData.event_date)
+      .in("title", attendanceEventTitles);
+    if (pairedEventsError) throw pairedEventsError;
+
+    const pairedEventIds = (pairedEvents ?? []).map((event) => event.id as string);
+    const deleteIds = pairedEventIds.length > 0 ? pairedEventIds : [parsed.id];
+    const { error } = await supabase.from("attendance_events").delete().in("id", deleteIds);
     if (error) throw error;
 
     await writeAuditLog({
@@ -1595,9 +1604,14 @@ export async function deleteAttendanceEvent(_previousState: ActionState, formDat
       targetTable: "attendance_events",
       targetId: parsed.id,
       beforeData: beforeData as Record<string, unknown>,
+      metadata: {
+        eventDate: beforeData.event_date,
+        deletedEventIds: deleteIds,
+        deletedEventTitles: (pairedEvents ?? []).map((event) => event.title),
+      },
     });
     revalidateAppData();
-    return "출석 이벤트를 삭제했습니다. 연결된 출석 기록도 함께 정리됩니다.";
+    return "선택한 날짜의 주일 예배와 순모임 출석 이벤트를 함께 삭제했습니다.";
   });
 }
 

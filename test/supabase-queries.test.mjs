@@ -271,6 +271,7 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(globalCssSource, /snapshot-mini-metrics/);
   assert.match(globalCssSource, /\.snapshot-grid-row/);
   assert.doesNotMatch(globalCssSource, /\.snapshot-member-row \{\s*display: contents/s);
+  assert.doesNotMatch(globalCssSource, /\.group-attendance-snapshot-grid\.two-events\s*\{\s*grid-template-columns/s);
   assert.match(globalCssSource, /grid-template-columns: repeat\(4, minmax\(64px, 1fr\)\)/);
   assert.match(globalCssSource, /attendance-group-strip/);
   assert.match(globalCssSource, /snapshot-member-name/);
@@ -445,9 +446,13 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(actionsSource, /선택한 출석 이벤트가 이미 모두 있습니다/);
   assert.match(actionsSource, /export async function deleteAttendanceEvent/);
   assert.match(actionsSource, /attendance_event\.delete/);
+  assert.match(actionsSource, /eq\("event_date", beforeData\.event_date\)/);
+  assert.match(actionsSource, /in\("title", attendanceEventTitles\)/);
+  assert.match(actionsSource, /선택한 날짜의 주일 예배와 순모임 출석 이벤트를 함께 삭제했습니다/);
   assert.match(actionsSource, /canUseDeleteActions\(currentMember\.role\)/);
   assert.match(dashboardSource, /eventPendingDelete/);
-  assert.match(dashboardSource, /출석 이벤트를 지울까요/);
+  assert.match(dashboardSource, /이 날짜의 출석 이벤트를 지울까요/);
+  assert.match(dashboardSource, /주일 예배와 순모임 이벤트를 함께 삭제합니다/);
   assert.match(dashboardSource, /deleteEventAction/);
   assert.doesNotMatch(dashboardSource, /member\.groupName} · {member\.phone/);
 });
