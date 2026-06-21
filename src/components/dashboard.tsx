@@ -283,6 +283,17 @@ function chooseAttendanceShortcutEvent(attendanceEvents: AttendanceEvent[]) {
   return candidates.find((event) => event.title === "순모임") ?? candidates.find((event) => event.title === "주일 예배") ?? candidates[0];
 }
 
+const attendanceOverviewTitleOrder = ["주일 예배", "순모임"] as const;
+
+function getAttendanceOverviewEvents(events: AttendanceEvent[], selectedEventId?: string) {
+  return attendanceOverviewTitleOrder.flatMap((title) => {
+    const matchingEvents = events.filter((event) => event.title === title);
+    const selectedEvent = matchingEvents.find((event) => event.id === selectedEventId);
+    const event = selectedEvent ?? matchingEvents[0];
+    return event ? [event] : [];
+  });
+}
+
 function formatStatusUpdatedAt(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "방금";
@@ -2824,9 +2835,7 @@ export function AttendanceManager({
       : groups.map((group) => ({ id: group.id, name: group.name }))),
     ...(user.role === "member" && currentAttendanceMember?.groupId ? [] : [{ id: "unassigned", name: "미배정" }]),
   ];
-  const attendanceOverviewEvents = sameDateEvents
-    .filter((event) => event.title === "주일 예배" || event.title === "순모임")
-    .sort((a, b) => (a.title === "주일 예배" ? -1 : 1) - (b.title === "주일 예배" ? -1 : 1));
+  const attendanceOverviewEvents = getAttendanceOverviewEvents(sameDateEvents, selectedAttendanceEvent?.id);
   const attendanceOverviewStats = attendanceOverviewEvents.map((event) => {
     const presentCount = attendanceOverviewMembers.filter((member) => getMemberAttendanceStatus(member, event.id) === "present").length;
     const excusedCount = attendanceOverviewMembers.filter((member) => getMemberAttendanceStatus(member, event.id) === "excused").length;
