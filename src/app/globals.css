@@ -4425,12 +4425,10 @@ tbody tr:hover {
   gap: 6px;
 }
 
-.group-attendance-snapshot-grid.two-events,
 .group-attendance-snapshot-grid.two-events .snapshot-grid-row {
   grid-template-columns: minmax(120px, 1fr) repeat(2, minmax(86px, 0.48fr));
 }
 
-.group-attendance-snapshot-grid.single-event,
 .group-attendance-snapshot-grid.single-event .snapshot-grid-row {
   grid-template-columns: minmax(120px, 1fr) minmax(86px, 0.48fr);
 }
@@ -5531,12 +5529,10 @@ tbody tr:hover {
     font-size: 0.98rem;
   }
 
-  .group-attendance-snapshot-grid.two-events,
   .group-attendance-snapshot-grid.two-events .snapshot-grid-row {
     grid-template-columns: minmax(94px, 1fr) repeat(2, minmax(64px, 0.46fr));
   }
 
-  .group-attendance-snapshot-grid.single-event,
   .group-attendance-snapshot-grid.single-event .snapshot-grid-row {
     grid-template-columns: minmax(94px, 1fr) minmax(70px, 0.46fr);
   }

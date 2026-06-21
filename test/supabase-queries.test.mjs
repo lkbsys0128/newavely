@@ -271,6 +271,7 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(globalCssSource, /snapshot-mini-metrics/);
   assert.match(globalCssSource, /\.snapshot-grid-row/);
   assert.doesNotMatch(globalCssSource, /\.snapshot-member-row \{\s*display: contents/s);
+  assert.doesNotMatch(globalCssSource, /\.group-attendance-snapshot-grid\.two-events\s*\{\s*grid-template-columns/s);
   assert.match(globalCssSource, /grid-template-columns: repeat\(4, minmax\(64px, 1fr\)\)/);
   assert.match(globalCssSource, /attendance-group-strip/);
   assert.match(globalCssSource, /snapshot-member-name/);
