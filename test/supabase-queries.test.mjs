@@ -264,6 +264,8 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /attendance-group-chip/);
   assert.match(dashboardSource, /AttendanceMemberActionModal/);
   assert.match(dashboardSource, /AttendanceReasonModal/);
+  assert.match(dashboardSource, /<AttendanceMemberActionModal[\s\S]*attendanceEvents=\{attendanceOverviewEvents\}/);
+  assert.match(dashboardSource, /<AttendanceReasonModal[\s\S]*attendanceEvents=\{attendanceOverviewEvents\}/);
   assert.match(dashboardSource, /snapshot-grid-row snapshot-member-row/);
   assert.match(dashboardSource, /snapshot-member-name/);
   assert.match(dashboardSource, /snapshot-status-button/);
