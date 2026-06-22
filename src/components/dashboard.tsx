@@ -2954,7 +2954,7 @@ export function AttendanceManager({
       ) : null}
       {selectedAttendanceModalMember && attendanceMemberModal?.mode === "menu" ? (
         <AttendanceMemberActionModal
-          attendanceEvents={sameDateEvents}
+          attendanceEvents={attendanceOverviewEvents}
           member={selectedAttendanceModalMember}
           onClose={() => setAttendanceMemberModal(null)}
           onOpenReason={() => setAttendanceMemberModal({ memberId: selectedAttendanceModalMember.id, mode: "reason" })}
@@ -2963,7 +2963,7 @@ export function AttendanceManager({
       {selectedAttendanceModalMember && attendanceMemberModal?.mode === "reason" ? (
         <AttendanceReasonModal
           attendanceDate={attendanceDate}
-          attendanceEvents={sameDateEvents}
+          attendanceEvents={attendanceOverviewEvents}
           canManageAttendance={canManageAttendance}
           member={selectedAttendanceModalMember}
           onBack={() => setAttendanceMemberModal({ memberId: selectedAttendanceModalMember.id, mode: "menu" })}
