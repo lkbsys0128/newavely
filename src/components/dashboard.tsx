@@ -1847,7 +1847,8 @@ function getNewFamilyExpectedGroup(applicant: NewFamilyApplicant) {
 }
 
 export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }: AppDataProps) {
-  const canManageNewFamily = hasPermission(user.role, "roles:manage");
+  const canReadNewFamily = hasPermission(user.role, "new-family:read");
+  const canManageNewFamily = hasPermission(user.role, "new-family:write");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<NewFamilyApplicant["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<NewFamilySort>("latest");
@@ -1911,7 +1912,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
     groups.find((group) => normalizeNewFamilyGroupName(group.name) === normalizeNewFamilyGroupName(selectedExpectedGroup))?.id ?? "";
   const shouldGuideToMemberCreation = selectedApplicant && selectedStatusDraft === "completed" && !selectedApplicant.convertedMemberId;
 
-  if (!canManageNewFamily) {
+  if (!canReadNewFamily) {
     return (
       <>
         <PageHeader eyebrow="새가족 관리" title="새가족" user={user} />
@@ -4488,6 +4489,7 @@ const roleLabels: Record<Role, string> = {
   admin: "관리자",
   leader: "리더",
   staff: "순장",
+  welcome: "웰컴팀",
   member: "멤버",
 };
 
@@ -4496,7 +4498,8 @@ const roleOrder: Record<Role, number> = {
   admin: 1,
   leader: 2,
   staff: 3,
-  member: 4,
+  welcome: 4,
+  member: 5,
 };
 
 function getAssignableRoleEntries(actorRole: Role): Array<[Role, string]> {
@@ -4535,6 +4538,8 @@ const permissionLabels = {
   "sensitive:read": "민감 정보 열람",
   "links:read": "링크 보기",
   "links:write": "링크 추가",
+  "new-family:read": "새가족 보기",
+  "new-family:write": "새가족 수정",
 };
 
 const auditActionLabels: Record<string, string> = {

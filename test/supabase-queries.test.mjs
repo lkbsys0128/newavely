@@ -29,6 +29,11 @@ const publicDashboardDataSource = readFileSync(new URL("../db/026_public_dashboa
 const newFamilyApplicantsSource = readFileSync(new URL("../db/027_new_family_applicants.sql", import.meta.url), "utf8");
 const newFamilyStatusFlowSource = readFileSync(new URL("../db/028_new_family_status_flow.sql", import.meta.url), "utf8");
 const newFamilyExpectedGroupSource = readFileSync(new URL("../db/029_new_family_expected_group.sql", import.meta.url), "utf8");
+const welcomeTeamRoleSource = readFileSync(new URL("../db/030_welcome_team_role.sql", import.meta.url), "utf8");
+const welcomeTeamNewFamilyPoliciesSource = readFileSync(
+  new URL("../db/031_welcome_team_new_family_policies.sql", import.meta.url),
+  "utf8",
+);
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -183,10 +188,11 @@ test("member permanent delete follows role hierarchy and is audited", () => {
 });
 
 test("schema supports owner role above admin", () => {
-  assert.match(schemaSource, /create type member_role as enum \('owner', 'admin', 'leader', 'staff', 'member'\)/);
+  assert.match(schemaSource, /create type member_role as enum \('owner', 'admin', 'leader', 'staff', 'welcome', 'member'\)/);
   assert.match(actionsSource, /owner:manage/);
   assert.match(dashboardSource, /최고 관리자/);
   assert.match(ownerRoleMigrationSource, /alter type member_role add value if not exists 'owner'/);
+  assert.match(welcomeTeamRoleSource, /alter type member_role add value if not exists 'welcome'/);
   assert.match(ownerRolePoliciesSource, /set role = 'owner'/);
 });
 
@@ -732,11 +738,12 @@ test("admin feedback inbox lets users message admins and admins update status", 
   assert.match(globalCssSource, /feedback-inbox-panel/);
 });
 
-test("new family applicants sync from Google Sheets into an admin-only roster", () => {
+test("new family applicants sync from Google Sheets into a role-gated roster", () => {
   assert.match(schemaSource, /create table new_family_applicants/);
   assert.match(schemaSource, /week_3/);
   assert.match(schemaSource, /expected_group text/);
-  assert.match(newFamilyApplicantsSource, /current_member_role\(\) in \('owner', 'admin'\)/);
+  assert.match(newFamilyApplicantsSource, /current_member_role\(\) in \('owner', 'admin', 'welcome'\)/);
+  assert.match(welcomeTeamNewFamilyPoliciesSource, /current_member_role\(\) in \('owner', 'admin', 'welcome'\)/);
   assert.match(newFamilyApplicantsSource, /source_key text not null unique/);
   assert.match(newFamilyApplicantsSource, /expected_group text/);
   assert.match(newFamilyExpectedGroupSource, /add column if not exists expected_group text/);
@@ -746,7 +753,8 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(newFamilyStatusFlowSource, /week_3/);
   assert.match(dataSource, /export async function getNewFamilyApplicants/);
   assert.match(appPageDataSource, /"new-family"/);
-  assert.match(appPageDataSource, /shouldLoadNewFamilyApplicants && canManageRoles/);
+  assert.match(appPageDataSource, /canReadNewFamily = hasPermission\(currentMember\.role, "new-family:read"\)/);
+  assert.match(appPageDataSource, /shouldLoadNewFamilyApplicants && canReadNewFamily/);
   assert.match(googleSheetsSource, /export async function readGoogleSheetValues/);
   assert.match(googleSheetsSource, /scannedSheetNames/);
   assert.match(googleSheetsSource, /values\.length > 1/);
@@ -755,6 +763,7 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(newFamilySyncSource, /function pickLikelyName/);
   assert.match(newFamilySyncSource, /source_key: `\$\{spreadsheetId\}:\$\{sheetName\}:\$\{sourceRowNumber\}`/);
   assert.match(actionsSource, /export async function syncNewFamilyApplicants/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("new-family:write"\)/);
   assert.match(actionsSource, /행을 읽었지만 등록 가능한 새가족 이름을 찾지 못했습니다/);
   assert.match(actionsSource, /export async function updateNewFamilyApplicant/);
   assert.match(actionsSource, /expectedGroup: formData\.get\("expectedGroup"\)/);
@@ -770,6 +779,8 @@ test("new family applicants sync from Google Sheets into an admin-only roster", 
   assert.match(vercelConfigSource, /\/api\/cron\/sync-new-family/);
   assert.match(newFamilyPageSource, /NewFamilyPageContent/);
   assert.match(dashboardSource, /export function NewFamilyPageContent/);
+  assert.match(dashboardSource, /hasPermission\(user\.role, "new-family:read"\)/);
+  assert.match(dashboardSource, /hasPermission\(user\.role, "new-family:write"\)/);
   assert.match(dashboardSource, /new-family-metrics/);
   assert.match(dashboardSource, /newFamilyStatusOrder/);
   assert.match(dashboardSource, /수료예정/);

@@ -5,6 +5,7 @@ const roleRank: Record<Role, number> = {
   admin: 4,
   leader: 3,
   staff: 3,
+  welcome: 1,
   member: 1,
 };
 

@@ -11,7 +11,7 @@ test("new logins always start with member role", () => {
 });
 
 test("owner sits above admin for privileged operations", () => {
-  assert.deepEqual(Array.from(roles), ["owner", "admin", "leader", "staff", "member"]);
+  assert.deepEqual(Array.from(roles), ["owner", "admin", "leader", "staff", "welcome", "member"]);
   assert(permissionsByRole.owner.includes("owner:manage"));
   assert(permissionsByRole.admin.includes("roles:manage"));
   assert.equal(permissionsByRole.admin.includes("owner:manage"), false);
@@ -27,4 +27,14 @@ test("important links can be added by soonjang and deleted by admins", () => {
 
 test("soonjang keeps the same app permissions as leader", () => {
   assert.deepEqual(permissionsByRole.staff, permissionsByRole.leader);
+});
+
+test("welcome team keeps member access plus new family read and write", () => {
+  assert(permissionsByRole.welcome.includes("members:read"));
+  assert(permissionsByRole.welcome.includes("groups:read"));
+  assert(permissionsByRole.welcome.includes("links:read"));
+  assert(permissionsByRole.welcome.includes("new-family:read"));
+  assert(permissionsByRole.welcome.includes("new-family:write"));
+  assert.equal(permissionsByRole.welcome.includes("members:write"), false);
+  assert.equal(permissionsByRole.welcome.includes("roles:manage"), false);
 });
