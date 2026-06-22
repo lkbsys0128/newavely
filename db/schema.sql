@@ -139,6 +139,7 @@ create table new_family_applicants (
   email text,
   phone text,
   group_interest text,
+  expected_group text,
   memo text,
   status text not null default 'new' check (status in ('new', 'contacted', 'week_1', 'week_2', 'week_3', 'completed', 'archived')),
   source_data jsonb not null default '{}'::jsonb,

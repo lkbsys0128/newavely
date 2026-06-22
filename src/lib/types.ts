@@ -140,6 +140,7 @@ export type NewFamilyApplicant = {
   email: string;
   phone: string;
   groupInterest: string;
+  expectedGroup: string;
   memo: string;
   status: "new" | "contacted" | "week_1" | "week_2" | "week_3" | "completed" | "archived";
   sourceData: Record<string, unknown>;

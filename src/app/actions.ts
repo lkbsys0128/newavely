@@ -106,6 +106,7 @@ const updateAdminFeedbackSchema = z.object({
 const updateNewFamilyApplicantSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(["new", "contacted", "week_1", "week_2", "week_3", "completed", "archived"]),
+  expectedGroup: nullableText,
   memo: nullableText,
 });
 
@@ -743,6 +744,7 @@ export async function updateNewFamilyApplicant(_previousState: ActionState, form
     const parsed = updateNewFamilyApplicantSchema.parse({
       id: formData.get("id"),
       status: formData.get("status"),
+      expectedGroup: formData.get("expectedGroup"),
       memo: formData.get("memo"),
     });
 
@@ -757,6 +759,7 @@ export async function updateNewFamilyApplicant(_previousState: ActionState, form
       .from("new_family_applicants")
       .update({
         status: parsed.status,
+        expected_group: parsed.expectedGroup,
         memo: parsed.memo,
         updated_at: new Date().toISOString(),
       })
@@ -775,7 +778,7 @@ export async function updateNewFamilyApplicant(_previousState: ActionState, form
     });
 
     revalidateAppData();
-    return "새가족 상태를 저장했습니다.";
+    return "새가족 신청 정보를 저장했습니다.";
   });
 }
 
@@ -805,6 +808,7 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
     const week2AttendanceDate = pickNewFamilySourceValue(sourceData, ["2주차 출석일"]);
     const week3AttendanceDate = pickNewFamilySourceValue(sourceData, ["3주차 출석일"]);
     const completionDueDate = pickNewFamilySourceValue(sourceData, ["수료 예정일"]);
+    const expectedGroup = applicant.expected_group || applicant.group_interest || pickNewFamilySourceValue(sourceData, ["예정 순", "희망순", "관심 순", "관심순", "순"]);
     const placeholderEmail = `new-family-${applicant.id}@placeholder.local`;
     const { data: insertedMember, error: insertError } = await supabase
       .from("members")
@@ -822,6 +826,7 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
           source: pickNewFamilySourceValue(sourceData, ["source"]) === "legacy_new_family_csv_2026" ? "legacy_new_family_csv_2026" : "new_family_google_form",
           new_family_applicant_id: applicant.id,
           group_interest: applicant.group_interest,
+          expected_group: expectedGroup,
           gender,
           birthdate,
           age,
