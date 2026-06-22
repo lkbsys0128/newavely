@@ -36,7 +36,7 @@ const memberSchema = z.object({
   address: nullableText,
   baptismStatus: z.preprocess(normalizeBaptismStatus, nullableText),
   notes: nullableText,
-  role: z.enum(["owner", "admin", "leader", "staff", "member"]),
+  role: z.enum(["owner", "admin", "leader", "staff", "welcome", "member"]),
   status: z.enum(["active", "new", "care", "inactive"]),
 });
 
@@ -61,7 +61,7 @@ const mergeMemberProfileSchema = z.object({
 
 const updateMemberRoleSchema = z.object({
   id: z.string().uuid(),
-  role: z.enum(["owner", "admin", "leader", "staff", "member"]),
+  role: z.enum(["owner", "admin", "leader", "staff", "welcome", "member"]),
 });
 
 const deleteMemberSchema = z.object({
@@ -287,7 +287,8 @@ async function getAuthorizedCurrentMember(
     | "attendance:write"
     | "roles:manage"
     | "owner:manage"
-    | "links:write",
+    | "links:write"
+    | "new-family:write",
 ) {
   const supabase = await createClient();
   const {
@@ -397,6 +398,7 @@ const rolePriority: Record<Role, number> = {
   admin: 4,
   leader: 3,
   staff: 3,
+  welcome: 1,
   member: 1,
 };
 
@@ -704,7 +706,7 @@ export async function exportMembersToGoogleSheet(_previousState: ActionState, _f
 
 export async function syncNewFamilyApplicants(_previousState: ActionState, _formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const { supabase } = await getAuthorizedCurrentMember("new-family:write");
     const result = await syncNewFamilyApplicantsFromSheet(supabase);
 
     await writeAuditLog({
@@ -740,7 +742,7 @@ export async function syncNewFamilyApplicants(_previousState: ActionState, _form
 
 export async function updateNewFamilyApplicant(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const { supabase } = await getAuthorizedCurrentMember("new-family:write");
     const parsed = updateNewFamilyApplicantSchema.parse({
       id: formData.get("id"),
       status: formData.get("status"),
@@ -784,7 +786,7 @@ export async function updateNewFamilyApplicant(_previousState: ActionState, form
 
 export async function convertNewFamilyApplicantToMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const { supabase } = await getAuthorizedCurrentMember("new-family:write");
     const parsed = convertNewFamilyApplicantSchema.parse({
       id: formData.get("id"),
       groupId: formData.get("groupId"),

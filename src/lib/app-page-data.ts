@@ -788,6 +788,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
     }
     const page = options.page ?? "dashboard";
     const canManageRoles = hasPermission(currentMember.role, "roles:manage");
+    const canReadNewFamily = hasPermission(currentMember.role, "new-family:read");
     const shouldLoadCustomFields = page === "profile" || page === "member-detail";
     const shouldLoadAuditLogs = page === "audit";
     const shouldLoadDeletedAuthUsers = page === "permissions";
@@ -814,7 +815,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       shouldLoadMemberStatusMessages ? getMemberStatusMessages(supabase) : Promise.resolve([]),
       shouldLoadAdminFeedback ? getAdminFeedbackMessages(supabase, currentMember.id, canManageRoles) : Promise.resolve([]),
       getMemberLinkRequests(supabase, currentMember.id, canManageRoles),
-      shouldLoadNewFamilyApplicants && canManageRoles ? getNewFamilyApplicants(supabase) : Promise.resolve([]),
+      shouldLoadNewFamilyApplicants && canReadNewFamily ? getNewFamilyApplicants(supabase) : Promise.resolve([]),
     ]);
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
       ? allCustomFieldDefinitions

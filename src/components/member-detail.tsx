@@ -735,6 +735,7 @@ const roleLabels: Record<Role, string> = {
   admin: "관리자",
   leader: "리더",
   staff: "순장",
+  welcome: "웰컴팀",
   member: "멤버",
 };
 

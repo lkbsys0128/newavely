@@ -1,4 +1,4 @@
-create type member_role as enum ('owner', 'admin', 'leader', 'staff', 'member');
+create type member_role as enum ('owner', 'admin', 'leader', 'staff', 'welcome', 'member');
 create type member_status as enum ('active', 'new', 'care', 'inactive');
 create type attendance_status as enum ('present', 'absent', 'excused');
 create type care_followup_status as enum ('needed', 'contacted', 'prayer', 'resolved');
@@ -507,18 +507,18 @@ with check (public.current_member_role() in ('owner', 'admin'));
 create policy "owners and admins can read new family applicants"
 on new_family_applicants for select
 to authenticated
-using (public.current_member_role() in ('owner', 'admin'));
+using (public.current_member_role() in ('owner', 'admin', 'welcome'));
 
 create policy "owners and admins can create new family applicants"
 on new_family_applicants for insert
 to authenticated
-with check (public.current_member_role() in ('owner', 'admin'));
+with check (public.current_member_role() in ('owner', 'admin', 'welcome'));
 
 create policy "owners and admins can update new family applicants"
 on new_family_applicants for update
 to authenticated
-using (public.current_member_role() in ('owner', 'admin'))
-with check (public.current_member_role() in ('owner', 'admin'));
+using (public.current_member_role() in ('owner', 'admin', 'welcome'))
+with check (public.current_member_role() in ('owner', 'admin', 'welcome'));
 
 create or replace function get_public_dashboard_groups()
 returns table (

@@ -30,15 +30,15 @@ alter table new_family_applicants enable row level security;
 drop policy if exists "owners and admins can read new family applicants" on new_family_applicants;
 create policy "owners and admins can read new family applicants"
 on new_family_applicants for select
-using (current_member_role() in ('owner', 'admin'));
+using (current_member_role() in ('owner', 'admin', 'welcome'));
 
 drop policy if exists "owners and admins can create new family applicants" on new_family_applicants;
 create policy "owners and admins can create new family applicants"
 on new_family_applicants for insert
-with check (current_member_role() in ('owner', 'admin'));
+with check (current_member_role() in ('owner', 'admin', 'welcome'));
 
 drop policy if exists "owners and admins can update new family applicants" on new_family_applicants;
 create policy "owners and admins can update new family applicants"
 on new_family_applicants for update
-using (current_member_role() in ('owner', 'admin'))
-with check (current_member_role() in ('owner', 'admin'));
+using (current_member_role() in ('owner', 'admin', 'welcome'))
+with check (current_member_role() in ('owner', 'admin', 'welcome'));
