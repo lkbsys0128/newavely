@@ -46,6 +46,11 @@ type DbPublicDashboardMember = {
   }> | null;
 };
 
+type DbPublicPermissionRoleCount = {
+  role: Role;
+  member_count: number;
+};
+
 type DbNewFamilyApplicant = {
   id: string;
   source_row_number: number;
@@ -504,6 +509,7 @@ export async function getPublicDashboardData(supabase: SupabaseClient, selectedE
     { data: eventsData, error: eventsError },
     { data: groupsData, error: groupsError },
     { data: membersData, error: membersError },
+    { data: roleCountsData, error: roleCountsError },
   ] = await Promise.all([
     supabase
       .from("attendance_events")
@@ -512,11 +518,13 @@ export async function getPublicDashboardData(supabase: SupabaseClient, selectedE
       .order("title", { ascending: true }),
     supabase.rpc("get_public_dashboard_groups"),
     supabase.rpc("get_public_dashboard_members"),
+    supabase.rpc("get_public_permission_role_counts"),
   ]);
 
   if (eventsError) throw eventsError;
   if (groupsError) throw groupsError;
   if (membersError) throw membersError;
+  if (roleCountsError) throw roleCountsError;
 
   const attendanceEvents = (eventsData as unknown as DbAttendanceEvent[]).map<AttendanceEvent>((event) => ({
     id: event.id,
@@ -574,6 +582,10 @@ export async function getPublicDashboardData(supabase: SupabaseClient, selectedE
     attendanceEvents,
     groups,
     members,
+    permissionRoleCounts: ((roleCountsData ?? []) as unknown as DbPublicPermissionRoleCount[]).map((row) => ({
+      role: row.role,
+      count: Number(row.member_count ?? 0),
+    })),
   };
 }
 

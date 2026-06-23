@@ -3811,7 +3811,7 @@ function updateLocalAttendanceHistory({
   return currentRecord ? history.map((record) => (record.eventId === eventId ? nextRecord : record)) : [nextRecord, ...history];
 }
 
-export function PermissionsPageContent({ user, members, groups, memberLinkRequests = [], deletedAuthUsers = [] }: AppDataProps) {
+export function PermissionsPageContent({ user, members, groups, memberLinkRequests = [], deletedAuthUsers = [], globalStats }: AppDataProps) {
   const [roleSearchQuery, setRoleSearchQuery] = useState("");
   const [roleState, roleAction, isUpdatingRole] = useActionState(updateMemberRole, initialActionState);
   const [approveState, approveAction, isApprovingRequest] = useActionState(approveMemberLinkRequest, initialActionState);
@@ -3824,7 +3824,13 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
   const rejectedLinkRequests = memberLinkRequests
     .filter((request) => request.status === "rejected" && request.requesterStatus !== "inactive")
     .slice(0, 10);
+  const permissionRoleCounts = globalStats?.permissions.roleCounts ?? [];
+  const roleCountByRole = new Map(permissionRoleCounts.map((row) => [row.role, row.count]));
   const activeAdmins = members.filter((member) => member.role === "admin" && member.status !== "inactive");
+  const activeAdminCount = globalStats?.permissions.activeAdminCount ?? activeAdmins.length;
+  const leaderAndStaffCount =
+    globalStats?.permissions.leaderAndStaffCount ??
+    members.filter((member) => member.status !== "inactive" && (member.role === "leader" || member.role === "staff")).length;
   const ownerAndAdmins = members.filter(
     (member) => (member.role === "owner" || member.role === "admin") && member.status !== "inactive",
   );
@@ -3867,12 +3873,12 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
       <div className="metric-grid" id="permission-metrics">
         <article className="metric-card">
           <span>관리자</span>
-          <strong>{activeAdmins.length}</strong>
+          <strong>{activeAdminCount}</strong>
           <small>운영 관리자</small>
         </article>
         <article className="metric-card">
           <span>리더/순장</span>
-          <strong>{members.filter((member) => member.role === "leader" || member.role === "staff").length}</strong>
+          <strong>{leaderAndStaffCount}</strong>
           <small>운영 권한 보유</small>
         </article>
         <article className="metric-card">
@@ -3892,15 +3898,17 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         <div className="permission-matrix">
           {visiblePermissionEntries.map(([role, permissions]) => {
             const roleMembers = visibleRoleMembers.filter((member) => member.role === role).sort((a, b) => a.name.localeCompare(b.name));
+            const roleMemberCount = roleCountByRole.get(role) ?? roleMembers.length;
+            const hasFullRoleMemberList = roleMembers.length === roleMemberCount;
             return (
               <article className="permission-row" key={role} tabIndex={0}>
                 <div className="person-block permission-role-summary">
                   <strong>{roleLabels[role]}</strong>
-                  <span>{roleMembers.length}명 배정</span>
+                  <span>{roleMemberCount}명 배정</span>
                   <div className="role-member-overlay" role="tooltip">
                     <div className="role-member-overlay-heading">
                       <strong>{roleLabels[role]} 멤버</strong>
-                      <span>{roleMembers.length}명</span>
+                      <span>{roleMemberCount}명</span>
                     </div>
                     <div className="role-member-overlay-list">
                       {roleMembers.slice(0, 12).map((member) => (
@@ -3909,8 +3917,13 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                           <small>{member.groupName}</small>
                         </span>
                       ))}
-                      {roleMembers.length > 12 ? <span className="role-member-overlay-more">+{roleMembers.length - 12}명 더 있음</span> : null}
-                      {roleMembers.length === 0 ? <span className="role-member-overlay-empty">배정된 멤버가 없습니다</span> : null}
+                      {hasFullRoleMemberList && roleMembers.length > 12 ? (
+                        <span className="role-member-overlay-more">+{roleMembers.length - 12}명 더 있음</span>
+                      ) : null}
+                      {!hasFullRoleMemberList ? (
+                        <span className="role-member-overlay-more">상세 명단은 현재 열람 가능한 멤버만 표시됩니다</span>
+                      ) : null}
+                      {roleMemberCount === 0 ? <span className="role-member-overlay-empty">배정된 멤버가 없습니다</span> : null}
                     </div>
                   </div>
                 </div>

@@ -184,6 +184,17 @@ export type AttendancePageStats = {
   eventGroupTrend: AttendanceEventGroupTrendStat[];
 };
 
+export type PermissionRoleCount = {
+  role: Role;
+  count: number;
+};
+
+export type PermissionPageStats = {
+  roleCounts: PermissionRoleCount[];
+  activeAdminCount: number;
+  leaderAndStaffCount: number;
+};
+
 export type GlobalAppStats = {
   dashboardMetrics: DashboardMetrics;
   statisticsSummary: StatisticsSummary;
@@ -191,6 +202,7 @@ export type GlobalAppStats = {
   groupPage: GroupPageStats;
   groupAttendanceSummary: GroupAttendanceSummary[];
   attendance: AttendancePageStats;
+  permissions: PermissionPageStats;
 };
 
 export type OnboardingAppPageData = {
@@ -241,10 +253,22 @@ export function buildDashboardMetrics(members: Member[], groups: Group[]): Dashb
   };
 }
 
-export function buildGlobalAppStats(members: Member[], groups: Group[], attendanceEvents: AttendanceEvent[], selectedEventId?: string): GlobalAppStats {
+export function buildGlobalAppStats(
+  members: Member[],
+  groups: Group[],
+  attendanceEvents: AttendanceEvent[],
+  selectedEventId?: string,
+  permissionRoleCounts?: PermissionRoleCount[],
+): GlobalAppStats {
   const visibleMembers = members.filter((member) => !isMergedPlaceholderMember(member));
   const activeMembers = visibleMembers.filter((member) => member.status !== "inactive");
   const attendanceMembers = visibleMembers.filter((member) => isAttendanceStatsMember(member));
+  const roleCounts =
+    permissionRoleCounts ??
+    (["owner", "admin", "leader", "staff", "welcome", "member"] as Role[]).map((role) => ({
+      role,
+      count: activeMembers.filter((member) => member.role === role).length,
+    }));
   const dashboardMetrics = buildDashboardMetrics(members, groups);
   const selectedEvent = attendanceEvents.find((event) => event.id === selectedEventId) ?? attendanceEvents[0];
   const currentPresentCount = attendanceMembers.filter((member) => isPresentForEvent(member, selectedEvent?.id)).length;
@@ -257,6 +281,12 @@ export function buildGlobalAppStats(members: Member[], groups: Group[], attendan
     dashboardInsights: buildDashboardInsights(activeMembers, groups),
     groupPage: buildGroupPageStats(activeMembers, groups),
     groupAttendanceSummary: buildDashboardGroupAttendanceSummary(attendanceMembers, groups, attendanceEvents),
+    permissions: {
+      roleCounts,
+      activeAdminCount: roleCounts.find((row) => row.role === "admin")?.count ?? 0,
+      leaderAndStaffCount:
+        (roleCounts.find((row) => row.role === "leader")?.count ?? 0) + (roleCounts.find((row) => row.role === "staff")?.count ?? 0),
+    },
     attendance: {
       activeMemberCount: attendanceMembers.length,
       currentPresentCount,
@@ -827,11 +857,14 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       groups: dashboardData.groups,
       members: dashboardData.members,
     });
+    const permissionRoleCounts =
+      "permissionRoleCounts" in publicDashboardData ? (publicDashboardData.permissionRoleCounts as PermissionRoleCount[]) : undefined;
     const globalStats = buildGlobalAppStats(
       publicDashboardData.members,
       publicDashboardData.groups,
       publicDashboardData.attendanceEvents,
       publicDashboardData.attendanceEventId,
+      permissionRoleCounts,
     );
 
     return {
