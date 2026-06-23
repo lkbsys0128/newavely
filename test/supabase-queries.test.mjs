@@ -34,6 +34,7 @@ const welcomeTeamNewFamilyPoliciesSource = readFileSync(
   new URL("../db/031_welcome_team_new_family_policies.sql", import.meta.url),
   "utf8",
 );
+const publicPermissionRoleCountsSource = readFileSync(new URL("../db/032_public_permission_role_counts.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -299,6 +300,7 @@ test("dashboard metric cards use role-independent server metrics", () => {
   assert.match(dataSource, /export async function getPublicDashboardData/);
   assert.match(dataSource, /get_public_dashboard_members/);
   assert.match(dataSource, /get_public_dashboard_groups/);
+  assert.match(dataSource, /get_public_permission_role_counts/);
   assert.match(appPageDataSource, /if \(!hasPermission\(currentMember\.role, "members:write"\)\)/);
   assert.match(appPageDataSource, /publicDashboardData = await getPublicDashboardData/);
   assert.match(appPageDataSource, /isMissingPublicDashboardDataRpc/);
@@ -311,6 +313,7 @@ test("dashboard metric cards use role-independent server metrics", () => {
   assert.match(dashboardSource, /const metrics = dashboardMetrics \?\?/);
   assert.match(dashboardSource, /globalStats\?\.statisticsSummary/);
   assert.match(dashboardSource, /globalStats\?\.groupAttendanceSummary/);
+  assert.match(dashboardSource, /globalStats\?\.permissions/);
   assert.match(dashboardSource, /metrics\.totalMembers/);
   assert.match(dashboardSource, /metrics\.attendanceEligibleMembers/);
 });
@@ -319,6 +322,7 @@ test("app page data avoids avoidable serial fetches", () => {
   assert.match(dataSource, /Promise\.all\(\[\s*supabase\s*\.from\("attendance_events"\)/);
   assert.match(dataSource, /supabase\.rpc\("get_public_dashboard_groups"\)/);
   assert.match(dataSource, /supabase\.rpc\("get_public_dashboard_members"\)/);
+  assert.match(dataSource, /supabase\.rpc\("get_public_permission_role_counts"\)/);
   assert.match(appPageDataSource, /type AppPageKind =/);
   assert.match(appPageDataSource, /const page = options\.page \?\? "dashboard"/);
   assert.match(appPageDataSource, /const shouldLoadCustomFields = page === "profile" \|\| page === "member-detail"/);
@@ -337,6 +341,10 @@ test("app page data avoids avoidable serial fetches", () => {
 test("common aggregate stats use unscoped server data while pages receive scoped members", () => {
   assert.match(publicDashboardDataSource, /security definer/);
   assert.match(publicDashboardDataSource, /grant execute on function get_public_dashboard_members\(\) to authenticated/);
+  assert.match(publicPermissionRoleCountsSource, /create or replace function get_public_permission_role_counts\(\)/);
+  assert.match(publicPermissionRoleCountsSource, /returns table \(\s*role member_role,\s*member_count bigint\s*\)/);
+  assert.match(publicPermissionRoleCountsSource, /coalesce\(m\.email, ''\) not ilike '%@merged\.local'/);
+  assert.match(publicPermissionRoleCountsSource, /grant execute on function get_public_permission_role_counts\(\) to authenticated/);
   assert.match(publicDashboardDataSource, /jsonb_build_object\(\s*'english_name'/);
   assert.doesNotMatch(publicDashboardDataSource, /'phone'/);
   assert.match(appPageDataSource, /const scopedMembers = scopeMembersForRole/);
@@ -556,6 +564,10 @@ test("permissions page exposes member search for role management", () => {
   assert.match(dashboardSource, /visiblePermissionEntries/);
   assert.match(dashboardSource, /role !== "owner"/);
   assert.match(dashboardSource, /<h2>역할 기반 권한<\/h2>/);
+  assert.match(dashboardSource, /permissionRoleCounts = globalStats\?\.permissions\.roleCounts \?\? \[\]/);
+  assert.match(dashboardSource, /activeAdminCount = globalStats\?\.permissions\.activeAdminCount \?\? activeAdmins\.length/);
+  assert.match(dashboardSource, /leaderAndStaffCount =\s*globalStats\?\.permissions\.leaderAndStaffCount/);
+  assert.match(dashboardSource, /roleMemberCount = roleCountByRole\.get\(role\) \?\? roleMembers\.length/);
   assert.match(dashboardSource, /visibleRoleMembers/);
   assert.match(dashboardSource, /roleMembers\.slice\(0, 12\)/);
   assert.match(dashboardSource, /className="role-member-overlay"/);
