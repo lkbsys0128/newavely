@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { loadTsModule } from "./load-ts-module.mjs";
 
-const { getRoleForEmail, permissionsByRole, roles } = loadTsModule("../src/lib/rbac.ts");
+const { getRoleForEmail, hasPermission, permissions, permissionsByRole, roles } = loadTsModule("../src/lib/rbac.ts");
 
 test("new logins always start with member role", () => {
   assert.equal(getRoleForEmail("new.person@example.com"), "member");
@@ -37,4 +37,20 @@ test("welcome team keeps member access plus new family read and write", () => {
   assert(permissionsByRole.welcome.includes("new-family:write"));
   assert.equal(permissionsByRole.welcome.includes("members:write"), false);
   assert.equal(permissionsByRole.welcome.includes("roles:manage"), false);
+});
+
+test("role permissions are enforced through hasPermission", () => {
+  for (const permission of permissions) {
+    assert.equal(hasPermission("owner", permission), true, `owner should have ${permission}`);
+  }
+
+  assert.equal(hasPermission("admin", "roles:manage"), true);
+  assert.equal(hasPermission("admin", "owner:manage"), false);
+  assert.equal(hasPermission("leader", "members:write"), true);
+  assert.equal(hasPermission("staff", "members:write"), true);
+  assert.equal(hasPermission("member", "members:write"), false);
+  assert.equal(hasPermission("member", "new-family:read"), false);
+  assert.equal(hasPermission("welcome", "new-family:read"), true);
+  assert.equal(hasPermission("welcome", "new-family:write"), true);
+  assert.equal(hasPermission("welcome", "attendance:write"), false);
 });
