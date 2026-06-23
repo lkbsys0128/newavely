@@ -35,6 +35,10 @@ const welcomeTeamNewFamilyPoliciesSource = readFileSync(
   "utf8",
 );
 const publicPermissionRoleCountsSource = readFileSync(new URL("../db/032_public_permission_role_counts.sql", import.meta.url), "utf8");
+const testAccountStatsExclusionSource = readFileSync(
+  new URL("../db/033_test_account_stats_exclusion.sql", import.meta.url),
+  "utf8",
+);
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -344,16 +348,23 @@ test("common aggregate stats use unscoped server data while pages receive scoped
   assert.match(publicPermissionRoleCountsSource, /create or replace function get_public_permission_role_counts\(\)/);
   assert.match(publicPermissionRoleCountsSource, /returns table \(\s*role member_role,\s*member_count bigint\s*\)/);
   assert.match(publicPermissionRoleCountsSource, /coalesce\(m\.email, ''\) not ilike '%@merged\.local'/);
+  assert.match(publicPermissionRoleCountsSource, /coalesce\(\(m\.custom_fields ->> 'test_account'\)::boolean, false\) = false/);
   assert.match(publicPermissionRoleCountsSource, /grant execute on function get_public_permission_role_counts\(\) to authenticated/);
   assert.match(publicDashboardDataSource, /jsonb_build_object\(\s*'english_name'/);
+  assert.match(publicDashboardDataSource, /'test_account', m\.custom_fields -> 'test_account'/);
   assert.doesNotMatch(publicDashboardDataSource, /'phone'/);
+  assert.match(testAccountStatsExclusionSource, /get_public_dashboard_members/);
+  assert.match(testAccountStatsExclusionSource, /'test_account', m\.custom_fields -> 'test_account'/);
+  assert.match(testAccountStatsExclusionSource, /coalesce\(\(m\.custom_fields ->> 'test_account'\)::boolean, false\) = false/);
   assert.match(appPageDataSource, /const scopedMembers = scopeMembersForRole/);
   assert.match(appPageDataSource, /members: scopedMembers/);
   assert.match(appPageDataSource, /publicDashboardData\.members/);
   assert.match(appPageDataSource, /publicDashboardData\.groups/);
   assert.match(appPageDataSource, /createServiceRoleClient/);
   assert.match(appPageDataSource, /getServiceRolePermissionCounts/);
-  assert.match(appPageDataSource, /select\("role, email, status"\)\.neq\("status", "inactive"\)/);
+  assert.match(appPageDataSource, /select\("role, email, status, custom_fields"\)\.neq\("status", "inactive"\)/);
+  assert.match(appPageDataSource, /customFields\.test_account === true/);
+  assert.match(appPageDataSource, /isStatsExcludedMember/);
   assert.match(appPageDataSource, /permissionRoleCounts = \(await getServiceRolePermissionCounts\(\)\) \?\? publicPermissionRoleCounts/);
   assert.match(appPageDataSource, /globalStats,/);
   assert.match(appPageDataSource, /statisticsSummary: buildStatisticsSummary\(activeMembers\)/);
@@ -736,6 +747,20 @@ test("new member creation defaults to member role for non-role managers", () => 
   assert.match(actionsSource, /role: formData\.get\("role"\) \|\| "member"/);
   assert.match(dashboardSource, /<select name="role" defaultValue="member" disabled=\{!canManageRoles\}>/);
   assert.match(dashboardSource, /!canManageRoles \? <input name="role" type="hidden" value="member" \/> : null/);
+});
+
+test("admins can flag test accounts and shared stats exclude them", () => {
+  assert.match(actionsSource, /const isTestAccount = canManageRoles && formData\.get\("isTestAccount"\) === "on"/);
+  assert.match(actionsSource, /test_account: true/);
+  assert.match(actionsSource, /isTestAccount: hasPermission\(currentMember\.role, "roles:manage"\) && formData\.get\("isTestAccount"\) === "on"/);
+  assert.match(dashboardSource, /name="isTestAccount"/);
+  assert.match(dashboardSource, /테스트 계정으로 표시하고 모든 통계에서 제외/);
+  assert.match(dashboardSource, /테스트 계정으로 승인하고 모든 통계에서 제외/);
+  assert.match(dashboardSource, /테스트 계정으로 등록하고 모든 통계에서 제외/);
+  assert.match(memberDetailSource, /name="isTestAccount"/);
+  assert.match(memberDetailSource, /member\.customFields\.test_account === true/);
+  assert.match(dashboardSource, /!isStatsExcludedMember\(member\)/);
+  assert.match(appPageDataSource, /!isStatsExcludedMember\(member\)/);
 });
 
 test("admin feedback inbox lets users message admins and admins update status", () => {

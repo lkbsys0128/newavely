@@ -52,4 +52,4 @@ Supabase Dashboard에서 Google provider를 켜고, SQL Editor에서 아래 순�
 2. `db/002_app_data_policies.sql`
 3. `db/003_audit_logs.sql`
 
-운영 DB는 README의 migration 순서를 기준으로 최신 `db/0xx_*.sql`까지 적용합니다. 최근 권한/새가족 관련 migration은 `030`, `031`, `032`입니다.
+운영 DB는 README의 migration 순서를 기준으로 최신 `db/0xx_*.sql`까지 적용합니다. 최근 권한/새가족/통계 관련 migration은 `030`, `031`, `032`, `033`입니다.

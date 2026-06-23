@@ -52,6 +52,7 @@ import {
   filterMembers,
   findPotentialDuplicateMembers,
   isMergedPlaceholderMember,
+  isStatsExcludedMember,
   type MemberFilters,
 } from "@/lib/member-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
@@ -113,7 +114,7 @@ export function DashboardOverview({
   dashboardMetrics,
   globalStats,
 }: AppDataProps) {
-  const dashboardMembers = members.filter((member) => !isMergedPlaceholderMember(member));
+  const dashboardMembers = members.filter((member) => !isStatsExcludedMember(member));
   const activeMembers = dashboardMembers.filter((member) => member.status !== "inactive");
   const localPresentCount = activeMembers.filter((member) => member.present).length;
   const metrics = dashboardMetrics ?? {
@@ -975,6 +976,12 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
               <option value="care">돌봄 필요</option>
             </select>
           </label>
+          {canManageRoles ? (
+            <label className="toggle-field full-width">
+              <input name="isTestAccount" type="checkbox" />
+              테스트 계정으로 표시하고 모든 통계에서 제외
+            </label>
+          ) : null}
           <div className="form-actions full-width">
             <ActionMessage state={createMemberState} />
             <button className="primary-button" type="submit" disabled={!canManageMembers || isCreatingMember}>
@@ -1216,6 +1223,17 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                   <option value="inactive">비활성화</option>
                 </select>
               </label>
+              {canManageRoles ? (
+                <label className="toggle-field full-width">
+                  <input
+                    name="isTestAccount"
+                    type="checkbox"
+                    defaultChecked={selectedMember.customFields.test_account === true}
+                    disabled={!canManageRoles}
+                  />
+                  테스트 계정으로 표시하고 모든 통계에서 제외
+                </label>
+              ) : null}
               <label>
                 주소
                 <input name="address" defaultValue={selectedMember.address} disabled={!canManageMembers} />
@@ -1849,6 +1867,7 @@ function getNewFamilyExpectedGroup(applicant: NewFamilyApplicant) {
 export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }: AppDataProps) {
   const canReadNewFamily = hasPermission(user.role, "new-family:read");
   const canManageNewFamily = hasPermission(user.role, "new-family:write");
+  const canFlagTestAccounts = hasPermission(user.role, "roles:manage");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<NewFamilyApplicant["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<NewFamilySort>("latest");
@@ -2293,6 +2312,12 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                   ))}
                 </select>
               </label>
+              {canFlagTestAccounts ? (
+                <label className="toggle-field">
+                  <input name="isTestAccount" type="checkbox" />
+                  테스트 계정으로 등록하고 모든 통계에서 제외
+                </label>
+              ) : null}
               <button className="primary-button" type="submit" disabled={isConverting || Boolean(selectedApplicant.convertedMemberId)}>
                 {selectedApplicant.convertedMemberId ? "등록 완료" : "멤버로 등록"}
               </button>
@@ -3776,7 +3801,7 @@ function buildAggregateAttendanceStat(
 }
 
 function isAttendanceRosterMember(member: Member) {
-  return (member.status === "active" || member.status === "care") && !isMergedPlaceholderMember(member);
+  return (member.status === "active" || member.status === "care") && !isStatsExcludedMember(member);
 }
 
 function updateLocalAttendanceHistory({
@@ -4052,6 +4077,10 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                             </option>
                           ))}
                         </select>
+                      </label>
+                      <label className="toggle-field full-width">
+                        <input name="isTestAccount" type="checkbox" form={`approve-link-request-${request.id}`} disabled={!canManageRoles} />
+                        테스트 계정으로 승인하고 모든 통계에서 제외
                       </label>
                     </div>
                   </div>

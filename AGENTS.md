@@ -79,9 +79,10 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 
 - 멤버가 보는 dashboard metric, 권한 페이지 role count 등이 관리자와 다르면 버그로 봅니다.
 - raw 멤버 상세 목록은 역할별 visibility를 유지합니다.
+- 테스트 계정은 `members.custom_fields.test_account = true`로 저장하며, roster에는 보여도 모든 공통 통계와 role count에서는 제외합니다. 새 멤버 추가/교적 연결 승인/새가족 멤버 전환에서 관리자 이상만 설정할 수 있습니다.
 - 권한 페이지 역할별 카운트는 `SUPABASE_SERVICE_ROLE_KEY`를 쓰는 서버 전용 service-role query가 우선입니다.
 - `db/032_public_permission_role_counts.sql`의 RPC는 fallback입니다. RLS 때문에 viewer-scoped count가 나오지 않도록 주의합니다.
-- 관련 코드는 `src/lib/app-page-data.ts`의 `buildGlobalAppStats`와 permission role count 흐름입니다.
+- 관련 코드는 `src/lib/member-filters.ts`의 `isStatsExcludedMember`, `src/lib/app-page-data.ts`의 `buildGlobalAppStats`와 permission role count 흐름입니다.
 - 관련 테스트는 `test/supabase-queries.test.mjs`, `test/member-visibility.test.mjs`, `test/rbac.test.mjs`, `test/role-policy.test.mjs`입니다.
 
 ## Supabase query 주의사항
@@ -241,6 +242,7 @@ DB migration을 추가하면:
 - `db/030_welcome_team_role.sql`: `welcome` 역할 추가
 - `db/031_welcome_team_new_family_policies.sql`: 웰컴팀 새가족 RLS
 - `db/032_public_permission_role_counts.sql`: 권한 페이지 공통 role count fallback RPC
+- `db/033_test_account_stats_exclusion.sql`: 테스트 계정 통계 제외와 public dashboard payload 보강
 
 새 환경 변수를 추가하면:
 

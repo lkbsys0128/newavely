@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { loadTsModule } from "./load-ts-module.mjs";
 
-const { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers, isMergedPlaceholderMember } = loadTsModule(
-  "../src/lib/member-filters.ts",
-);
+const { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers, isMergedPlaceholderMember, isStatsExcludedMember, isTestAccountMember } =
+  loadTsModule("../src/lib/member-filters.ts");
 const { isActionableLinkRequest } = loadTsModule("../src/lib/member-link-requests.ts");
 
 function member(overrides) {
@@ -79,6 +78,19 @@ test("filterMembers filters by text, group, role, status, and account connection
     ["c"],
   );
   assert.equal(isMergedPlaceholderMember(members[3]), true);
+});
+
+test("test accounts stay visible in rosters but are excluded from stats", () => {
+  const testMember = member({ id: "test", name: "테스트 계정", customFields: { test_account: true } });
+  const regularMember = member({ id: "regular", name: "실제 멤버" });
+
+  assert.equal(isTestAccountMember(testMember), true);
+  assert.equal(isStatsExcludedMember(testMember), true);
+  assert.equal(isStatsExcludedMember(regularMember), false);
+  assert.deepEqual(
+    filterMembers([testMember, regularMember], defaultMemberFilters).map((item) => item.id),
+    ["test", "regular"],
+  );
 });
 
 test("findPotentialDuplicateMembers returns actionable login/import duplicate candidates", () => {

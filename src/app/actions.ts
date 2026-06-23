@@ -113,6 +113,7 @@ const updateNewFamilyApplicantSchema = z.object({
 const convertNewFamilyApplicantSchema = z.object({
   id: z.string().uuid(),
   groupId: nullableUuid,
+  isTestAccount: z.boolean().optional(),
 });
 
 function pickNewFamilySourceValue(sourceData: unknown, keys: string[]) {
@@ -139,6 +140,7 @@ const memberLinkRequestDecisionSchema = z.object({
   newMemberEmail: nullableText.optional(),
   newMemberPhone: nullableText.optional(),
   newMemberGroupId: nullableUuid.optional(),
+  isTestAccount: z.boolean().optional(),
 });
 
 const groupSchema = z.object({
@@ -460,11 +462,12 @@ export async function createMember(_previousState: ActionState, formData: FormDa
       role: formData.get("role") || "member",
       status: formData.get("status"),
     });
+    const canManageRoles = hasPermission(currentMember.role, "roles:manage");
+    const isTestAccount = canManageRoles && formData.get("isTestAccount") === "on";
 
     const requestedRole = parsed.role;
     const splitName = splitCompositeMemberName(parsed.name);
     const englishName = parsed.englishName ?? splitName.englishName;
-    const canManageRoles = hasPermission(currentMember.role, "roles:manage");
     if (requestedRole === "owner" && !hasPermission(currentMember.role, "owner:manage")) {
       throw new Error("최고 관리자 권한은 최고 관리자만 지정할 수 있습니다.");
     }
@@ -480,7 +483,10 @@ export async function createMember(_previousState: ActionState, formData: FormDa
       address: parsed.address,
       baptism_status: parsed.baptismStatus,
       care_notes: parsed.notes ?? "추가 정보 입력 필요",
-      custom_fields: englishName ? { english_name: englishName } : {},
+      custom_fields: normalizeSubmittedCustomFields({
+        ...(englishName ? { english_name: englishName } : {}),
+        ...(isTestAccount ? { test_account: true } : {}),
+      }),
     };
 
     const { data: inserted, error } = await supabase.from("members").insert(insertPayload).select("*").single();
@@ -529,6 +535,7 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     if (!canManageMembers && !isOwnProfileUpdate) {
       throw new Error("본인 프로필만 수정할 수 있습니다.");
     }
+    const canManageRoles = hasPermission(currentMember.role, "roles:manage");
     const splitName = splitCompositeMemberName(parsed.name);
     const existingCustomFields =
       beforeData && typeof beforeData === "object" && "custom_fields" in beforeData
@@ -538,13 +545,17 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     const nextCustomFields = normalizeSubmittedCustomFields({
       ...existingCustomFields,
       english_name: nextEnglishName,
+      ...(canManageRoles
+        ? formData.get("isTestAccount") === "on"
+          ? { test_account: true }
+          : { test_account: undefined }
+        : {}),
       ...(canManageMembers && formData.has("custom_ministries")
         ? { ministries: formData.getAll("custom_ministries").map((value) => String(value)) }
         : {}),
     });
     const currentRole = beforeData.role as Role;
     const requestedRole = parsed.role as Role;
-    const canManageRoles = hasPermission(currentMember.role, "roles:manage");
     if ((currentRole === "owner" || requestedRole === "owner") && !hasPermission(currentMember.role, "owner:manage")) {
       throw new Error("최고 관리자 권한은 최고 관리자만 변경할 수 있습니다.");
     }
@@ -786,10 +797,11 @@ export async function updateNewFamilyApplicant(_previousState: ActionState, form
 
 export async function convertNewFamilyApplicantToMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("new-family:write");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("new-family:write");
     const parsed = convertNewFamilyApplicantSchema.parse({
       id: formData.get("id"),
       groupId: formData.get("groupId"),
+      isTestAccount: hasPermission(currentMember.role, "roles:manage") && formData.get("isTestAccount") === "on",
     });
 
     const { data: applicant, error: applicantError } = await supabase
@@ -836,6 +848,7 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
           new_family_week_2_attendance_date: week2AttendanceDate,
           new_family_week_3_attendance_date: week3AttendanceDate,
           new_family_completion_due_date: completionDueDate,
+          ...(parsed.isTestAccount ? { test_account: true } : {}),
         },
       })
       .select("*")
@@ -1087,6 +1100,7 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
       newMemberEmail: formData.get("newMemberEmail"),
       newMemberPhone: formData.get("newMemberPhone"),
       newMemberGroupId: formData.get("newMemberGroupId"),
+      isTestAccount: formData.get("isTestAccount") === "on",
     });
 
     const { data: request, error: requestError } = await supabase
@@ -1113,6 +1127,7 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
           group_id: parsed.newMemberGroupId,
           role: "member",
           status: "active",
+          custom_fields: parsed.isTestAccount ? { test_account: true } : {},
         })
         .select("id")
         .single();
@@ -1162,6 +1177,28 @@ export async function approveMemberLinkRequest(_previousState: ActionState, form
 
     const mergeResult = await mergeMemberProfile(_previousState, mergeFormData);
     if (!mergeResult.ok) throw new Error(mergeResult.message);
+
+    if (parsed.isTestAccount) {
+      const { data: requesterMember, error: requesterMemberError } = await supabase
+        .from("members")
+        .select("custom_fields")
+        .eq("id", request.requester_member_id as string)
+        .single();
+      if (requesterMemberError) throw requesterMemberError;
+
+      const requesterCustomFields =
+        requesterMember.custom_fields && typeof requesterMember.custom_fields === "object"
+          ? (requesterMember.custom_fields as Record<string, unknown>)
+          : {};
+      const { error: testAccountError } = await supabase
+        .from("members")
+        .update({
+          custom_fields: normalizeSubmittedCustomFields({ ...requesterCustomFields, test_account: true }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", request.requester_member_id as string);
+      if (testAccountError) throw testAccountError;
+    }
 
     const { error: roleResetError } = await supabase
       .from("members")

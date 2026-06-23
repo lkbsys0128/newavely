@@ -1,25 +1,3 @@
-create or replace function get_public_dashboard_groups()
-returns table (
-  id uuid,
-  name text,
-  leader_member_id uuid,
-  leader_name text
-)
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select
-    g.id,
-    g.name,
-    g.leader_member_id,
-    coalesce(l.name, '미배정') as leader_name
-  from groups g
-  left join members l on l.id = g.leader_member_id
-  order by g.name;
-$$;
-
 create or replace function get_public_dashboard_members()
 returns table (
   id uuid,
@@ -72,7 +50,28 @@ as $$
   order by m.name;
 $$;
 
-revoke all on function get_public_dashboard_groups() from public;
+create or replace function get_public_permission_role_counts()
+returns table (
+  role member_role,
+  member_count bigint
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    m.role,
+    count(*) as member_count
+  from members m
+  where m.status <> 'inactive'
+    and coalesce(m.email, '') not ilike '%@merged.local'
+    and coalesce((m.custom_fields ->> 'test_account')::boolean, false) = false
+  group by m.role
+  order by m.role;
+$$;
+
 revoke all on function get_public_dashboard_members() from public;
-grant execute on function get_public_dashboard_groups() to authenticated;
+revoke all on function get_public_permission_role_counts() from public;
 grant execute on function get_public_dashboard_members() to authenticated;
+grant execute on function get_public_permission_role_counts() to authenticated;

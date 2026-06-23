@@ -134,11 +134,12 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 30. `db/030_welcome_team_role.sql`
 31. `db/031_welcome_team_new_family_policies.sql`
 32. `db/032_public_permission_role_counts.sql`
+33. `db/033_test_account_stats_exclusion.sql`
 
 주요 테이블:
 
 - `groups`: 순과 리더
-- `members`: 멤버 프로필, Supabase Auth 연결, 역할, 상태, 순, 커스텀 정보. 한국 이름은 `name`, 영어 이름은 `custom_fields.english_name`에 분리 저장하고 화면에서는 함께 표기합니다.
+- `members`: 멤버 프로필, Supabase Auth 연결, 역할, 상태, 순, 커스텀 정보. 한국 이름은 `name`, 영어 이름은 `custom_fields.english_name`에 분리 저장하고 화면에서는 함께 표기합니다. 테스트 계정은 `custom_fields.test_account = true`로 표시합니다.
 - `attendance_events`: 출석 이벤트 날짜와 제목
 - `attendance_records`: 이벤트별 멤버 출석 상태
 - `care_followups`: 멤버별 돌봄/연락 팔로업 기록
@@ -153,6 +154,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 
 - 일반 멤버/순장/관리자 등 모든 역할에서 대시보드와 권한 페이지의 **통계 숫자**는 같은 기준으로 보여야 합니다.
 - raw 개인 정보는 역할별 visibility에 따라 제한할 수 있지만, aggregate count는 역할에 따라 달라지면 안 됩니다.
+- 테스트 계정은 roster/관리 화면에는 남기되 모든 공통 통계와 권한 페이지 역할별 숫자에서 제외합니다.
 - 권한 페이지의 역할별 숫자는 `SUPABASE_SERVICE_ROLE_KEY`를 사용하는 서버 전용 service-role query로 계산합니다. `db/032_public_permission_role_counts.sql`의 RPC는 fallback입니다.
 
 중요한 관계:
