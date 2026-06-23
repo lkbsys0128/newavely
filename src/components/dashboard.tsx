@@ -55,6 +55,7 @@ import {
   isStatsExcludedMember,
   type MemberFilters,
 } from "@/lib/member-filters";
+import { getAttendanceVisibleGroups } from "@/lib/group-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import {
   baptismStatusOptions,
@@ -2542,8 +2543,10 @@ export function AttendanceManager({
   const searchParams = useSearchParams();
   const explicitAttendanceEventId = searchParams.get("eventId");
   const requestedAttendanceGroupId = searchParams.get("groupId");
+  const attendanceVisibleGroups = getAttendanceVisibleGroups(groups);
+  const attendanceVisibleGroupIds = new Set(attendanceVisibleGroups.map((group) => group.id));
   const initialAttendanceGroupId =
-    requestedAttendanceGroupId && groups.some((group) => group.id === requestedAttendanceGroupId)
+    requestedAttendanceGroupId && attendanceVisibleGroups.some((group) => group.id === requestedAttendanceGroupId)
       ? requestedAttendanceGroupId
       : requestedAttendanceGroupId === "unassigned"
         ? "unassigned"
@@ -2653,13 +2656,14 @@ export function AttendanceManager({
 
   const activeMembers = localMembers
     .filter(isAttendanceRosterMember)
+    .filter((member) => !member.groupId || attendanceVisibleGroupIds.has(member.groupId))
     .filter((member) => user.role !== "member" || member.id === currentAttendanceMember?.id);
   const activeMemberCount = activeMembers.length;
   const currentPresentCount = activeMembers.filter((member) => member.present).length;
   const currentExcusedCount = activeMembers.filter((member) => getMemberAttendanceStatus(member, attendanceEventId) === "excused").length;
   const currentAbsentCount = Math.max(activeMemberCount - currentPresentCount - currentExcusedCount, 0);
   const currentAttendanceRate = activeMemberCount ? Math.round((currentPresentCount / activeMemberCount) * 100) : 0;
-  const groupAttendanceStats = groups.map((group) => {
+  const groupAttendanceStats = attendanceVisibleGroups.map((group) => {
     const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
     const presentCount = groupMembers.filter((member) => member.present).length;
     return {
@@ -2692,7 +2696,7 @@ export function AttendanceManager({
   );
   const aggregateEventIds = new Set(aggregateStatsEvents.map((event) => event.id));
   const aggregateGroupStats = [
-    ...groups.map((group) => {
+    ...attendanceVisibleGroups.map((group) => {
       const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
       return buildAggregateAttendanceStat(
         statsEventTypeFilter,
@@ -2869,16 +2873,16 @@ export function AttendanceManager({
   const overviewGroupName =
     attendanceGroupId === "all"
       ? "전체 순"
-      : attendanceGroupId === "unassigned"
-        ? "미배정"
-        : groups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
+        : attendanceGroupId === "unassigned"
+          ? "미배정"
+          : attendanceVisibleGroups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
   const attendanceGroupOptions = [
     { id: "all", name: "전체" },
     ...(user.role === "member"
-      ? groups
+      ? attendanceVisibleGroups
           .filter((group) => currentAttendanceMember?.groupId && group.id === currentAttendanceMember.groupId)
           .map((group) => ({ id: group.id, name: group.name }))
-      : groups.map((group) => ({ id: group.id, name: group.name }))),
+      : attendanceVisibleGroups.map((group) => ({ id: group.id, name: group.name }))),
     ...(user.role === "member" && currentAttendanceMember?.groupId ? [] : [{ id: "unassigned", name: "미배정" }]),
   ];
   const attendanceOverviewEvents = getAttendanceOverviewEvents(sameDateEvents, selectedAttendanceEvent?.id);
@@ -3030,7 +3034,7 @@ export function AttendanceManager({
               순
               <select value={statsGroupId} onChange={(event) => setStatsGroupId(event.target.value)}>
                 <option value="all">전체 순</option>
-                {groups.map((group) => (
+                {attendanceVisibleGroups.map((group) => (
                   <option key={group.id} value={group.id}>
                     {group.name}
                   </option>

@@ -4,6 +4,7 @@ import { loadTsModule } from "./load-ts-module.mjs";
 
 const { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers, isMergedPlaceholderMember, isStatsExcludedMember, isTestAccountMember } =
   loadTsModule("../src/lib/member-filters.ts");
+const { getAttendanceVisibleGroups, isAttendanceVisibleGroup } = loadTsModule("../src/lib/group-filters.ts");
 const { isActionableLinkRequest } = loadTsModule("../src/lib/member-link-requests.ts");
 
 function member(overrides) {
@@ -90,6 +91,20 @@ test("test accounts stay visible in rosters but are excluded from stats", () => 
   assert.deepEqual(
     filterMembers([testMember, regularMember], defaultMemberFilters).map((item) => item.id),
     ["test", "regular"],
+  );
+});
+
+test("attendance hides the community leader group from group choices and stats", () => {
+  const groups = [
+    { id: "leaders", name: "공동체 리더 순", leaderMemberId: null, leaderName: "미배정" },
+    { id: "regular", name: "주환 순", leaderMemberId: null, leaderName: "미배정" },
+  ];
+
+  assert.equal(isAttendanceVisibleGroup(groups[0]), false);
+  assert.equal(isAttendanceVisibleGroup(groups[1]), true);
+  assert.deepEqual(
+    getAttendanceVisibleGroups(groups).map((group) => group.id),
+    ["regular"],
   );
 });
 

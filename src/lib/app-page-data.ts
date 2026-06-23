@@ -15,6 +15,7 @@ import type {
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { scopeMembersForRole } from "@/lib/member-visibility";
 import { isStatsExcludedMember } from "@/lib/member-filters";
+import { getAttendanceVisibleGroups } from "@/lib/group-filters";
 import { calculateKoreanAge, getMemberMinistryValues, ministryOptions, normalizeJobValue } from "@/lib/member-field-options";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -263,7 +264,11 @@ export function buildGlobalAppStats(
 ): GlobalAppStats {
   const visibleMembers = members.filter((member) => !isStatsExcludedMember(member));
   const activeMembers = visibleMembers.filter((member) => member.status !== "inactive");
-  const attendanceMembers = visibleMembers.filter((member) => isAttendanceStatsMember(member));
+  const attendanceGroups = getAttendanceVisibleGroups(groups);
+  const attendanceGroupIds = new Set(attendanceGroups.map((group) => group.id));
+  const attendanceMembers = visibleMembers
+    .filter((member) => isAttendanceStatsMember(member))
+    .filter((member) => !member.groupId || attendanceGroupIds.has(member.groupId));
   const roleCounts =
     permissionRoleCounts ??
     (["owner", "admin", "leader", "staff", "welcome", "member"] as Role[]).map((role) => ({
@@ -281,7 +286,7 @@ export function buildGlobalAppStats(
     statisticsSummary: buildStatisticsSummary(activeMembers),
     dashboardInsights: buildDashboardInsights(activeMembers, groups),
     groupPage: buildGroupPageStats(activeMembers, groups),
-    groupAttendanceSummary: buildDashboardGroupAttendanceSummary(attendanceMembers, groups, attendanceEvents),
+    groupAttendanceSummary: buildDashboardGroupAttendanceSummary(attendanceMembers, attendanceGroups, attendanceEvents),
     permissions: {
       roleCounts,
       activeAdminCount: roleCounts.find((row) => row.role === "admin")?.count ?? 0,
@@ -294,7 +299,7 @@ export function buildGlobalAppStats(
       currentExcusedCount,
       currentAbsentCount,
       currentAttendanceRate: attendanceMembers.length ? Math.round((currentPresentCount / attendanceMembers.length) * 100) : 0,
-      groupAttendanceStats: buildCurrentGroupAttendanceStats(attendanceMembers, groups, selectedEvent?.id),
+      groupAttendanceStats: buildCurrentGroupAttendanceStats(attendanceMembers, attendanceGroups, selectedEvent?.id),
       unassigned: buildCurrentAttendanceGroupStat(
         "unassigned",
         "미배정",
@@ -302,8 +307,8 @@ export function buildGlobalAppStats(
         selectedEvent?.id,
       ),
       eventTrend: buildEventTrendStats(attendanceMembers, attendanceEvents, selectedEvent?.id, currentPresentCount),
-      aggregateGroupStats: buildAggregateAttendanceGroupStats(attendanceMembers, groups, attendanceEvents),
-      eventGroupTrend: buildEventGroupTrendStats(attendanceMembers, groups, attendanceEvents),
+      aggregateGroupStats: buildAggregateAttendanceGroupStats(attendanceMembers, attendanceGroups, attendanceEvents),
+      eventGroupTrend: buildEventGroupTrendStats(attendanceMembers, attendanceGroups, attendanceEvents),
     },
   };
 }

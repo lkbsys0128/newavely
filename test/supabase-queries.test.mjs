@@ -425,6 +425,10 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.doesNotMatch(dataSource, /\.limit\(12\)/);
   assert.match(dataSource, /\.order\("event_date", \{ ascending: false \}\)[\s\S]*\.order\("title", \{ ascending: true \}\)/);
   assert.match(dashboardSource, /isAttendanceRosterMember/);
+  assert.match(dashboardSource, /getAttendanceVisibleGroups/);
+  assert.match(dashboardSource, /attendanceVisibleGroups/);
+  assert.match(appPageDataSource, /getAttendanceVisibleGroups/);
+  assert.match(appPageDataSource, /attendanceGroupIds/);
   assert.match(dashboardSource, /member\.status === "active" \|\| member\.status === "care"/);
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
   assert.match(dashboardSource, /attendanceSearchQuery/);

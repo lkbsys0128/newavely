@@ -155,6 +155,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 - 일반 멤버/순장/관리자 등 모든 역할에서 대시보드와 권한 페이지의 **통계 숫자**는 같은 기준으로 보여야 합니다.
 - raw 개인 정보는 역할별 visibility에 따라 제한할 수 있지만, aggregate count는 역할에 따라 달라지면 안 됩니다.
 - 테스트 계정은 roster/관리 화면에는 남기되 모든 공통 통계와 권한 페이지 역할별 숫자에서 제외합니다.
+- 출석 페이지와 출석 통계에서는 운영용 `공동체 리더` 순을 제외합니다.
 - 권한 페이지의 역할별 숫자는 `SUPABASE_SERVICE_ROLE_KEY`를 사용하는 서버 전용 service-role query로 계산합니다. `db/032_public_permission_role_counts.sql`의 RPC는 fallback입니다.
 
 중요한 관계:
