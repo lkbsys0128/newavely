@@ -392,9 +392,8 @@ test("common aggregate stats use unscoped server data while pages receive scoped
   assert.match(testAccountStatsExclusionSource, /get_public_dashboard_members/);
   assert.match(testAccountStatsExclusionSource, /'test_account', m\.custom_fields -> 'test_account'/);
   assert.match(testAccountStatsExclusionSource, /coalesce\(\(m\.custom_fields ->> 'test_account'\)::boolean, false\) = false/);
-  assert.match(appPageDataSource, /const memberScopeSource =/);
-  assert.match(appPageDataSource, /currentMember\.role === "welcome" && page === "attendance" \? publicDashboardData\.members : dashboardData\.members/);
-  assert.match(appPageDataSource, /const scopedMembers = scopeMembersForRole/);
+  assert.match(appPageDataSource, /const isWelcomeAttendancePage = currentMember\.role === "welcome" && page === "attendance"/);
+  assert.match(appPageDataSource, /const scopedMembers = isWelcomeAttendancePage\s*\?\s*publicDashboardData\.members\s*:\s*scopeMembersForRole/);
   assert.match(appPageDataSource, /members: scopedMembers/);
   assert.match(appPageDataSource, /publicDashboardData\.members/);
   assert.match(appPageDataSource, /publicDashboardData\.groups/);
