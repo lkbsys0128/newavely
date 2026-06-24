@@ -79,7 +79,7 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 
 - 멤버가 보는 dashboard metric, 권한 페이지 role count 등이 관리자와 다르면 버그로 봅니다.
 - raw 멤버 상세 목록은 역할별 visibility를 유지합니다.
-- 테스트 계정은 `members.custom_fields.test_account = true`로 저장하며, roster에는 보여도 모든 공통 통계와 role count에서는 제외합니다. 새 멤버 추가/교적 연결 승인/새가족 멤버 전환에서 관리자 이상만 설정할 수 있습니다.
+- 테스트 계정은 `members.custom_fields.test_account = true`로 저장하며, roster에는 보여도 모든 공통 통계와 role count에서는 제외합니다. 새 멤버 추가/교적 연결 승인에서 관리자 이상만 설정할 수 있습니다.
 - 출석 페이지와 출석 통계에서는 운영용 `공동체 리더` 순을 보여주지 않습니다. 관련 기준은 `src/lib/group-filters.ts`의 `getAttendanceVisibleGroups`를 사용합니다.
 - 권한 페이지 역할별 카운트는 `SUPABASE_SERVICE_ROLE_KEY`를 쓰는 서버 전용 service-role query가 우선입니다.
 - `db/032_public_permission_role_counts.sql`의 RPC는 fallback입니다. RLS 때문에 viewer-scoped count가 나오지 않도록 주의합니다.
