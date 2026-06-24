@@ -620,6 +620,19 @@ test("group management uses active member choices and supports audited delete", 
   assert.match(memberDetailSource, /!isMergedPlaceholderMember\(item\)/);
 });
 
+test("group page renders a central Newavely network map", () => {
+  assert.match(dashboardSource, /const networkNodes = visibleGroups\.map/);
+  assert.match(dashboardSource, /className="panel group-network-panel"/);
+  assert.match(dashboardSource, /className="group-network-lines"/);
+  assert.match(dashboardSource, /className="group-network-center"/);
+  assert.match(dashboardSource, /src="\/newave-icon\.png"/);
+  assert.match(dashboardSource, /className="group-network-node"/);
+  assert.match(globalCssSource, /\.group-network-map/);
+  assert.match(globalCssSource, /\.group-network-lines line/);
+  assert.match(globalCssSource, /\.group-network-center/);
+  assert.match(globalCssSource, /\.group-network-node:hover/);
+});
+
 test("permissions page exposes member search for role management", () => {
   assert.match(dashboardSource, /roleSearchQuery/);
   assert.match(dashboardSource, /멤버 검색/);

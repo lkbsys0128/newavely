@@ -1459,6 +1459,19 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
   const assignedLeaderCount = visibleGroups.filter((group) => group.leaderMemberId).length;
   const groupStats = isMemberView ? undefined : globalStats?.groupPage;
   const groupLeaderOptions = [...activeMembers].sort((a, b) => a.name.localeCompare(b.name));
+  const networkNodes = visibleGroups.map((group, index) => {
+    const nodeCount = Math.max(visibleGroups.length, 1);
+    const angle = -90 + (index * 360) / nodeCount;
+    const radians = (angle * Math.PI) / 180;
+    const radius = nodeCount <= 5 ? 34 : 38;
+    const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
+    return {
+      group,
+      x: 50 + Math.cos(radians) * radius,
+      y: 50 + Math.sin(radians) * radius,
+      memberCount: groupStats?.groups.find((item) => item.id === group.id)?.memberCount ?? groupMembers.length,
+    };
+  });
 
   useEffect(() => {
     if (deleteGroupState.ok) {
@@ -1531,6 +1544,55 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
           </form>
         </DisclosurePanel>
       ) : null}
+
+      <section className="panel group-network-panel" aria-labelledby="group-network-title">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">공동체 네트워크</span>
+            <h2 id="group-network-title">순 연결 지도</h2>
+            <p className="meta">중앙의 Newavely를 중심으로 각 순이 연결된 모습을 한눈에 봅니다.</p>
+          </div>
+          <span>{visibleGroups.length}개 순</span>
+        </div>
+        <div className="group-network-map" role="img" aria-label="Newavely 순 연결 지도">
+          <svg aria-hidden="true" className="group-network-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {networkNodes.map((node) => (
+              <line className="center-line" key={`center-${node.group.id}`} x1="50" y1="50" x2={node.x} y2={node.y} />
+            ))}
+            {networkNodes.map((node, index) => {
+              const nextNode = networkNodes[(index + 1) % networkNodes.length];
+              if (!nextNode || networkNodes.length < 3) return null;
+              return (
+                <line
+                  className="outer-line"
+                  key={`outer-${node.group.id}`}
+                  x1={node.x}
+                  y1={node.y}
+                  x2={nextNode.x}
+                  y2={nextNode.y}
+                />
+              );
+            })}
+          </svg>
+          <div className="group-network-center" aria-hidden="true">
+            <img alt="" src="/newave-icon.png" />
+            <strong>Newavely</strong>
+          </div>
+          {networkNodes.map((node) => (
+            <button
+              className="group-network-node"
+              key={node.group.id}
+              style={{ left: `${node.x}%`, top: `${node.y}%` }}
+              type="button"
+              onClick={() => setGroupMembersModal(node.group)}
+            >
+              <strong>{node.group.name}</strong>
+              <span>리더 {node.group.leaderName}</span>
+              <small>{node.memberCount}명</small>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="group-grid" id="group-list">
         {visibleGroups.map((group) => {

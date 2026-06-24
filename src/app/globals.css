@@ -4243,6 +4243,149 @@ tbody tr:hover {
   box-shadow: 0 18px 36px rgba(23, 51, 59, 0.08);
 }
 
+.group-network-panel {
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.group-network-map {
+  position: relative;
+  min-height: 520px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line));
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(66, 169, 197, 0.16), transparent 90px),
+    radial-gradient(circle at 16% 24%, rgba(245, 212, 131, 0.15), transparent 120px),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(240, 251, 253, 0.8));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+}
+
+.group-network-lines {
+  position: absolute;
+  inset: 5%;
+  width: 90%;
+  height: 90%;
+  overflow: visible;
+}
+
+.group-network-lines line {
+  stroke: color-mix(in srgb, var(--accent-dark) 52%, transparent);
+  stroke-linecap: round;
+  stroke-width: 1.45;
+  vector-effect: non-scaling-stroke;
+}
+
+.group-network-lines .outer-line {
+  stroke: color-mix(in srgb, var(--accent-dark) 32%, transparent);
+  stroke-width: 1.2;
+}
+
+.group-network-center,
+.group-network-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.group-network-center {
+  z-index: 2;
+  display: grid;
+  width: 118px;
+  height: 118px;
+  left: 50%;
+  top: 50%;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.96), transparent 44%),
+    linear-gradient(145deg, #ffffff, color-mix(in srgb, var(--soft) 72%, #ffffff));
+  color: var(--accent-dark);
+  box-shadow:
+    0 22px 44px rgba(21, 119, 144, 0.18),
+    inset 0 0 0 10px rgba(255, 255, 255, 0.54);
+}
+
+.group-network-center img {
+  width: 42px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.group-network-center strong {
+  margin-top: -20px;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.group-network-node {
+  z-index: 3;
+  display: grid;
+  width: clamp(118px, 13vw, 152px);
+  min-height: 86px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  border-radius: 999px;
+  padding: 14px 16px;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.96), transparent 36%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(233, 249, 251, 0.94));
+  color: var(--ink);
+  text-align: center;
+  box-shadow: 0 14px 30px rgba(23, 51, 59, 0.12);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-medium) var(--motion-ease),
+    background var(--motion-medium) var(--motion-ease),
+    box-shadow var(--motion-medium) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-medium) var(--motion-ease);
+}
+
+.group-network-node:hover,
+.group-network-node:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 64%, var(--line));
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.98), transparent 38%),
+    linear-gradient(145deg, rgba(230, 249, 252, 0.98), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 18px 34px rgba(21, 119, 144, 0.2);
+  color: var(--accent-dark);
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+.group-network-node strong,
+.group-network-node span,
+.group-network-node small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-network-node strong {
+  font-size: 0.96rem;
+  font-weight: 950;
+}
+
+.group-network-node span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.group-network-node small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  border-radius: 999px;
+  padding: 0 8px;
+  background: color-mix(in srgb, var(--accent) 13%, #ffffff);
+  color: var(--accent-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
 .group-card::before {
   position: absolute;
   inset: 12px;
@@ -5390,6 +5533,46 @@ tbody tr:hover {
     padding: 18px;
   }
 
+  .group-network-map {
+    min-height: 480px;
+    border-radius: 18px;
+  }
+
+  .group-network-lines {
+    inset: 7%;
+    width: 86%;
+    height: 86%;
+  }
+
+  .group-network-center {
+    width: 88px;
+    height: 88px;
+  }
+
+  .group-network-center img {
+    width: 32px;
+    height: 42px;
+  }
+
+  .group-network-center strong {
+    margin-top: -14px;
+    font-size: 0.66rem;
+  }
+
+  .group-network-node {
+    width: 104px;
+    min-height: 74px;
+    padding: 11px 10px;
+  }
+
+  .group-network-node strong {
+    font-size: 0.82rem;
+  }
+
+  .group-network-node span {
+    font-size: 0.65rem;
+  }
+
   .group-node-ring {
     flex-basis: 52px;
     width: 52px;
@@ -6216,6 +6399,46 @@ tbody tr:hover {
 
 :root[data-theme="dark"] .attendance-total-result strong,
 :root[data-theme="dark"] .attendance-total-chip strong {
+  color: var(--accent);
+}
+
+:root[data-theme="dark"] .group-network-map {
+  border-color: rgba(93, 213, 238, 0.24);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(93, 213, 238, 0.14), transparent 100px),
+    radial-gradient(circle at 16% 24%, rgba(245, 212, 131, 0.09), transparent 120px),
+    linear-gradient(135deg, rgba(13, 32, 37, 0.98), rgba(9, 25, 29, 0.94));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="dark"] .group-network-lines line {
+  stroke: rgba(104, 216, 239, 0.42);
+}
+
+:root[data-theme="dark"] .group-network-lines .outer-line {
+  stroke: rgba(104, 216, 239, 0.26);
+}
+
+:root[data-theme="dark"] .group-network-center,
+:root[data-theme="dark"] .group-network-node {
+  border-color: rgba(104, 216, 239, 0.3);
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.1), transparent 38%),
+    linear-gradient(145deg, #142a31, #0e2025);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="dark"] .group-network-node:hover,
+:root[data-theme="dark"] .group-network-node:focus-visible {
+  border-color: rgba(104, 216, 239, 0.58);
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.12), transparent 40%),
+    linear-gradient(145deg, #18333b, #11262c);
+  color: var(--accent);
+}
+
+:root[data-theme="dark"] .group-network-node small {
+  background: rgba(104, 216, 239, 0.12);
   color: var(--accent);
 }
 
