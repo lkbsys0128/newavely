@@ -2797,15 +2797,33 @@ export function AttendanceManager({
   const teamLeaderPlusAttendanceCount = communityLeaderMembers.filter(
     ({ member, leaderRole }) => isTeamLeaderPlusRole(leaderRole) && getMemberAttendanceStatus(member, worshipEventForDate?.id) === "present",
   ).length;
-  const worshipGroupTotalRows = (attendanceStats?.eventGroupTrend ?? [])
-    .filter((row) => row.eventDate === attendanceDate && row.eventType === "주일 예배")
-    .map((row) => ({
-      id: row.groupId,
-      name: row.groupName,
-      presentCount: row.presentCount,
-      totalCount: row.totalCount,
-      rate: row.rate,
-    }));
+  const worshipEventIdsForDate = sameDateEvents.filter((event) => event.title === "주일 예배").map((event) => event.id);
+  const worshipGroupTotalRows =
+    worshipEventIdsForDate.length > 0
+      ? [
+          ...attendanceVisibleGroups.map((group) => {
+            const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
+            const presentCount = groupMembers.filter((member) => isPresentForAnyEvent(member, worshipEventIdsForDate)).length;
+            return {
+              id: group.id,
+              name: group.name,
+              presentCount,
+              totalCount: groupMembers.length,
+              rate: groupMembers.length ? Math.round((presentCount / groupMembers.length) * 100) : 0,
+            };
+          }),
+          (() => {
+            const presentCount = unassignedMembers.filter((member) => isPresentForAnyEvent(member, worshipEventIdsForDate)).length;
+            return {
+              id: "unassigned",
+              name: "미배정",
+              presentCount,
+              totalCount: unassignedMembers.length,
+              rate: unassignedMembers.length ? Math.round((presentCount / unassignedMembers.length) * 100) : 0,
+            };
+          })(),
+        ]
+      : [];
   const attendanceGroupTotalRows = (worshipGroupTotalRows.length > 0 ? worshipGroupTotalRows : displayGroupAttendanceStats).filter(
     (group) => group.totalCount > 0,
   );
@@ -2970,7 +2988,7 @@ export function AttendanceManager({
     const absentCount = Math.max(attendanceOverviewMembers.length - presentCount - excusedCount, 0);
     return { event, presentCount, excusedCount, absentCount };
   });
-  const attendanceCheckEventNames = sameDateEvents.map((event) => event.title).join(" · ");
+  const attendanceCheckEventNames = [...new Set(sameDateEvents.map((event) => event.title))].join(" · ");
   const attendanceOverviewRows = attendanceOverviewMembers.map((member) => {
     const statuses = attendanceOverviewEvents.map((event) => ({
       event,
@@ -4116,6 +4134,11 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
   if (currentRecord?.status === "excused") return "excused";
 
   return "absent";
+}
+
+function isPresentForAnyEvent(member: Member, eventIds: string[]) {
+  const eventIdSet = new Set(eventIds);
+  return member.attendanceHistory.some((record) => eventIdSet.has(record.eventId) && record.status === "present");
 }
 
 function buildAggregateAttendanceStat(
