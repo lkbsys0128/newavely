@@ -1595,11 +1595,11 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
           <div>
             <span className="eyebrow">공동체 네트워크</span>
             <h2 id="group-network-title">순 연결 지도</h2>
-            <p className="meta">중앙의 Newavely를 중심으로 각 순이 연결된 모습을 한눈에 봅니다.</p>
+            <p className="meta">중앙의 뉴웨이브를 중심으로 각 순이 연결된 모습을 한눈에 봅니다.</p>
           </div>
           <span>{visibleGroups.length}개 순</span>
         </div>
-        <div className="group-network-map" role="img" aria-label="Newavely 순 연결 지도">
+        <div className="group-network-map" role="img" aria-label="뉴웨이브 순 연결 지도">
           <svg aria-hidden="true" className="group-network-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
             {networkNodes.map((node) => (
               <line className="center-line" key={`center-${node.group.id}`} x1="50" y1="50" x2={node.x} y2={node.y} />
@@ -1621,7 +1621,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
           </svg>
           <div className="group-network-center" aria-hidden="true">
             <img alt="" src="/newave-icon.png" />
-            <strong>Newavely</strong>
+            <strong>뉴웨이브</strong>
           </div>
           {networkNodes.map((node) => (
             <button
@@ -1632,7 +1632,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
               onClick={() => setGroupMembersModal(node.group)}
             >
               <strong>{node.group.name}</strong>
-              <span>리더 {node.group.leaderName}</span>
+              <span>순장 {node.group.leaderName}</span>
               <small>{node.memberCount}명</small>
             </button>
           ))}
