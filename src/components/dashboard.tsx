@@ -24,6 +24,7 @@ import {
   restoreDeletedAuthUser,
   syncNewFamilyApplicants,
   toggleAttendance,
+  toggleLeaderExtraAttendance,
   updateAttendanceExtraCounts,
   updateAttendanceReason,
   updateAdminFeedbackMessage,
@@ -89,6 +90,24 @@ type AppDataProps = {
 };
 
 type AttendanceFilter = "all" | "present" | "absent" | "excused";
+
+const communityLeaderRoleLabels = {
+  clergy: "교역자",
+  team_leader: "팀장",
+  elder: "장로",
+  deaconess: "권사",
+} as const;
+
+type CommunityLeaderRole = keyof typeof communityLeaderRoleLabels;
+
+function getCommunityLeaderRole(member: Member): CommunityLeaderRole | "" {
+  const value = member.customFields.community_leader_role;
+  return value === "clergy" || value === "team_leader" || value === "elder" || value === "deaconess" ? value : "";
+}
+
+function isTeamLeaderPlusRole(role: CommunityLeaderRole | "") {
+  return role === "team_leader" || role === "elder" || role === "deaconess";
+}
 type AttendanceStatus = "present" | "absent" | "excused";
 
 const initialActionState: ActionState = { ok: false, message: "" };
@@ -954,6 +973,17 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <input name="address" placeholder="주소" disabled={!canManageMembers} />
           </label>
           <label>
+            공동체 리더 구분
+            <select name="communityLeaderRole" defaultValue="" disabled={!canManageMembers}>
+              <option value="">해당 없음</option>
+              {Object.entries(communityLeaderRoleLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
             세례/등록
             <BaptismStatusSelect value="" disabled={!canManageMembers} />
           </label>
@@ -1243,6 +1273,21 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
                 <input name="address" defaultValue={selectedMember.address} disabled={!canManageMembers} />
               </label>
               <label>
+                공동체 리더 구분
+                <select
+                  name="communityLeaderRole"
+                  defaultValue={getCommunityLeaderRole(selectedMember)}
+                  disabled={!canManageMembers}
+                >
+                  <option value="">해당 없음</option>
+                  {Object.entries(communityLeaderRoleLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
                 세례/등록
                 <BaptismStatusSelect value={selectedMember.baptismStatus} disabled={!canManageMembers} />
               </label>
@@ -1459,6 +1504,19 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
   const assignedLeaderCount = visibleGroups.filter((group) => group.leaderMemberId).length;
   const groupStats = isMemberView ? undefined : globalStats?.groupPage;
   const groupLeaderOptions = [...activeMembers].sort((a, b) => a.name.localeCompare(b.name));
+  const networkNodes = visibleGroups.map((group, index) => {
+    const nodeCount = Math.max(visibleGroups.length, 1);
+    const angle = -90 + (index * 360) / nodeCount;
+    const radians = (angle * Math.PI) / 180;
+    const radius = nodeCount <= 5 ? 34 : 38;
+    const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
+    return {
+      group,
+      x: 50 + Math.cos(radians) * radius,
+      y: 50 + Math.sin(radians) * radius,
+      memberCount: groupStats?.groups.find((item) => item.id === group.id)?.memberCount ?? groupMembers.length,
+    };
+  });
 
   useEffect(() => {
     if (deleteGroupState.ok) {
@@ -1473,7 +1531,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
         items={[
           { href: "#group-metrics", label: "요약" },
           ...(canManageGroups ? [{ href: "#group-create", label: "순 추가" }] : []),
-          { href: "#group-list", label: isMemberView ? "내 순" : "순 목록" },
+          { href: "#group-network", label: "순 연결지도" },
           ...(!isMemberView ? [{ href: "#unassigned-members", label: "미배정" }] : []),
         ]}
       />
@@ -1532,123 +1590,77 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
         </DisclosurePanel>
       ) : null}
 
-      <section className="group-grid" id="group-list">
-        {visibleGroups.map((group) => {
-          const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
-          const visibleGroupStats = groupStats?.groups.find((item) => item.id === group.id);
-          const previewMembers = groupMembers.slice(0, 5);
-          const careCount = groupMembers.filter(
-            (member) =>
-              member.status === "care" ||
-              member.careFollowups.some((followup) => followup.status !== "resolved"),
-          ).length;
-          return (
-            <article className="group-card" key={group.id}>
-              <header className="group-card-header">
-                <div className="group-node-heading">
-                  <div className="group-node-ring" aria-hidden="true">
-                    <span>{group.name.trim().charAt(0) || "순"}</span>
-                  </div>
-                  <div>
-                    <h2>{group.name}</h2>
-                    <p className="meta">리더 {group.leaderName}</p>
-                  </div>
-                </div>
-                <span className="role-pill">{visibleGroupStats?.memberCount ?? groupMembers.length}명</span>
-              </header>
-              <div className="group-card-overview">
-                <div>
-                  <strong>{visibleGroupStats?.memberCount ?? groupMembers.length}</strong>
-                  <span>멤버</span>
-                </div>
-                <div>
-                  <strong>{visibleGroupStats?.careCount ?? careCount}</strong>
-                  <span>돌봄</span>
-                </div>
-              </div>
-              <div className="group-member-preview" aria-label={`${group.name} 멤버 미리보기`}>
-                {previewMembers.length > 0 ? (
-                  previewMembers.map((member) => (
-                    <span className="group-member-node" key={member.id}>
-                      {member.displayName}
-                    </span>
-                  ))
-                ) : (
-                  <span className="group-member-node muted">배정 멤버 없음</span>
-                )}
-                {groupMembers.length > previewMembers.length ? (
-                  <span className="group-member-node more">+{groupMembers.length - previewMembers.length}</span>
-                ) : null}
-              </div>
-              <button className="secondary-button group-members-button" type="button" onClick={() => setGroupMembersModal(group)}>
-                멤버 보기
-              </button>
-              {canManageGroups ? (
-                <div className="group-admin-tools">
-                  <form
-                    action={renameGroupAction}
-                    className="management-form group-rename-form"
-                    onSubmit={() => setLastRenamedGroupId(group.id)}
-                  >
-                    <input name="id" type="hidden" value={group.id} />
-                    <label>
-                      순 이름 변경
-                      <input name="name" required defaultValue={group.name} />
-                    </label>
-                    <div className="form-actions">
-                      {lastRenamedGroupId === group.id ? <ActionMessage state={renameGroupState} /> : null}
-                      <button className="secondary-button" type="submit" disabled={isRenamingGroup}>
-                        이름 변경
-                      </button>
-                    </div>
-                  </form>
-                <form
-                  action={updateGroupAction}
-                  className="management-form group-edit-form"
-                  onSubmit={() => setLastUpdatedGroupId(group.id)}
-                >
-                  <input name="id" type="hidden" value={group.id} />
-                  <input name="name" type="hidden" value={group.name} />
-                  <label>
-                    리더
-                    <select name="leaderMemberId" defaultValue={group.leaderMemberId ?? ""}>
-                      <option value="">미배정</option>
-                      {groupLeaderOptions.map((member) => (
-                        <option key={member.id} value={member.id}>
-                          {member.displayName} · {member.groupName}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {lastUpdatedGroupId === group.id ? <ActionMessage state={updateGroupState} /> : null}
-                  <button className="secondary-button" type="submit" disabled={isUpdatingGroup}>
-                    리더 저장
-                  </button>
-                </form>
-                </div>
-              ) : null}
-              {canDeleteGroups ? (
-                <div className="group-delete-form">
-                  <button
-                    className="danger-text-button"
-                    type="button"
-                    disabled={isDeletingGroup}
-                    onClick={() => setGroupPendingDelete(group)}
-                  >
-                    삭제
-                  </button>
-                </div>
-              ) : null}
-              {lastDeletedGroupId === group.id ? <ActionMessage state={deleteGroupState} /> : null}
-            </article>
-          );
-        })}
+      <section className="panel group-network-panel" id="group-network" aria-labelledby="group-network-title">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">공동체 네트워크</span>
+            <h2 id="group-network-title">순 연결 지도</h2>
+            <p className="meta">중앙의 뉴웨이브를 중심으로 각 순이 연결된 모습을 한눈에 봅니다.</p>
+          </div>
+          <span>{visibleGroups.length}개 순</span>
+        </div>
+        <div className="group-network-map" role="img" aria-label="뉴웨이브 순 연결 지도">
+          <svg aria-hidden="true" className="group-network-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {networkNodes.map((node) => (
+              <line className="center-line" key={`center-${node.group.id}`} x1="50" y1="50" x2={node.x} y2={node.y} />
+            ))}
+            {networkNodes.map((node, index) => {
+              const nextNode = networkNodes[(index + 1) % networkNodes.length];
+              if (!nextNode || networkNodes.length < 3) return null;
+              return (
+                <line
+                  className="outer-line"
+                  key={`outer-${node.group.id}`}
+                  x1={node.x}
+                  y1={node.y}
+                  x2={nextNode.x}
+                  y2={nextNode.y}
+                />
+              );
+            })}
+          </svg>
+          <div className="group-network-center" aria-hidden="true">
+            <img alt="" src="/newave-icon.png" />
+            <strong>뉴웨이브</strong>
+          </div>
+          {networkNodes.map((node) => (
+            <button
+              className="group-network-node"
+              key={node.group.id}
+              style={{ left: `${node.x}%`, top: `${node.y}%` }}
+              type="button"
+              onClick={() => setGroupMembersModal(node.group)}
+            >
+              <strong>{node.group.name}</strong>
+              <span>순장 {node.group.leaderName}</span>
+              <small>{node.memberCount}명</small>
+            </button>
+          ))}
+        </div>
       </section>
+
       {groupMembersModal ? (
         <GroupMembersModal
+          canDeleteGroups={canDeleteGroups}
+          canManageGroups={canManageGroups}
+          deleteGroupState={deleteGroupState}
           group={groupMembersModal}
+          groupLeaderOptions={groupLeaderOptions}
+          isDeletingGroup={isDeletingGroup}
+          isRenamingGroup={isRenamingGroup}
+          isUpdatingGroup={isUpdatingGroup}
+          lastDeletedGroupId={lastDeletedGroupId}
+          lastRenamedGroupId={lastRenamedGroupId}
+          lastUpdatedGroupId={lastUpdatedGroupId}
           members={activeMembers.filter((member) => member.groupId === groupMembersModal.id)}
           onClose={() => setGroupMembersModal(null)}
+          renameGroupAction={renameGroupAction}
+          renameGroupState={renameGroupState}
+          setGroupPendingDelete={setGroupPendingDelete}
+          setLastRenamedGroupId={setLastRenamedGroupId}
+          setLastUpdatedGroupId={setLastUpdatedGroupId}
+          updateGroupAction={updateGroupAction}
+          updateGroupState={updateGroupState}
         />
       ) : null}
       {groupPendingDelete ? (
@@ -2562,6 +2574,7 @@ export function AttendanceManager({
   const requestedAttendanceGroupId = searchParams.get("groupId");
   const attendanceVisibleGroups = getAttendanceVisibleGroups(groups);
   const attendanceVisibleGroupIds = new Set(attendanceVisibleGroups.map((group) => group.id));
+  const communityLeaderGroup = groups.find((group) => group.name.includes("공동체 리더")) ?? null;
   const initialAttendanceGroupId =
     requestedAttendanceGroupId && attendanceVisibleGroups.some((group) => group.id === requestedAttendanceGroupId)
       ? requestedAttendanceGroupId
@@ -2576,6 +2589,7 @@ export function AttendanceManager({
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
   const canManageAttendanceExtraCounts = hasPermission(user.role, "attendance:extras:write");
+  const isWelcomeAttendanceOnly = user.role === "welcome";
   const canDeleteAttendanceEvents = canUseDeleteActions(user.role);
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
   const [attendanceGroupId, setAttendanceGroupId] = useState(initialAttendanceGroupId);
@@ -2591,7 +2605,7 @@ export function AttendanceManager({
   const hasExplicitAttendanceSelection = Boolean(explicitAttendanceEventId);
   const buildAttendanceHref = (eventId: string, hash = "") => {
     const params = new URLSearchParams({ eventId });
-    if (attendanceGroupId !== "all") {
+    if (!isWelcomeAttendanceOnly && attendanceGroupId !== "all") {
       params.set("groupId", attendanceGroupId);
       params.set("mode", "group");
     }
@@ -2763,11 +2777,25 @@ export function AttendanceManager({
   };
   const selectedExtraCounts = attendanceExtraCounts.find((row) => row.eventDate === attendanceDate);
   const attendanceExtraValues = {
-    clergyCount: selectedExtraCounts?.clergyCount ?? 0,
-    teamLeaderCount: selectedExtraCounts?.teamLeaderCount ?? 0,
     visitorCount: selectedExtraCounts?.visitorCount ?? 0,
     newFamilyCount: selectedExtraCounts?.newFamilyCount ?? 0,
   };
+  const worshipEventForDate = sameDateEvents.find((event) => event.title === "주일 예배") ?? null;
+  const communityLeaderMembers = localMembers
+    .filter(isAttendanceRosterMember)
+    .filter((member) => communityLeaderGroup && member.groupId === communityLeaderGroup.id)
+    .map((member) => ({ member, leaderRole: getCommunityLeaderRole(member) }))
+    .filter((item) => item.leaderRole)
+    .sort((a, b) => {
+      const roleOrder: Record<CommunityLeaderRole, number> = { clergy: 0, team_leader: 1, elder: 2, deaconess: 3 };
+      return roleOrder[a.leaderRole as CommunityLeaderRole] - roleOrder[b.leaderRole as CommunityLeaderRole] || a.member.name.localeCompare(b.member.name);
+    });
+  const clergyAttendanceCount = communityLeaderMembers.filter(
+    ({ member, leaderRole }) => leaderRole === "clergy" && getMemberAttendanceStatus(member, worshipEventForDate?.id) === "present",
+  ).length;
+  const teamLeaderPlusAttendanceCount = communityLeaderMembers.filter(
+    ({ member, leaderRole }) => isTeamLeaderPlusRole(leaderRole) && getMemberAttendanceStatus(member, worshipEventForDate?.id) === "present",
+  ).length;
   const worshipGroupTotalRows = (attendanceStats?.eventGroupTrend ?? [])
     .filter((row) => row.eventDate === attendanceDate && row.eventType === "주일 예배")
     .map((row) => ({
@@ -2782,8 +2810,8 @@ export function AttendanceManager({
   );
   const youthAttendanceTotal = attendanceGroupTotalRows.reduce((total, group) => total + group.presentCount, 0);
   const externalAttendanceTotal =
-    attendanceExtraValues.clergyCount +
-    attendanceExtraValues.teamLeaderCount +
+    clergyAttendanceCount +
+    teamLeaderPlusAttendanceCount +
     attendanceExtraValues.visitorCount +
     attendanceExtraValues.newFamilyCount;
   const totalAttendanceWithExtras = youthAttendanceTotal + externalAttendanceTotal;
@@ -2918,17 +2946,21 @@ export function AttendanceManager({
   const overviewGroupName =
     attendanceGroupId === "all"
       ? "전체 순"
-        : attendanceGroupId === "unassigned"
-          ? "미배정"
-          : attendanceVisibleGroups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
+      : attendanceGroupId === "unassigned"
+        ? "미배정"
+        : attendanceVisibleGroups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
   const attendanceGroupOptions = [
     { id: "all", name: "전체" },
-    ...(user.role === "member"
-      ? attendanceVisibleGroups
-          .filter((group) => currentAttendanceMember?.groupId && group.id === currentAttendanceMember.groupId)
-          .map((group) => ({ id: group.id, name: group.name }))
-      : attendanceVisibleGroups.map((group) => ({ id: group.id, name: group.name }))),
-    ...(user.role === "member" && currentAttendanceMember?.groupId ? [] : [{ id: "unassigned", name: "미배정" }]),
+    ...(isWelcomeAttendanceOnly
+      ? []
+      : user.role === "member"
+        ? attendanceVisibleGroups
+            .filter((group) => currentAttendanceMember?.groupId && group.id === currentAttendanceMember.groupId)
+            .map((group) => ({ id: group.id, name: group.name }))
+        : attendanceVisibleGroups.map((group) => ({ id: group.id, name: group.name }))),
+    ...(isWelcomeAttendanceOnly || (user.role === "member" && currentAttendanceMember?.groupId)
+      ? []
+      : [{ id: "unassigned", name: "미배정" }]),
   ];
   const attendanceOverviewEvents = getAttendanceOverviewEvents(sameDateEvents, selectedAttendanceEvent?.id);
   const attendanceOverviewStats = attendanceOverviewEvents.map((event) => {
@@ -2974,6 +3006,29 @@ export function AttendanceManager({
     );
     startTransition(() => {
       void toggleAttendance(member.id, event.id, nextPresent);
+    });
+  };
+  const handleToggleLeaderExtraAttendance = (member: Member, nextPresent: boolean) => {
+    if (!worshipEventForDate) return;
+    setLocalMembers((current) =>
+      current.map((item) =>
+        item.id === member.id
+          ? {
+              ...item,
+              present: worshipEventForDate.id === attendanceEventId ? nextPresent : item.present,
+              attendanceHistory: updateLocalAttendanceHistory({
+                attendanceDate: worshipEventForDate.eventDate,
+                attendanceTitle: worshipEventForDate.title,
+                eventId: worshipEventForDate.id,
+                history: item.attendanceHistory,
+                nextPresent,
+              }),
+            }
+          : item,
+      ),
+    );
+    startTransition(() => {
+      void toggleLeaderExtraAttendance(member.id, worshipEventForDate.id, nextPresent);
     });
   };
 
@@ -3046,10 +3101,60 @@ export function AttendanceManager({
         />
       ) : null}
 
+      {canManageAttendanceExtraCounts ? (
+        <section className="attendance-total-panel pinned-attendance-total" aria-label="예배 총 출석 집계">
+          <div className="attendance-total-heading">
+            <div>
+              <span className="eyebrow">예배 총 출석 집계</span>
+              <h2>{attendanceDate}</h2>
+              <p>순별 주일 예배 출석에 교역자/팀장 이상/방문자/새가족을 더해 예배 총 출석을 계산합니다.</p>
+            </div>
+          </div>
+          <div className="attendance-total-hero-grid">
+            <article className="attendance-total-hero-card primary">
+              <span>예배 총 출석</span>
+              <strong>{totalAttendanceWithExtras}</strong>
+              <small>청년 + 교역자/팀장 이상 + 방문자 + 새가족</small>
+            </article>
+            <article className="attendance-total-hero-card">
+              <span>청년 예배 출석</span>
+              <strong>{youthAttendanceTotal}</strong>
+              <small>순별 주일 예배 출석 합계</small>
+            </article>
+          </div>
+          <div className="attendance-total-breakdown" aria-label="예배 총 출석 세부 집계">
+            <article>
+              <span>교역자</span>
+              <strong>{clergyAttendanceCount}</strong>
+            </article>
+            <article>
+              <span>팀장 이상</span>
+              <strong>{teamLeaderPlusAttendanceCount}</strong>
+            </article>
+            <article>
+              <span>방문자</span>
+              <strong>{attendanceExtraValues.visitorCount}</strong>
+            </article>
+            <article>
+              <span>새가족</span>
+              <strong>{attendanceExtraValues.newFamilyCount}</strong>
+            </article>
+          </div>
+          <div className="attendance-total-grid" aria-label="순별 주일 예배 출석 수">
+            {attendanceGroupTotalRows.map((group) => (
+              <div className="attendance-total-chip" key={group.id}>
+                <span>{group.name}</span>
+                <strong>{group.presentCount}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <DisclosurePanel
         id="attendance-stats"
-        title="출석 통계"
-        meta={`${hasExplicitAttendanceSelection ? attendanceTitle : "최근 이벤트 기준"} · 출석률 ${displayCurrentAttendanceRate}%`}
+        title="상세 출석 통계"
+        meta={`${hasExplicitAttendanceSelection ? attendanceTitle : "최근 이벤트 기준"} · 펼쳐서 보기`}
       >
         <section className="attendance-insight-panel" aria-label="상호작용 출석 통계">
           <div className="attendance-stats-toolbar">
@@ -3097,78 +3202,6 @@ export function AttendanceManager({
               </select>
             </label>
           </div>
-
-          {canManageAttendanceExtraCounts ? (
-            <section className="attendance-total-panel" aria-label="총 출석 입력">
-              <div className="attendance-total-heading">
-                <div>
-                  <span className="eyebrow">예배 총 출석 집계</span>
-                  <h2>{attendanceDate}</h2>
-                  <p>순별 주일 예배 출석에 교역자/팀장 이상/방문자/새가족을 더해 예배 총 출석을 계산합니다.</p>
-                </div>
-                <div className="attendance-total-result">
-                  <span>예배 총 출석</span>
-                  <strong>{totalAttendanceWithExtras}</strong>
-                  <small>청년 예배 출석 {youthAttendanceTotal}명</small>
-                </div>
-              </div>
-              <div className="attendance-total-grid" aria-label="순별 출석 수">
-                {attendanceGroupTotalRows.map((group) => (
-                  <div className="attendance-total-chip" key={group.id}>
-                    <span>{group.name}</span>
-                    <strong>{group.presentCount}</strong>
-                  </div>
-                ))}
-              </div>
-              <form action={extraCountAction} className="attendance-extra-form">
-                <input name="eventDate" type="hidden" value={attendanceDate} />
-                <label>
-                  교역자
-                  <input
-                    name="clergyCount"
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    defaultValue={attendanceExtraValues.clergyCount}
-                  />
-                </label>
-                <label>
-                  팀장 이상
-                  <input
-                    name="teamLeaderCount"
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    defaultValue={attendanceExtraValues.teamLeaderCount}
-                  />
-                </label>
-                <label>
-                  방문자
-                  <input
-                    name="visitorCount"
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    defaultValue={attendanceExtraValues.visitorCount}
-                  />
-                </label>
-                <label>
-                  새가족
-                  <input
-                    name="newFamilyCount"
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    defaultValue={attendanceExtraValues.newFamilyCount}
-                  />
-                </label>
-                <button className="primary-button" type="submit" disabled={isSavingExtraCounts}>
-                  저장
-                </button>
-                <ActionMessage state={extraCountState} />
-              </form>
-            </section>
-          ) : null}
 
           <div className="attendance-kpi-strip">
             <article>
@@ -3360,25 +3393,29 @@ export function AttendanceManager({
               {filteredEventDateOptions.length === 0 ? <option value="">조건에 맞는 날짜 없음</option> : null}
             </select>
           </label>
-          <label>
-            검색
-            <input
-              onChange={(event) => setAttendanceSearchQuery(event.target.value)}
-              placeholder="이름 또는 순"
-              type="search"
-              value={attendanceSearchQuery}
-            />
-          </label>
-          <label>
-            날짜 검색
-            <input
-              type="search"
-              placeholder="예: 2026-05"
-              value={eventSearchQuery}
-              onChange={(event) => setEventSearchQuery(event.target.value)}
-            />
-          </label>
-          {hasExplicitAttendanceSelection && selectedAttendanceEvent ? (
+          {!isWelcomeAttendanceOnly ? (
+            <>
+              <label>
+                검색
+                <input
+                  onChange={(event) => setAttendanceSearchQuery(event.target.value)}
+                  placeholder="이름 또는 순"
+                  type="search"
+                  value={attendanceSearchQuery}
+                />
+              </label>
+              <label>
+                날짜 검색
+                <input
+                  type="search"
+                  placeholder="예: 2026-05"
+                  value={eventSearchQuery}
+                  onChange={(event) => setEventSearchQuery(event.target.value)}
+                />
+              </label>
+            </>
+          ) : null}
+          {!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection && selectedAttendanceEvent ? (
             <button
               className="danger-text-button attendance-event-delete-inline"
               type="button"
@@ -3389,32 +3426,126 @@ export function AttendanceManager({
             </button>
           ) : null}
         </div>
-        <div className="attendance-check-controls">
-          <div className="segmented">
-            {(["all", "present", "absent", "excused"] as const).map((filter) => (
+        {canManageAttendanceExtraCounts ? (
+          <section className="welcome-attendance-input-panel" aria-label="웰컴팀 예배 출석 입력">
+            <div className="panel-heading compact-heading">
+              <div>
+                <p className="eyebrow">웰컴팀 전용</p>
+                <h3>예배 추가 출석</h3>
+                <p className="meta">
+                  {hasExplicitAttendanceSelection
+                    ? `${attendanceDate} 주일 예배 기준으로 체크합니다.`
+                    : "날짜를 선택하면 공동체 리더 순 출석과 방문자/새가족 인원을 입력할 수 있습니다."}
+                </p>
+              </div>
+              <span>{hasExplicitAttendanceSelection ? "입력 가능" : "날짜 선택 필요"}</span>
+            </div>
+            {hasExplicitAttendanceSelection ? (
+              <div className="welcome-attendance-stack">
+                <div className="leader-extra-checklist">
+                  <div className="leader-extra-summary">
+                    <span>교역자 {clergyAttendanceCount}명</span>
+                    <span>팀장 이상 {teamLeaderPlusAttendanceCount}명</span>
+                  </div>
+                  {worshipEventForDate ? (
+                    communityLeaderMembers.length > 0 ? (
+                      <div className="leader-extra-grid">
+                        {communityLeaderMembers.map(({ member, leaderRole }) => {
+                          const isPresent = getMemberAttendanceStatus(member, worshipEventForDate.id) === "present";
+                          return (
+                            <button
+                              className={`leader-extra-toggle ${isPresent ? "present" : "absent"}`}
+                              key={member.id}
+                              type="button"
+                              disabled={isPending}
+                              onClick={() => handleToggleLeaderExtraAttendance(member, !isPresent)}
+                            >
+                              <span className="leader-extra-name">{member.displayName}</span>
+                              <span className="leader-extra-role">{communityLeaderRoleLabels[leaderRole as CommunityLeaderRole]}</span>
+                              <strong>{isPresent ? "출석" : "미출석"}</strong>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <article className="empty-table-state compact-empty-state">
+                        <strong>체크할 공동체 리더가 없습니다</strong>
+                        <span>멤버 상세에서 공동체 리더 구분을 교역자/팀장/장로/권사로 지정해주세요.</span>
+                      </article>
+                    )
+                  ) : (
+                    <article className="empty-table-state compact-empty-state">
+                      <strong>주일 예배 이벤트가 없습니다</strong>
+                      <span>이 날짜에 주일 예배 이벤트를 먼저 만들어주세요.</span>
+                    </article>
+                  )}
+                </div>
+                <form action={extraCountAction} className="attendance-extra-form visitor-extra-form">
+                  <input name="eventDate" type="hidden" value={attendanceDate} />
+                  <label>
+                    방문자
+                    <input
+                      name="visitorCount"
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      defaultValue={attendanceExtraValues.visitorCount}
+                    />
+                  </label>
+                  <label>
+                    새가족
+                    <input
+                      name="newFamilyCount"
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      defaultValue={attendanceExtraValues.newFamilyCount}
+                    />
+                  </label>
+                  <button className="primary-button" type="submit" disabled={isSavingExtraCounts}>
+                    저장
+                  </button>
+                  <ActionMessage state={extraCountState} />
+                </form>
+              </div>
+            ) : (
+              <article className="empty-table-state attendance-empty-state compact-empty-state">
+                <strong>날짜를 먼저 선택해주세요</strong>
+                <span>선택한 날짜의 예배 총 출석에 반영됩니다.</span>
+              </article>
+            )}
+          </section>
+        ) : null}
+        {!isWelcomeAttendanceOnly ? (
+          <div className="attendance-check-controls">
+            <div className="segmented">
+              {(["all", "present", "absent", "excused"] as const).map((filter) => (
+                <button
+                  className={`segment ${attendanceFilter === filter ? "active" : ""}`}
+                  key={filter}
+                  onClick={() => setAttendanceFilter(filter)}
+                  type="button"
+                >
+                  {attendanceFilterLabels[filter]}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {!isWelcomeAttendanceOnly ? (
+          <div className="attendance-group-strip" aria-label="순 선택">
+            {attendanceGroupOptions.map((group) => (
               <button
-                className={`segment ${attendanceFilter === filter ? "active" : ""}`}
-                key={filter}
-                onClick={() => setAttendanceFilter(filter)}
+                className={`attendance-group-chip ${attendanceGroupId === group.id ? "active" : ""}`}
+                key={group.id}
+                onClick={() => setAttendanceGroupId(group.id)}
                 type="button"
               >
-                {attendanceFilterLabels[filter]}
+                {group.name}
               </button>
             ))}
           </div>
-        </div>
-        <div className="attendance-group-strip" aria-label="순 선택">
-          {attendanceGroupOptions.map((group) => (
-            <button
-              className={`attendance-group-chip ${attendanceGroupId === group.id ? "active" : ""}`}
-              key={group.id}
-              onClick={() => setAttendanceGroupId(group.id)}
-              type="button"
-            >
-              {group.name}
-            </button>
-          ))}
-        </div>
+        ) : null}
         <ActionMessage state={deleteEventState} />
         {attendanceEvents.length === 0 ? (
           <article className="empty-table-state attendance-empty-state">
@@ -3428,13 +3559,13 @@ export function AttendanceManager({
             <span>날짜 검색어를 조정해보세요.</span>
           </article>
         ) : null}
-        {!hasExplicitAttendanceSelection && filteredEventDateOptions.length > 0 ? (
+        {!isWelcomeAttendanceOnly && !hasExplicitAttendanceSelection && filteredEventDateOptions.length > 0 ? (
           <article className="empty-table-state attendance-empty-state">
             <strong>출석 체크할 날짜를 선택해주세요</strong>
             <span>위에서 날짜를 고르면 주일 예배와 순모임 출석을 한 화면에서 체크할 수 있습니다.</span>
           </article>
         ) : null}
-        {hasExplicitAttendanceSelection && attendanceOverviewEvents.length > 0 ? (
+        {!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection && attendanceOverviewEvents.length > 0 ? (
           <section className="group-attendance-snapshot" aria-label={`${overviewGroupName} 출석현황`}>
             <div className="group-attendance-snapshot-heading">
               <div>
@@ -3512,7 +3643,7 @@ export function AttendanceManager({
             </div>
           </section>
         ) : null}
-        {hasExplicitAttendanceSelection && attendanceOverviewEvents.length === 0 ? (
+        {!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection && attendanceOverviewEvents.length === 0 ? (
         <div className="attendance-check-list">
           {attendanceMembers.map((member) => {
             const status = getMemberAttendanceStatus(member, attendanceEventId);
@@ -3706,13 +3837,47 @@ function AttendanceReasonModal({
 }
 
 function GroupMembersModal({
+  canDeleteGroups,
+  canManageGroups,
+  deleteGroupState,
   group,
+  groupLeaderOptions,
+  isDeletingGroup,
+  isRenamingGroup,
+  isUpdatingGroup,
+  lastDeletedGroupId,
+  lastRenamedGroupId,
+  lastUpdatedGroupId,
   members,
   onClose,
+  renameGroupAction,
+  renameGroupState,
+  setGroupPendingDelete,
+  setLastRenamedGroupId,
+  setLastUpdatedGroupId,
+  updateGroupAction,
+  updateGroupState,
 }: {
+  canDeleteGroups: boolean;
+  canManageGroups: boolean;
+  deleteGroupState: ActionState;
   group: Group;
+  groupLeaderOptions: Member[];
+  isDeletingGroup: boolean;
+  isRenamingGroup: boolean;
+  isUpdatingGroup: boolean;
+  lastDeletedGroupId: string | null;
+  lastRenamedGroupId: string | null;
+  lastUpdatedGroupId: string | null;
   members: Member[];
   onClose: () => void;
+  renameGroupAction: (payload: FormData) => void;
+  renameGroupState: ActionState;
+  setGroupPendingDelete: (group: Group) => void;
+  setLastRenamedGroupId: (id: string) => void;
+  setLastUpdatedGroupId: (id: string) => void;
+  updateGroupAction: (payload: FormData) => void;
+  updateGroupState: ActionState;
 }) {
   const sortedMembers = [...members].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -3755,6 +3920,66 @@ function GroupMembersModal({
             </article>
           ) : null}
         </div>
+        {canManageGroups ? (
+          <div className="group-modal-admin-tools">
+            <form
+              action={renameGroupAction}
+              className="management-form group-rename-form"
+              onSubmit={() => setLastRenamedGroupId(group.id)}
+            >
+              <input name="id" type="hidden" value={group.id} />
+              <label>
+                순 이름 변경
+                <input name="name" required defaultValue={group.name} />
+              </label>
+              <div className="form-actions">
+                {lastRenamedGroupId === group.id ? <ActionMessage state={renameGroupState} /> : null}
+                <button className="secondary-button" type="submit" disabled={isRenamingGroup}>
+                  이름 변경
+                </button>
+              </div>
+            </form>
+            <form
+              action={updateGroupAction}
+              className="management-form group-edit-form"
+              onSubmit={() => setLastUpdatedGroupId(group.id)}
+            >
+              <input name="id" type="hidden" value={group.id} />
+              <input name="name" type="hidden" value={group.name} />
+              <label>
+                리더
+                <select name="leaderMemberId" defaultValue={group.leaderMemberId ?? ""}>
+                  <option value="">미배정</option>
+                  {groupLeaderOptions.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.displayName} · {member.groupName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {lastUpdatedGroupId === group.id ? <ActionMessage state={updateGroupState} /> : null}
+              <button className="secondary-button" type="submit" disabled={isUpdatingGroup}>
+                리더 저장
+              </button>
+            </form>
+          </div>
+        ) : null}
+        {canDeleteGroups ? (
+          <div className="group-modal-delete-row">
+            <button
+              className="danger-text-button"
+              type="button"
+              disabled={isDeletingGroup}
+              onClick={() => {
+                onClose();
+                setGroupPendingDelete(group);
+              }}
+            >
+              삭제
+            </button>
+            {lastDeletedGroupId === group.id ? <ActionMessage state={deleteGroupState} /> : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

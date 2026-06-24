@@ -40,6 +40,10 @@ const testAccountStatsExclusionSource = readFileSync(
   "utf8",
 );
 const attendanceExtraCountsSource = readFileSync(new URL("../db/034_attendance_extra_counts.sql", import.meta.url), "utf8");
+const communityLeaderAttendanceRolesSource = readFileSync(
+  new URL("../db/035_community_leader_attendance_roles.sql", import.meta.url),
+  "utf8",
+);
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -275,6 +279,20 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /attendanceGroupOptions/);
   assert.match(dashboardSource, /attendance-group-strip/);
   assert.match(dashboardSource, /attendance-group-chip/);
+  assert.match(dashboardSource, /const isWelcomeAttendanceOnly = user\.role === "welcome"/);
+  assert.match(dashboardSource, /pinned-attendance-total/);
+  assert.match(dashboardSource, /title="상세 출석 통계"/);
+  assert.match(dashboardSource, /welcome-attendance-input-panel/);
+  assert.match(dashboardSource, /aria-label="웰컴팀 예배 출석 입력"/);
+  assert.match(dashboardSource, /toggleLeaderExtraAttendance/);
+  assert.match(dashboardSource, /communityLeaderRoleLabels/);
+  assert.match(dashboardSource, /leader-extra-toggle/);
+  assert.match(actionsSource, /attendance\.extra_leader\.toggle/);
+  assert.match(actionsSource, /attendance:extras:write/);
+  assert.match(actionsSource, /공동체 리더 순 멤버만 예배 추가 출석으로 체크할 수 있습니다/);
+  assert.match(communityLeaderAttendanceRolesSource, /community_leader_role/);
+  assert.match(dashboardSource, /!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection/);
+  assert.match(dashboardSource, /!isWelcomeAttendanceOnly \? \(/);
   assert.match(dashboardSource, /AttendanceMemberActionModal/);
   assert.match(dashboardSource, /AttendanceReasonModal/);
   assert.match(dashboardSource, /<AttendanceMemberActionModal[\s\S]*attendanceEvents=\{attendanceOverviewEvents\}/);
@@ -605,19 +623,32 @@ test("group management uses active member choices and supports audited delete", 
   assert.match(dashboardSource, /danger-text-button/);
   assert.match(dashboardSource, /groupMembersModal/);
   assert.match(dashboardSource, /GroupMembersModal/);
-  assert.match(dashboardSource, /멤버 보기/);
   assert.match(dashboardSource, /상세보기/);
-  assert.match(dashboardSource, /group-admin-tools/);
-  assert.match(dashboardSource, /group-card-overview/);
-  assert.match(dashboardSource, /group-node-ring/);
-  assert.match(dashboardSource, /group-member-preview/);
-  assert.match(globalCssSource, /\.group-card:hover/);
-  assert.match(globalCssSource, /\.group-node-ring/);
-  assert.match(globalCssSource, /\.group-member-node/);
+  assert.match(dashboardSource, /group-modal-admin-tools/);
+  assert.match(dashboardSource, /setGroupMembersModal\(node\.group\)/);
+  assert.doesNotMatch(dashboardSource, /<section className="group-grid"/);
+  assert.doesNotMatch(dashboardSource, /group-card-overview/);
+  assert.doesNotMatch(dashboardSource, /group-member-preview/);
   assert.doesNotMatch(dashboardSource, /group-card-stats/);
   assert.doesNotMatch(dashboardSource, /확인을 위해 순 이름을 입력/);
   assert.doesNotMatch(actionsSource, /const deleteGroupSchema[\s\S]{0,120}confirmName/);
   assert.match(memberDetailSource, /!isMergedPlaceholderMember\(item\)/);
+});
+
+test("group page renders a central Newavely network map", () => {
+  assert.match(dashboardSource, /const networkNodes = visibleGroups\.map/);
+  assert.match(dashboardSource, /className="panel group-network-panel"/);
+  assert.match(dashboardSource, /className="group-network-lines"/);
+  assert.match(dashboardSource, /className="group-network-center"/);
+  assert.match(dashboardSource, /src="\/newave-icon\.png"/);
+  assert.match(dashboardSource, /<strong>뉴웨이브<\/strong>/);
+  assert.match(dashboardSource, /순장 \{node\.group\.leaderName\}/);
+  assert.match(dashboardSource, /className="group-network-node"/);
+  assert.match(globalCssSource, /\.group-network-map/);
+  assert.match(globalCssSource, /\.group-network-lines line/);
+  assert.match(globalCssSource, /\.group-network-center/);
+  assert.match(globalCssSource, /\.group-network-node:hover/);
+  assert.doesNotMatch(globalCssSource, /\.group-network-node:hover[\s\S]{0,240}scale\(1\.05\)/);
 });
 
 test("permissions page exposes member search for role management", () => {

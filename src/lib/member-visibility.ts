@@ -5,6 +5,10 @@ function isMergedPlaceholderForVisibility(member: Pick<Member, "email">) {
   return member.email.trim().toLowerCase().endsWith("@merged.local");
 }
 
+function isCommunityLeaderGroup(member: Pick<Member, "groupName">) {
+  return member.groupName.trim().includes("공동체 리더");
+}
+
 export function getLedGroupIds(currentMemberId: string, groups: Group[]) {
   return new Set(groups.filter((group) => group.leaderMemberId === currentMemberId).map((group) => group.id));
 }
@@ -22,6 +26,7 @@ export function canViewFullMemberDetail({
 }) {
   if (role === "owner" || role === "admin" || role === "leader" || role === "staff") return true;
   if (role === "member") return member.id === currentMemberId;
+  if (role === "welcome" && isCommunityLeaderGroup(member)) return true;
   if (member.id === currentMemberId) return true;
   return Boolean(member.groupId && ledGroupIds.has(member.groupId));
 }

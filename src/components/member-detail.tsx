@@ -37,6 +37,17 @@ import type { AppUser } from "@/lib/app-page-data";
 import type { CustomFieldDefinition, Group, Member, MemberLinkRequest, MemberStatusMessage } from "@/lib/types";
 
 const initialActionState: ActionState = { ok: false, message: "" };
+const communityLeaderRoleLabels = {
+  clergy: "교역자",
+  team_leader: "팀장",
+  elder: "장로",
+  deaconess: "권사",
+} as const;
+
+function getCommunityLeaderRole(member: Member) {
+  const value = member.customFields.community_leader_role;
+  return value === "clergy" || value === "team_leader" || value === "elder" || value === "deaconess" ? value : "";
+}
 
 export function MemberDetailPageContent({
   user,
@@ -275,6 +286,17 @@ export function MemberDetailPageContent({
             <label>
               주소
               <input name="address" defaultValue={member.address} disabled={!canEditProfile} />
+            </label>
+            <label>
+              공동체 리더 구분
+              <select name="communityLeaderRole" defaultValue={getCommunityLeaderRole(member)} disabled={!canManageMembers}>
+                <option value="">해당 없음</option>
+                {Object.entries(communityLeaderRoleLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               세례/등록

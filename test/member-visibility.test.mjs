@@ -31,12 +31,21 @@ function member(overrides) {
 const groups = [
   { id: "group-a", name: "A순", leaderMemberId: "soonjang", leaderName: "순장" },
   { id: "group-b", name: "B순", leaderMemberId: "other-leader", leaderName: "다른 순장" },
+  { id: "leaders", name: "공동체 리더 순", leaderMemberId: null, leaderName: "미배정" },
 ];
 
 const mixedMembers = [
   member({ id: "soonjang", name: "순장", displayName: "순장", groupId: "group-a", groupName: "A순", role: "staff" }),
   member({ id: "same-group", name: "같은 순", displayName: "같은 순", groupId: "group-a", groupName: "A순" }),
   member({ id: "other-group", name: "다른 순", displayName: "다른 순", groupId: "group-b", groupName: "B순" }),
+  member({
+    id: "community-leader",
+    name: "교역자",
+    displayName: "교역자",
+    groupId: "leaders",
+    groupName: "공동체 리더 순",
+    customFields: { community_leader_role: "clergy" },
+  }),
   member({ id: "inactive", name: "비활성", displayName: "비활성", status: "inactive", groupId: "group-b", groupName: "B순" }),
   member({ id: "merged-placeholder", name: "병합 잔여", displayName: "병합 잔여", email: "old@merged.local", groupId: null, groupName: "미배정" }),
 ];
@@ -67,7 +76,7 @@ test("soonjang has the same full-detail view as leader", () => {
 });
 
 test("all roles use the same visible roster basis without merged placeholders", () => {
-  const expectedVisibleIds = ["soonjang", "same-group", "other-group", "inactive"];
+  const expectedVisibleIds = ["soonjang", "same-group", "other-group", "community-leader", "inactive"];
 
   for (const role of roles) {
     const scopedMembers = scopeMembersForRole({
@@ -83,6 +92,24 @@ test("all roles use the same visible roster basis without merged placeholders", 
       `${role} should see the same roster rows`,
     );
   }
+});
+
+test("welcome team can see community leader attendance details without opening other groups", () => {
+  const scopedMembers = scopeMembersForRole({
+    role: "welcome",
+    currentMemberId: "welcome-user",
+    groups,
+    members: mixedMembers,
+  });
+  const communityLeader = scopedMembers.find((item) => item.id === "community-leader");
+  const otherGroupMember = scopedMembers.find((item) => item.id === "other-group");
+
+  assert.equal(communityLeader.phone, "010-0000-0000");
+  assert.equal(communityLeader.customFields.community_leader_role, "clergy");
+  assert.equal(communityLeader.present, true);
+  assert.equal(otherGroupMember.phone, "비공개");
+  assert.equal(otherGroupMember.email, "");
+  assert.deepEqual(Array.from(otherGroupMember.attendanceHistory), []);
 });
 
 test("owner admin leader and soonjang roles keep the same full-detail view", () => {
