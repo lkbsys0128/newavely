@@ -3840,6 +3840,12 @@ tbody tr:hover {
   background: rgba(253, 236, 236, 0.64);
 }
 
+.leader-extra-toggle.needs-role {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--soft) 58%, #ffffff);
+  opacity: 0.82;
+}
+
 .leader-extra-name,
 .leader-extra-role,
 .leader-extra-toggle strong {
@@ -4513,6 +4519,10 @@ tbody tr:hover {
   text-align: center;
   box-shadow: 0 14px 30px rgba(23, 51, 59, 0.12);
   cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
   transition:
     border-color var(--motion-medium) var(--motion-ease),
     background var(--motion-medium) var(--motion-ease),
@@ -4528,6 +4538,14 @@ tbody tr:hover {
     linear-gradient(145deg, rgba(230, 249, 252, 0.98), rgba(255, 255, 255, 0.96));
   box-shadow: 0 18px 34px rgba(21, 119, 144, 0.2);
   color: var(--accent-dark);
+}
+
+.group-network-node:not(:disabled):active {
+  transform: translate(-50%, -50%);
+}
+
+.group-network-node::after {
+  display: none;
 }
 
 .group-network-node strong,
@@ -6618,6 +6636,10 @@ tbody tr:hover {
 
 :root[data-theme="dark"] .leader-extra-toggle.absent {
   background: rgba(207, 79, 79, 0.11);
+}
+
+:root[data-theme="dark"] .leader-extra-toggle.needs-role {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 :root[data-theme="dark"] .attendance-total-chip span {
