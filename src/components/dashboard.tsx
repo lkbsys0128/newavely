@@ -2785,10 +2785,9 @@ export function AttendanceManager({
     .filter(isAttendanceRosterMember)
     .filter((member) => communityLeaderGroup && member.groupId === communityLeaderGroup.id)
     .map((member) => ({ member, leaderRole: getCommunityLeaderRole(member) }))
-    .filter((item) => item.leaderRole)
     .sort((a, b) => {
-      const roleOrder: Record<CommunityLeaderRole, number> = { clergy: 0, team_leader: 1, elder: 2, deaconess: 3 };
-      return roleOrder[a.leaderRole as CommunityLeaderRole] - roleOrder[b.leaderRole as CommunityLeaderRole] || a.member.name.localeCompare(b.member.name);
+      const roleOrder: Record<CommunityLeaderRole | "", number> = { clergy: 0, team_leader: 1, elder: 2, deaconess: 3, "": 4 };
+      return roleOrder[a.leaderRole] - roleOrder[b.leaderRole] || a.member.name.localeCompare(b.member.name);
     });
   const clergyAttendanceCount = communityLeaderMembers.filter(
     ({ member, leaderRole }) => leaderRole === "clergy" && getMemberAttendanceStatus(member, worshipEventForDate?.id) === "present",
@@ -3461,7 +3460,9 @@ export function AttendanceManager({
                               onClick={() => handleToggleLeaderExtraAttendance(member, !isPresent)}
                             >
                               <span className="leader-extra-name">{member.displayName}</span>
-                              <span className="leader-extra-role">{communityLeaderRoleLabels[leaderRole as CommunityLeaderRole]}</span>
+                              <span className="leader-extra-role">
+                                {leaderRole ? communityLeaderRoleLabels[leaderRole] : "구분 필요"}
+                              </span>
                               <strong>{isPresent ? "출석" : "미출석"}</strong>
                             </button>
                           );
