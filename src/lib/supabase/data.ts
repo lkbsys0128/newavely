@@ -1,6 +1,7 @@
 import { getRoleForEmail, type Role } from "@/lib/rbac";
 import type {
   AdminFeedbackMessage,
+  AttendanceExtraCount,
   AttendanceEvent,
   AuditLog,
   CareFollowup,
@@ -502,6 +503,25 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
     groups,
     members,
   };
+}
+
+export async function getAttendanceExtraCounts(supabase: SupabaseClient): Promise<AttendanceExtraCount[]> {
+  const { data, error } = await supabase
+    .from("attendance_extra_counts")
+    .select("event_date, clergy_count, team_leader_count, visitor_count, new_family_count, updated_by_member_id, updated_at")
+    .order("event_date", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => ({
+    eventDate: String(row.event_date),
+    clergyCount: Number(row.clergy_count ?? 0),
+    teamLeaderCount: Number(row.team_leader_count ?? 0),
+    visitorCount: Number(row.visitor_count ?? 0),
+    newFamilyCount: Number(row.new_family_count ?? 0),
+    updatedByMemberId: row.updated_by_member_id ? String(row.updated_by_member_id) : null,
+    updatedAt: String(row.updated_at ?? ""),
+  }));
 }
 
 export async function getPublicDashboardData(supabase: SupabaseClient, selectedEventId?: string) {

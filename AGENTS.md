@@ -62,7 +62,7 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 - `admin`: 운영 관리자. 대부분의 운영/권한/감사 관리.
 - `leader`: 리더. 멤버/출석/순 운영 권한.
 - `staff`: 순장. 이름은 순장이지만 권한은 현재 leader와 동일하게 유지합니다.
-- `welcome`: 웰컴팀. 일반 멤버 기본 접근 + 새가족 read/write 권한. 멤버/출석/권한 관리는 할 수 없습니다.
+- `welcome`: 웰컴팀. 일반 멤버 기본 접근 + 새가족 read/write + 출석 페이지의 총 출석 보정 입력 권한. 멤버 출석 체크/멤버/권한 관리는 할 수 없습니다.
 - `member`: 일반 멤버. 본인 프로필, 본인 출석 history/stat, 기본 dashboard 정보 중심.
 
 중요한 기대값:
@@ -70,7 +70,7 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 - 새 Google 로그인은 항상 `member`로 시작합니다.
 - `owner` 변경은 `owner`만 할 수 있어야 합니다.
 - `staff`와 `leader` 권한은 동등해야 합니다.
-- `welcome`은 새가족 페이지를 읽고 수정할 수 있지만 `members:write`, `attendance:write`, `roles:manage`는 없어야 합니다.
+- `welcome`은 새가족 페이지를 읽고 수정할 수 있고 `attendance:extras:write`로 총 출석 보정값을 입력할 수 있지만 `members:write`, `attendance:write`, `roles:manage`는 없어야 합니다.
 - 멤버 삭제는 최소 leader/staff 이상이며, 자기보다 낮은 권한의 멤버만 삭제 가능해야 합니다.
 
 ## 공통 통계와 권한 페이지 숫자
@@ -244,6 +244,7 @@ DB migration을 추가하면:
 - `db/031_welcome_team_new_family_policies.sql`: 웰컴팀 새가족 RLS
 - `db/032_public_permission_role_counts.sql`: 권한 페이지 공통 role count fallback RPC
 - `db/033_test_account_stats_exclusion.sql`: 테스트 계정 통계 제외와 public dashboard payload 보강
+- `db/034_attendance_extra_counts.sql`: 날짜별 교역자/팀장 이상/방문자/새가족 추가 출석 집계
 
 새 환경 변수를 추가하면:
 

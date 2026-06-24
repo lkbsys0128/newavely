@@ -43,6 +43,16 @@ export type AttendanceRecordSummary = {
   excuseEndDate: string;
 };
 
+export type AttendanceExtraCount = {
+  eventDate: string;
+  clergyCount: number;
+  teamLeaderCount: number;
+  visitorCount: number;
+  newFamilyCount: number;
+  updatedByMemberId: string | null;
+  updatedAt: string;
+};
+
 export type CustomFieldDefinition = {
   id: string;
   key: string;

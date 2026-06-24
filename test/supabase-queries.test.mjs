@@ -39,6 +39,7 @@ const testAccountStatsExclusionSource = readFileSync(
   new URL("../db/033_test_account_stats_exclusion.sql", import.meta.url),
   "utf8",
 );
+const attendanceExtraCountsSource = readFileSync(new URL("../db/034_attendance_extra_counts.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -334,7 +335,7 @@ test("app page data avoids avoidable serial fetches", () => {
   assert.match(appPageDataSource, /const shouldLoadAuditLogs = page === "audit"/);
   assert.match(appPageDataSource, /const shouldLoadImportantLinks = page === "links"/);
   assert.match(appPageDataSource, /const shouldLoadMemberStatusMessages = page === "dashboard"/);
-  assert.match(appPageDataSource, /const \[\s*allCustomFieldDefinitions,\s*auditLogs,\s*deletedAuthUsers,\s*importantLinks,\s*memberStatusMessagesData,\s*adminFeedbackMessages,\s*memberLinkRequests,\s*newFamilyApplicants,\s*\] = await Promise\.all/);
+  assert.match(appPageDataSource, /const \[\s*allCustomFieldDefinitions,\s*auditLogs,\s*deletedAuthUsers,\s*importantLinks,\s*memberStatusMessagesData,\s*adminFeedbackMessages,\s*memberLinkRequests,\s*newFamilyApplicants,\s*attendanceExtraCounts,\s*\] = await Promise\.all/);
   assert.match(appPageDataSource, /shouldLoadAuditLogs && canManageRoles \? getAuditLogs\(supabase\) : Promise\.resolve\(undefined\)/);
   assert.match(homePageSource, /getAppPageData\(\{ page: "dashboard" \}\)/);
   assert.match(profilePageSource, /getAppPageData\(\{ page: "profile" \}\)/);
@@ -379,6 +380,34 @@ test("common aggregate stats use unscoped server data while pages receive scoped
   assert.match(dashboardSource, /displayAggregateGroupStats/);
 });
 
+test("attendance extra counts are stored with restricted welcome team access", () => {
+  assert.match(schemaSource, /create table attendance_extra_counts/);
+  assert.match(schemaSource, /event_date date primary key/);
+  assert.match(schemaSource, /clergy_count integer not null default 0/);
+  assert.match(schemaSource, /team_leader_count integer not null default 0/);
+  assert.match(schemaSource, /visitor_count integer not null default 0/);
+  assert.match(schemaSource, /new_family_count integer not null default 0/);
+  assert.match(schemaSource, /alter table attendance_extra_counts enable row level security/);
+  assert.match(schemaSource, /current_member_role\(\) in \('owner', 'admin', 'welcome'\)/);
+  assert.match(attendanceExtraCountsSource, /create table if not exists attendance_extra_counts/);
+  assert.match(attendanceExtraCountsSource, /public\.current_member_role\(\) in \('owner', 'admin', 'welcome'\)/);
+});
+
+test("attendance extra counts load through page data and save through a separate permission", () => {
+  assert.match(dataSource, /export async function getAttendanceExtraCounts/);
+  assert.match(dataSource, /\.from\("attendance_extra_counts"\)/);
+  assert.match(appPageDataSource, /attendanceExtraCounts: AttendanceExtraCount\[\]/);
+  assert.match(appPageDataSource, /hasPermission\(currentMember\.role, "attendance:extras:read"\)/);
+  assert.match(appPageDataSource, /getAttendanceExtraCounts\(supabase\)/);
+  assert.match(actionsSource, /attendanceExtraCountSchema/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("attendance:extras:write"\)/);
+  assert.match(actionsSource, /\.from\("attendance_extra_counts"\)/);
+  assert.match(actionsSource, /attendance_extra_counts\.update/);
+  assert.match(dashboardSource, /canManageAttendanceExtraCounts/);
+  assert.match(dashboardSource, /attendance-total-panel/);
+  assert.match(dashboardSource, /totalAttendanceWithExtras/);
+});
+
 test("mobile navigation collapses into an expandable dropdown", () => {
   assert.match(layoutSource, /<div className="sidebar-menu">/);
   assert.match(layoutSource, /className="mobile-menu-control"[\s\S]*type="checkbox"/);
@@ -398,7 +427,10 @@ test("primary navigation hides pages without the current role permission", () =>
   assert.match(navigationSource, /requiredPermission: "new-family:read"/);
   assert.match(navigationSource, /requiredPermission: "attendance:read"/);
   assert.match(navigationSource, /requiredPermission: "roles:manage"/);
+  assert.match(navigationSource, /href: "\/members"[\s\S]*hiddenForRoles: \["welcome", "member"\]/);
+  assert.match(navigationSource, /href: "\/groups"[\s\S]*hiddenForRoles: \["welcome", "member"\]/);
   assert.match(navigationSource, /return navItems\.filter/);
+  assert.match(navigationSource, /item\.hiddenForRoles\?\.includes\(role\)/);
   assert.match(navigationSource, /hasPermission\(role, item\.requiredPermission\)/);
   assert.doesNotMatch(mobileAwareNavSource, /const navItems = \[/);
 });
@@ -577,6 +609,11 @@ test("group management uses active member choices and supports audited delete", 
   assert.match(dashboardSource, /상세보기/);
   assert.match(dashboardSource, /group-admin-tools/);
   assert.match(dashboardSource, /group-card-overview/);
+  assert.match(dashboardSource, /group-node-ring/);
+  assert.match(dashboardSource, /group-member-preview/);
+  assert.match(globalCssSource, /\.group-card:hover/);
+  assert.match(globalCssSource, /\.group-node-ring/);
+  assert.match(globalCssSource, /\.group-member-node/);
   assert.doesNotMatch(dashboardSource, /group-card-stats/);
   assert.doesNotMatch(dashboardSource, /확인을 위해 순 이름을 입력/);
   assert.doesNotMatch(actionsSource, /const deleteGroupSchema[\s\S]{0,120}confirmName/);

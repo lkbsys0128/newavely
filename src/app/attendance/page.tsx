@@ -21,6 +21,7 @@ export default async function AttendancePage({
           attendanceTitle={readyData.attendanceTitle}
           attendanceEventId={readyData.attendanceEventId}
           attendanceEvents={readyData.attendanceEvents}
+          attendanceExtraCounts={readyData.attendanceExtraCounts}
           members={readyData.members}
           groups={readyData.groups}
           globalStats={readyData.globalStats}
