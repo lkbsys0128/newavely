@@ -885,11 +885,13 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       ? allCustomFieldDefinitions
       : allCustomFieldDefinitions.filter((field) => !field.isSensitive);
     const memberStatusMessages = enrichMemberStatusMessages(memberStatusMessagesData, publicDashboardData.members);
+    const memberScopeSource =
+      currentMember.role === "welcome" && page === "attendance" ? publicDashboardData.members : dashboardData.members;
     const scopedMembers = scopeMembersForRole({
       role: currentMember.role,
       currentMemberId: currentMember.id,
       groups: dashboardData.groups,
-      members: dashboardData.members,
+      members: memberScopeSource,
     });
     const publicPermissionRoleCounts =
       "permissionRoleCounts" in publicDashboardData ? (publicDashboardData.permissionRoleCounts as PermissionRoleCount[]) : undefined;
