@@ -398,7 +398,10 @@ test("primary navigation hides pages without the current role permission", () =>
   assert.match(navigationSource, /requiredPermission: "new-family:read"/);
   assert.match(navigationSource, /requiredPermission: "attendance:read"/);
   assert.match(navigationSource, /requiredPermission: "roles:manage"/);
+  assert.match(navigationSource, /href: "\/members"[\s\S]*hiddenForRoles: \["welcome", "member"\]/);
+  assert.match(navigationSource, /href: "\/groups"[\s\S]*hiddenForRoles: \["welcome", "member"\]/);
   assert.match(navigationSource, /return navItems\.filter/);
+  assert.match(navigationSource, /item\.hiddenForRoles\?\.includes\(role\)/);
   assert.match(navigationSource, /hasPermission\(role, item\.requiredPermission\)/);
   assert.doesNotMatch(mobileAwareNavSource, /const navItems = \[/);
 });
