@@ -97,6 +97,14 @@ const adminFeedbackSchema = z.object({
   message: z.string().trim().min(5, "내용을 5자 이상 입력해주세요.").max(1000, "내용은 1000자 이내로 적어주세요."),
 });
 
+const attendanceExtraCountSchema = z.object({
+  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "출석 날짜를 확인해주세요."),
+  clergyCount: z.coerce.number().int().min(0).max(9999),
+  teamLeaderCount: z.coerce.number().int().min(0).max(9999),
+  visitorCount: z.coerce.number().int().min(0).max(9999),
+  newFamilyCount: z.coerce.number().int().min(0).max(9999),
+});
+
 const updateAdminFeedbackSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(["open", "reviewing", "resolved", "closed"]),
@@ -286,6 +294,7 @@ async function getAuthorizedCurrentMember(
     | "members:write"
     | "groups:write"
     | "attendance:write"
+    | "attendance:extras:write"
     | "roles:manage"
     | "owner:manage"
     | "links:write"
@@ -1653,6 +1662,57 @@ export async function deleteAttendanceEvent(_previousState: ActionState, formDat
     });
     revalidateAppData();
     return "선택한 날짜의 주일 예배와 순모임 출석 이벤트를 함께 삭제했습니다.";
+  });
+}
+
+export async function updateAttendanceExtraCounts(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:extras:write");
+    const parsed = attendanceExtraCountSchema.parse({
+      eventDate: formData.get("eventDate"),
+      clergyCount: formData.get("clergyCount"),
+      teamLeaderCount: formData.get("teamLeaderCount"),
+      visitorCount: formData.get("visitorCount"),
+      newFamilyCount: formData.get("newFamilyCount"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase
+      .from("attendance_extra_counts")
+      .select("*")
+      .eq("event_date", parsed.eventDate)
+      .maybeSingle();
+
+    if (beforeError) throw beforeError;
+
+    const { data: afterData, error } = await supabase
+      .from("attendance_extra_counts")
+      .upsert(
+        {
+          event_date: parsed.eventDate,
+          clergy_count: parsed.clergyCount,
+          team_leader_count: parsed.teamLeaderCount,
+          visitor_count: parsed.visitorCount,
+          new_family_count: parsed.newFamilyCount,
+          updated_by_member_id: currentMember.id,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "event_date" },
+      )
+      .select("*")
+      .single();
+
+    if (error) throw error;
+
+    await writeAuditLog({
+      supabase,
+      action: "attendance_extra_counts.update",
+      targetTable: "attendance_extra_counts",
+      targetId: parsed.eventDate,
+      beforeData: beforeData as Record<string, unknown> | null,
+      afterData: afterData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "출석 추가 인원을 저장했습니다.";
   });
 }
 

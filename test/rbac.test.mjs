@@ -31,10 +31,14 @@ test("soonjang keeps the same app permissions as leader", () => {
 
 test("welcome team keeps member access plus new family read and write", () => {
   assert(permissionsByRole.welcome.includes("members:read"));
+  assert(permissionsByRole.welcome.includes("attendance:read"));
+  assert(permissionsByRole.welcome.includes("attendance:extras:read"));
+  assert(permissionsByRole.welcome.includes("attendance:extras:write"));
   assert(permissionsByRole.welcome.includes("groups:read"));
   assert(permissionsByRole.welcome.includes("links:read"));
   assert(permissionsByRole.welcome.includes("new-family:read"));
   assert(permissionsByRole.welcome.includes("new-family:write"));
+  assert.equal(permissionsByRole.welcome.includes("attendance:write"), false);
   assert.equal(permissionsByRole.welcome.includes("members:write"), false);
   assert.equal(permissionsByRole.welcome.includes("roles:manage"), false);
 });
@@ -52,5 +56,7 @@ test("role permissions are enforced through hasPermission", () => {
   assert.equal(hasPermission("member", "new-family:read"), false);
   assert.equal(hasPermission("welcome", "new-family:read"), true);
   assert.equal(hasPermission("welcome", "new-family:write"), true);
+  assert.equal(hasPermission("welcome", "attendance:read"), true);
+  assert.equal(hasPermission("welcome", "attendance:extras:write"), true);
   assert.equal(hasPermission("welcome", "attendance:write"), false);
 });

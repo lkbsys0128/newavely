@@ -135,6 +135,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 31. `db/031_welcome_team_new_family_policies.sql`
 32. `db/032_public_permission_role_counts.sql`
 33. `db/033_test_account_stats_exclusion.sql`
+34. `db/034_attendance_extra_counts.sql`
 
 주요 테이블:
 
@@ -142,6 +143,7 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 - `members`: 멤버 프로필, Supabase Auth 연결, 역할, 상태, 순, 커스텀 정보. 한국 이름은 `name`, 영어 이름은 `custom_fields.english_name`에 분리 저장하고 화면에서는 함께 표기합니다. 테스트 계정은 `custom_fields.test_account = true`로 표시합니다.
 - `attendance_events`: 출석 이벤트 날짜와 제목
 - `attendance_records`: 이벤트별 멤버 출석 상태
+- `attendance_extra_counts`: 날짜별 교역자/팀장 이상/방문자/새가족 추가 출석 집계
 - `care_followups`: 멤버별 돌봄/연락 팔로업 기록
 - `member_link_requests`: 첫 로그인 계정과 기존 교적 멤버 연결 승인 요청
 - `member_custom_field_definitions`: 멤버별 커스텀 필드 정의
@@ -215,7 +217,7 @@ CSV import 후 출석 사유에 `Imported from 2026 annual attendance CSV`가 �
 - `admin`: 운영 관리자. 멤버/순/출석/권한/감사 관리 권한
 - `leader`: 멤버/출석 관리 권한
 - `staff`: 순장. 본인이 리드하는 순 멤버는 상세 열람, 다른 순은 이름 중심 열람
-- `welcome`: 웰컴팀. 일반 멤버 기본 접근 + 새가족 페이지 read/write 권한
+- `welcome`: 웰컴팀. 일반 멤버 기본 접근 + 새가족 페이지 read/write + 출석 페이지 총 출석 입력 권한. 멤버 출석 체크는 할 수 없습니다.
 - `member`: 기본 접근 권한
 
 권한은 두 레이어에서 적용됩니다.

@@ -3583,6 +3583,122 @@ tbody tr:hover {
   font-weight: 800;
 }
 
+.attendance-total-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(18, 118, 145, 0.24);
+  border-radius: 6px;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(223, 249, 253, 0.72), rgba(255, 255, 255, 0.94));
+  box-shadow: 0 16px 38px rgba(18, 118, 145, 0.08);
+}
+
+.attendance-total-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.attendance-total-heading h2 {
+  margin: 2px 0;
+  font-size: 1.25rem;
+}
+
+.attendance-total-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.attendance-total-result {
+  min-width: 150px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #ffffff;
+  text-align: right;
+}
+
+.attendance-total-result span,
+.attendance-total-result small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.attendance-total-result strong {
+  display: block;
+  color: var(--accent-dark);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.attendance-total-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.attendance-total-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.attendance-total-chip span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-total-chip strong {
+  color: var(--accent-dark);
+  font-size: 1.1rem;
+}
+
+.attendance-extra-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(92px, 1fr)) auto minmax(180px, auto);
+  align-items: end;
+  gap: 10px;
+}
+
+.attendance-extra-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.attendance-extra-form input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 850;
+}
+
+.attendance-extra-form .action-message {
+  margin: 0;
+}
+
 .attendance-kpi-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -5491,6 +5607,37 @@ tbody tr:hover {
     flex: 1 1 0;
   }
 
+  .attendance-total-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .attendance-total-result {
+    text-align: left;
+  }
+
+  .attendance-total-grid {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .attendance-total-chip {
+    flex: 0 0 104px;
+    scroll-snap-align: start;
+  }
+
+  .attendance-extra-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-extra-form button,
+  .attendance-extra-form .action-message {
+    grid-column: 1 / -1;
+  }
+
   .member-detail-backdrop,
   .confirm-modal-backdrop {
     overscroll-behavior: contain;
@@ -6049,6 +6196,27 @@ tbody tr:hover {
     linear-gradient(180deg, rgba(89, 191, 213, 0.08), transparent 86px),
     linear-gradient(135deg, transparent 66%, rgba(245, 212, 131, 0.045)),
     var(--surface);
+}
+
+:root[data-theme="dark"] .attendance-total-panel {
+  border-color: rgba(93, 213, 238, 0.25);
+  background: linear-gradient(135deg, rgba(19, 56, 65, 0.96), rgba(10, 31, 36, 0.94));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme="dark"] .attendance-total-result,
+:root[data-theme="dark"] .attendance-total-chip,
+:root[data-theme="dark"] .attendance-extra-form input {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .attendance-total-chip span {
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .attendance-total-result strong,
+:root[data-theme="dark"] .attendance-total-chip strong {
+  color: var(--accent);
 }
 
 :root[data-theme="dark"] .status-composer-panel {

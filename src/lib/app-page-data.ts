@@ -1,6 +1,7 @@
 import { hasPermission, roles, type Role } from "@/lib/rbac";
 import type {
   AdminFeedbackMessage,
+  AttendanceExtraCount,
   AttendanceEvent,
   AuditLog,
   CustomFieldDefinition,
@@ -24,6 +25,7 @@ import {
   formatSupabaseError,
   getAuditLogs,
   getAdminFeedbackMessages,
+  getAttendanceExtraCounts,
   getCustomFieldDefinitions,
   getDashboardData,
   getDeletedAuthUsers,
@@ -49,6 +51,7 @@ export type ReadyAppPageData = {
   attendanceTitle: string;
   attendanceEventId?: string;
   attendanceEvents: AttendanceEvent[];
+  attendanceExtraCounts: AttendanceExtraCount[];
   members: Member[];
   groups: Group[];
   memberLinkRequests: MemberLinkRequest[];
@@ -854,6 +857,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
     const shouldLoadMemberStatusMessages = page === "dashboard";
     const shouldLoadAdminFeedback = canManageRoles || page === "feedback";
     const shouldLoadNewFamilyApplicants = page === "new-family";
+    const shouldLoadAttendanceExtraCounts = page === "attendance" && hasPermission(currentMember.role, "attendance:extras:read");
     const [
       allCustomFieldDefinitions,
       auditLogs,
@@ -863,6 +867,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       adminFeedbackMessages,
       memberLinkRequests,
       newFamilyApplicants,
+      attendanceExtraCounts,
     ] = await Promise.all([
       shouldLoadCustomFields && hasPermission(currentMember.role, "members:read")
         ? getCustomFieldDefinitions(supabase)
@@ -874,6 +879,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       shouldLoadAdminFeedback ? getAdminFeedbackMessages(supabase, currentMember.id, canManageRoles) : Promise.resolve([]),
       getMemberLinkRequests(supabase, currentMember.id, canManageRoles),
       shouldLoadNewFamilyApplicants && canReadNewFamily ? getNewFamilyApplicants(supabase) : Promise.resolve([]),
+      shouldLoadAttendanceExtraCounts ? getAttendanceExtraCounts(supabase) : Promise.resolve([]),
     ]);
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
       ? allCustomFieldDefinitions
@@ -903,6 +909,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       attendanceTitle: dashboardData.attendanceTitle,
       attendanceEventId: dashboardData.attendanceEventId,
       attendanceEvents: dashboardData.attendanceEvents,
+      attendanceExtraCounts,
       members: scopedMembers,
       groups: publicDashboardData.groups,
       memberLinkRequests,

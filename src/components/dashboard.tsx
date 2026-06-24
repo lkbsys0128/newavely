@@ -24,6 +24,7 @@ import {
   restoreDeletedAuthUser,
   syncNewFamilyApplicants,
   toggleAttendance,
+  updateAttendanceExtraCounts,
   updateAttendanceReason,
   updateAdminFeedbackMessage,
   updateGroup,
@@ -36,6 +37,7 @@ import { hasPermission, permissionsByRole, type Role } from "@/lib/rbac";
 import { canDeleteMemberRole, canUseDeleteActions } from "@/lib/role-policy";
 import type { AppUser, DashboardMetrics, GlobalAppStats } from "@/lib/app-page-data";
 import type {
+  AttendanceExtraCount,
   AttendanceEvent,
   AuditLog,
   DeletedAuthUser,
@@ -75,6 +77,7 @@ type AppDataProps = {
   members: Member[];
   groups: Group[];
   attendanceEvents?: AttendanceEvent[];
+  attendanceExtraCounts?: AttendanceExtraCount[];
   memberLinkRequests?: MemberLinkRequest[];
   deletedAuthUsers?: DeletedAuthUser[];
   importantLinks?: ImportantLink[];
@@ -2544,6 +2547,7 @@ export function AttendanceManager({
   attendanceTitle,
   attendanceEventId,
   attendanceEvents,
+  attendanceExtraCounts = [],
   members,
   groups,
   globalStats,
@@ -2568,8 +2572,10 @@ export function AttendanceManager({
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
   const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
   const [deleteEventState, deleteEventAction, isDeletingEvent] = useActionState(deleteAttendanceEvent, initialActionState);
+  const [extraCountState, extraCountAction, isSavingExtraCounts] = useActionState(updateAttendanceExtraCounts, initialActionState);
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
+  const canManageAttendanceExtraCounts = hasPermission(user.role, "attendance:extras:write");
   const canDeleteAttendanceEvents = canUseDeleteActions(user.role);
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
   const [attendanceGroupId, setAttendanceGroupId] = useState(initialAttendanceGroupId);
@@ -2755,6 +2761,32 @@ export function AttendanceManager({
     totalCount: unassignedMembers.length,
     rate: unassignedAttendanceRate,
   };
+  const selectedExtraCounts = attendanceExtraCounts.find((row) => row.eventDate === attendanceDate);
+  const attendanceExtraValues = {
+    clergyCount: selectedExtraCounts?.clergyCount ?? 0,
+    teamLeaderCount: selectedExtraCounts?.teamLeaderCount ?? 0,
+    visitorCount: selectedExtraCounts?.visitorCount ?? 0,
+    newFamilyCount: selectedExtraCounts?.newFamilyCount ?? 0,
+  };
+  const worshipGroupTotalRows = (attendanceStats?.eventGroupTrend ?? [])
+    .filter((row) => row.eventDate === attendanceDate && row.eventType === "주일 예배")
+    .map((row) => ({
+      id: row.groupId,
+      name: row.groupName,
+      presentCount: row.presentCount,
+      totalCount: row.totalCount,
+      rate: row.rate,
+    }));
+  const attendanceGroupTotalRows = (worshipGroupTotalRows.length > 0 ? worshipGroupTotalRows : displayGroupAttendanceStats).filter(
+    (group) => group.totalCount > 0,
+  );
+  const youthAttendanceTotal = attendanceGroupTotalRows.reduce((total, group) => total + group.presentCount, 0);
+  const externalAttendanceTotal =
+    attendanceExtraValues.clergyCount +
+    attendanceExtraValues.teamLeaderCount +
+    attendanceExtraValues.visitorCount +
+    attendanceExtraValues.newFamilyCount;
+  const totalAttendanceWithExtras = youthAttendanceTotal + externalAttendanceTotal;
   const displayEventTrend = attendanceStats?.eventTrend ?? eventTrend;
   const aggregateStatsFromTrend = Object.values(
     (attendanceStats?.eventGroupTrend ?? []).reduce<
@@ -3065,6 +3097,78 @@ export function AttendanceManager({
               </select>
             </label>
           </div>
+
+          {canManageAttendanceExtraCounts ? (
+            <section className="attendance-total-panel" aria-label="총 출석 입력">
+              <div className="attendance-total-heading">
+                <div>
+                  <span className="eyebrow">총 출석 집계</span>
+                  <h2>{attendanceDate}</h2>
+                  <p>순별 주일 예배 출석에 외부/운영 인원을 더해 총 출석을 계산합니다.</p>
+                </div>
+                <div className="attendance-total-result">
+                  <span>총 출석</span>
+                  <strong>{totalAttendanceWithExtras}</strong>
+                  <small>청년 출석 {youthAttendanceTotal}명</small>
+                </div>
+              </div>
+              <div className="attendance-total-grid" aria-label="순별 출석 수">
+                {attendanceGroupTotalRows.map((group) => (
+                  <div className="attendance-total-chip" key={group.id}>
+                    <span>{group.name}</span>
+                    <strong>{group.presentCount}</strong>
+                  </div>
+                ))}
+              </div>
+              <form action={extraCountAction} className="attendance-extra-form">
+                <input name="eventDate" type="hidden" value={attendanceDate} />
+                <label>
+                  교역자
+                  <input
+                    name="clergyCount"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={attendanceExtraValues.clergyCount}
+                  />
+                </label>
+                <label>
+                  팀장 이상
+                  <input
+                    name="teamLeaderCount"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={attendanceExtraValues.teamLeaderCount}
+                  />
+                </label>
+                <label>
+                  방문자
+                  <input
+                    name="visitorCount"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={attendanceExtraValues.visitorCount}
+                  />
+                </label>
+                <label>
+                  새가족
+                  <input
+                    name="newFamilyCount"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={attendanceExtraValues.newFamilyCount}
+                  />
+                </label>
+                <button className="primary-button" type="submit" disabled={isSavingExtraCounts}>
+                  저장
+                </button>
+                <ActionMessage state={extraCountState} />
+              </form>
+            </section>
+          ) : null}
 
           <div className="attendance-kpi-strip">
             <article>
@@ -4590,6 +4694,8 @@ const permissionLabels = {
   "members:write": "멤버 수정",
   "attendance:read": "출석 보기",
   "attendance:write": "출석 체크",
+  "attendance:extras:read": "총 출석 보기",
+  "attendance:extras:write": "총 출석 입력",
   "groups:read": "순 보기",
   "groups:write": "순 수정",
   "roles:manage": "권한 관리",

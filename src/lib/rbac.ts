@@ -7,6 +7,8 @@ export const permissions = [
   "members:write",
   "attendance:read",
   "attendance:write",
+  "attendance:extras:read",
+  "attendance:extras:write",
   "groups:read",
   "groups:write",
   "roles:manage",
@@ -25,7 +27,16 @@ export const permissionsByRole: Record<Role, Permission[]> = {
   admin: permissions.filter((permission) => permission !== "owner:manage"),
   leader: ["members:read", "members:write", "attendance:read", "attendance:write", "groups:read", "links:read", "links:write"],
   staff: ["members:read", "members:write", "attendance:read", "attendance:write", "groups:read", "links:read", "links:write"],
-  welcome: ["members:read", "groups:read", "links:read", "new-family:read", "new-family:write"],
+  welcome: [
+    "members:read",
+    "attendance:read",
+    "attendance:extras:read",
+    "attendance:extras:write",
+    "groups:read",
+    "links:read",
+    "new-family:read",
+    "new-family:write",
+  ],
   member: ["members:read", "groups:read", "links:read"],
 };
 

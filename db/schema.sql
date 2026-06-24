@@ -66,6 +66,17 @@ create table attendance_records (
   unique (event_id, member_id)
 );
 
+create table attendance_extra_counts (
+  event_date date primary key,
+  clergy_count integer not null default 0 check (clergy_count >= 0),
+  team_leader_count integer not null default 0 check (team_leader_count >= 0),
+  visitor_count integer not null default 0 check (visitor_count >= 0),
+  new_family_count integer not null default 0 check (new_family_count >= 0),
+  updated_by_member_id uuid references members(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table member_custom_field_definitions (
   id uuid primary key default gen_random_uuid(),
   key text not null unique,
@@ -157,6 +168,7 @@ create index deleted_auth_users_created_at_idx on deleted_auth_users(created_at 
 create index deleted_auth_users_deleted_member_id_idx on deleted_auth_users(deleted_member_id);
 create index attendance_records_event_idx on attendance_records(event_id);
 create index attendance_records_member_idx on attendance_records(member_id);
+create index attendance_extra_counts_updated_at_idx on attendance_extra_counts(updated_at desc);
 create index care_followups_member_idx on care_followups(member_id);
 create index care_followups_status_idx on care_followups(status);
 create unique index member_link_requests_one_pending_per_requester_idx
@@ -176,6 +188,7 @@ alter table members enable row level security;
 alter table deleted_auth_users enable row level security;
 alter table attendance_events enable row level security;
 alter table attendance_records enable row level security;
+alter table attendance_extra_counts enable row level security;
 alter table member_custom_field_definitions enable row level security;
 alter table care_followups enable row level security;
 alter table member_link_requests enable row level security;
@@ -408,6 +421,17 @@ on attendance_records for all
 to authenticated
 using (can_manage_attendance())
 with check (can_manage_attendance());
+
+create policy "owners admins and welcome can read attendance extra counts"
+on attendance_extra_counts for select
+to authenticated
+using (current_member_role() in ('owner', 'admin', 'welcome'));
+
+create policy "owners admins and welcome can manage attendance extra counts"
+on attendance_extra_counts for all
+to authenticated
+using (current_member_role() in ('owner', 'admin', 'welcome'))
+with check (current_member_role() in ('owner', 'admin', 'welcome'));
 
 create policy "owners and admins can manage custom field definitions"
 on member_custom_field_definitions for all
