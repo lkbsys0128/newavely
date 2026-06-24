@@ -1868,7 +1868,6 @@ function getNewFamilyExpectedGroup(applicant: NewFamilyApplicant) {
 export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }: AppDataProps) {
   const canReadNewFamily = hasPermission(user.role, "new-family:read");
   const canManageNewFamily = hasPermission(user.role, "new-family:write");
-  const canFlagTestAccounts = hasPermission(user.role, "roles:manage");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<NewFamilyApplicant["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<NewFamilySort>("latest");
@@ -2313,12 +2312,6 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                   ))}
                 </select>
               </label>
-              {canFlagTestAccounts ? (
-                <label className="toggle-field">
-                  <input name="isTestAccount" type="checkbox" />
-                  테스트 계정으로 등록하고 모든 통계에서 제외
-                </label>
-              ) : null}
               <button className="primary-button" type="submit" disabled={isConverting || Boolean(selectedApplicant.convertedMemberId)}>
                 {selectedApplicant.convertedMemberId ? "등록 완료" : "멤버로 등록"}
               </button>

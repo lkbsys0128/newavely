@@ -756,11 +756,10 @@ test("new member creation defaults to member role for non-role managers", () => 
 test("admins can flag test accounts and shared stats exclude them", () => {
   assert.match(actionsSource, /const isTestAccount = canManageRoles && formData\.get\("isTestAccount"\) === "on"/);
   assert.match(actionsSource, /test_account: true/);
-  assert.match(actionsSource, /isTestAccount: hasPermission\(currentMember\.role, "roles:manage"\) && formData\.get\("isTestAccount"\) === "on"/);
   assert.match(dashboardSource, /name="isTestAccount"/);
   assert.match(dashboardSource, /테스트 계정으로 표시하고 모든 통계에서 제외/);
   assert.match(dashboardSource, /테스트 계정으로 승인하고 모든 통계에서 제외/);
-  assert.match(dashboardSource, /테스트 계정으로 등록하고 모든 통계에서 제외/);
+  assert.doesNotMatch(dashboardSource, /테스트 계정으로 등록하고 모든 통계에서 제외/);
   assert.match(memberDetailSource, /name="isTestAccount"/);
   assert.match(memberDetailSource, /member\.customFields\.test_account === true/);
   assert.match(dashboardSource, /!isStatsExcludedMember\(member\)/);

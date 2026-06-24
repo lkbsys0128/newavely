@@ -113,7 +113,6 @@ const updateNewFamilyApplicantSchema = z.object({
 const convertNewFamilyApplicantSchema = z.object({
   id: z.string().uuid(),
   groupId: nullableUuid,
-  isTestAccount: z.boolean().optional(),
 });
 
 function pickNewFamilySourceValue(sourceData: unknown, keys: string[]) {
@@ -797,11 +796,10 @@ export async function updateNewFamilyApplicant(_previousState: ActionState, form
 
 export async function convertNewFamilyApplicantToMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase, currentMember } = await getAuthorizedCurrentMember("new-family:write");
+    const { supabase } = await getAuthorizedCurrentMember("new-family:write");
     const parsed = convertNewFamilyApplicantSchema.parse({
       id: formData.get("id"),
       groupId: formData.get("groupId"),
-      isTestAccount: hasPermission(currentMember.role, "roles:manage") && formData.get("isTestAccount") === "on",
     });
 
     const { data: applicant, error: applicantError } = await supabase
@@ -848,7 +846,6 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
           new_family_week_2_attendance_date: week2AttendanceDate,
           new_family_week_3_attendance_date: week3AttendanceDate,
           new_family_completion_due_date: completionDueDate,
-          ...(parsed.isTestAccount ? { test_account: true } : {}),
         },
       })
       .select("*")
