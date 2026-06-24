@@ -2638,6 +2638,7 @@ export function AttendanceManager({
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
   const canManageAttendanceExtraCounts = hasPermission(user.role, "attendance:extras:write");
+  const isWelcomeAttendanceOnly = user.role === "welcome";
   const canDeleteAttendanceEvents = canUseDeleteActions(user.role);
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
   const [attendanceGroupId, setAttendanceGroupId] = useState(initialAttendanceGroupId);
@@ -2653,7 +2654,7 @@ export function AttendanceManager({
   const hasExplicitAttendanceSelection = Boolean(explicitAttendanceEventId);
   const buildAttendanceHref = (eventId: string, hash = "") => {
     const params = new URLSearchParams({ eventId });
-    if (attendanceGroupId !== "all") {
+    if (!isWelcomeAttendanceOnly && attendanceGroupId !== "all") {
       params.set("groupId", attendanceGroupId);
       params.set("mode", "group");
     }
@@ -2980,17 +2981,21 @@ export function AttendanceManager({
   const overviewGroupName =
     attendanceGroupId === "all"
       ? "전체 순"
-        : attendanceGroupId === "unassigned"
-          ? "미배정"
-          : attendanceVisibleGroups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
+      : attendanceGroupId === "unassigned"
+        ? "미배정"
+        : attendanceVisibleGroups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
   const attendanceGroupOptions = [
     { id: "all", name: "전체" },
-    ...(user.role === "member"
-      ? attendanceVisibleGroups
-          .filter((group) => currentAttendanceMember?.groupId && group.id === currentAttendanceMember.groupId)
-          .map((group) => ({ id: group.id, name: group.name }))
-      : attendanceVisibleGroups.map((group) => ({ id: group.id, name: group.name }))),
-    ...(user.role === "member" && currentAttendanceMember?.groupId ? [] : [{ id: "unassigned", name: "미배정" }]),
+    ...(isWelcomeAttendanceOnly
+      ? []
+      : user.role === "member"
+        ? attendanceVisibleGroups
+            .filter((group) => currentAttendanceMember?.groupId && group.id === currentAttendanceMember.groupId)
+            .map((group) => ({ id: group.id, name: group.name }))
+        : attendanceVisibleGroups.map((group) => ({ id: group.id, name: group.name }))),
+    ...(isWelcomeAttendanceOnly || (user.role === "member" && currentAttendanceMember?.groupId)
+      ? []
+      : [{ id: "unassigned", name: "미배정" }]),
   ];
   const attendanceOverviewEvents = getAttendanceOverviewEvents(sameDateEvents, selectedAttendanceEvent?.id);
   const attendanceOverviewStats = attendanceOverviewEvents.map((event) => {
@@ -3108,10 +3113,35 @@ export function AttendanceManager({
         />
       ) : null}
 
+      {canManageAttendanceExtraCounts ? (
+        <section className="attendance-total-panel pinned-attendance-total" aria-label="예배 총 출석 집계">
+          <div className="attendance-total-heading">
+            <div>
+              <span className="eyebrow">예배 총 출석 집계</span>
+              <h2>{attendanceDate}</h2>
+              <p>순별 주일 예배 출석에 교역자/팀장 이상/방문자/새가족을 더해 예배 총 출석을 계산합니다.</p>
+            </div>
+            <div className="attendance-total-result">
+              <span>예배 총 출석</span>
+              <strong>{totalAttendanceWithExtras}</strong>
+              <small>청년 예배 출석 {youthAttendanceTotal}명</small>
+            </div>
+          </div>
+          <div className="attendance-total-grid" aria-label="순별 주일 예배 출석 수">
+            {attendanceGroupTotalRows.map((group) => (
+              <div className="attendance-total-chip" key={group.id}>
+                <span>{group.name}</span>
+                <strong>{group.presentCount}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <DisclosurePanel
         id="attendance-stats"
-        title="출석 통계"
-        meta={`${hasExplicitAttendanceSelection ? attendanceTitle : "최근 이벤트 기준"} · 출석률 ${displayCurrentAttendanceRate}%`}
+        title="상세 출석 통계"
+        meta={`${hasExplicitAttendanceSelection ? attendanceTitle : "최근 이벤트 기준"} · 펼쳐서 보기`}
       >
         <section className="attendance-insight-panel" aria-label="상호작용 출석 통계">
           <div className="attendance-stats-toolbar">
@@ -3159,78 +3189,6 @@ export function AttendanceManager({
               </select>
             </label>
           </div>
-
-          {canManageAttendanceExtraCounts ? (
-            <section className="attendance-total-panel" aria-label="총 출석 입력">
-              <div className="attendance-total-heading">
-                <div>
-                  <span className="eyebrow">예배 총 출석 집계</span>
-                  <h2>{attendanceDate}</h2>
-                  <p>순별 주일 예배 출석에 교역자/팀장 이상/방문자/새가족을 더해 예배 총 출석을 계산합니다.</p>
-                </div>
-                <div className="attendance-total-result">
-                  <span>예배 총 출석</span>
-                  <strong>{totalAttendanceWithExtras}</strong>
-                  <small>청년 예배 출석 {youthAttendanceTotal}명</small>
-                </div>
-              </div>
-              <div className="attendance-total-grid" aria-label="순별 출석 수">
-                {attendanceGroupTotalRows.map((group) => (
-                  <div className="attendance-total-chip" key={group.id}>
-                    <span>{group.name}</span>
-                    <strong>{group.presentCount}</strong>
-                  </div>
-                ))}
-              </div>
-              <form action={extraCountAction} className="attendance-extra-form">
-                <input name="eventDate" type="hidden" value={attendanceDate} />
-                <label>
-                  교역자
-                  <input
-                    name="clergyCount"
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    defaultValue={attendanceExtraValues.clergyCount}
-                  />
-                </label>
-                <label>
-                  팀장 이상
-                  <input
-                    name="teamLeaderCount"
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    defaultValue={attendanceExtraValues.teamLeaderCount}
-                  />
-                </label>
-                <label>
-                  방문자
-                  <input
-                    name="visitorCount"
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    defaultValue={attendanceExtraValues.visitorCount}
-                  />
-                </label>
-                <label>
-                  새가족
-                  <input
-                    name="newFamilyCount"
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    defaultValue={attendanceExtraValues.newFamilyCount}
-                  />
-                </label>
-                <button className="primary-button" type="submit" disabled={isSavingExtraCounts}>
-                  저장
-                </button>
-                <ActionMessage state={extraCountState} />
-              </form>
-            </section>
-          ) : null}
 
           <div className="attendance-kpi-strip">
             <article>
@@ -3422,25 +3380,29 @@ export function AttendanceManager({
               {filteredEventDateOptions.length === 0 ? <option value="">조건에 맞는 날짜 없음</option> : null}
             </select>
           </label>
-          <label>
-            검색
-            <input
-              onChange={(event) => setAttendanceSearchQuery(event.target.value)}
-              placeholder="이름 또는 순"
-              type="search"
-              value={attendanceSearchQuery}
-            />
-          </label>
-          <label>
-            날짜 검색
-            <input
-              type="search"
-              placeholder="예: 2026-05"
-              value={eventSearchQuery}
-              onChange={(event) => setEventSearchQuery(event.target.value)}
-            />
-          </label>
-          {hasExplicitAttendanceSelection && selectedAttendanceEvent ? (
+          {!isWelcomeAttendanceOnly ? (
+            <>
+              <label>
+                검색
+                <input
+                  onChange={(event) => setAttendanceSearchQuery(event.target.value)}
+                  placeholder="이름 또는 순"
+                  type="search"
+                  value={attendanceSearchQuery}
+                />
+              </label>
+              <label>
+                날짜 검색
+                <input
+                  type="search"
+                  placeholder="예: 2026-05"
+                  value={eventSearchQuery}
+                  onChange={(event) => setEventSearchQuery(event.target.value)}
+                />
+              </label>
+            </>
+          ) : null}
+          {!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection && selectedAttendanceEvent ? (
             <button
               className="danger-text-button attendance-event-delete-inline"
               type="button"
@@ -3451,32 +3413,106 @@ export function AttendanceManager({
             </button>
           ) : null}
         </div>
-        <div className="attendance-check-controls">
-          <div className="segmented">
-            {(["all", "present", "absent", "excused"] as const).map((filter) => (
+        {canManageAttendanceExtraCounts ? (
+          <section className="welcome-attendance-input-panel" aria-label="웰컴팀 예배 출석 입력">
+            <div className="panel-heading compact-heading">
+              <div>
+                <p className="eyebrow">웰컴팀 전용</p>
+                <h3>예배 추가 인원</h3>
+                <p className="meta">
+                  {hasExplicitAttendanceSelection
+                    ? `${attendanceDate} 주일 예배 기준으로 입력합니다.`
+                    : "날짜를 선택하면 교역자/팀장 이상/방문자/새가족 인원을 입력할 수 있습니다."}
+                </p>
+              </div>
+              <span>{hasExplicitAttendanceSelection ? "입력 가능" : "날짜 선택 필요"}</span>
+            </div>
+            {hasExplicitAttendanceSelection ? (
+              <form action={extraCountAction} className="attendance-extra-form">
+                <input name="eventDate" type="hidden" value={attendanceDate} />
+                <label>
+                  교역자
+                  <input
+                    name="clergyCount"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={attendanceExtraValues.clergyCount}
+                  />
+                </label>
+                <label>
+                  팀장 이상
+                  <input
+                    name="teamLeaderCount"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={attendanceExtraValues.teamLeaderCount}
+                  />
+                </label>
+                <label>
+                  방문자
+                  <input
+                    name="visitorCount"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={attendanceExtraValues.visitorCount}
+                  />
+                </label>
+                <label>
+                  새가족
+                  <input
+                    name="newFamilyCount"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={attendanceExtraValues.newFamilyCount}
+                  />
+                </label>
+                <button className="primary-button" type="submit" disabled={isSavingExtraCounts}>
+                  저장
+                </button>
+                <ActionMessage state={extraCountState} />
+              </form>
+            ) : (
+              <article className="empty-table-state attendance-empty-state compact-empty-state">
+                <strong>날짜를 먼저 선택해주세요</strong>
+                <span>선택한 날짜의 예배 총 출석에 반영됩니다.</span>
+              </article>
+            )}
+          </section>
+        ) : null}
+        {!isWelcomeAttendanceOnly ? (
+          <div className="attendance-check-controls">
+            <div className="segmented">
+              {(["all", "present", "absent", "excused"] as const).map((filter) => (
+                <button
+                  className={`segment ${attendanceFilter === filter ? "active" : ""}`}
+                  key={filter}
+                  onClick={() => setAttendanceFilter(filter)}
+                  type="button"
+                >
+                  {attendanceFilterLabels[filter]}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {!isWelcomeAttendanceOnly ? (
+          <div className="attendance-group-strip" aria-label="순 선택">
+            {attendanceGroupOptions.map((group) => (
               <button
-                className={`segment ${attendanceFilter === filter ? "active" : ""}`}
-                key={filter}
-                onClick={() => setAttendanceFilter(filter)}
+                className={`attendance-group-chip ${attendanceGroupId === group.id ? "active" : ""}`}
+                key={group.id}
+                onClick={() => setAttendanceGroupId(group.id)}
                 type="button"
               >
-                {attendanceFilterLabels[filter]}
+                {group.name}
               </button>
             ))}
           </div>
-        </div>
-        <div className="attendance-group-strip" aria-label="순 선택">
-          {attendanceGroupOptions.map((group) => (
-            <button
-              className={`attendance-group-chip ${attendanceGroupId === group.id ? "active" : ""}`}
-              key={group.id}
-              onClick={() => setAttendanceGroupId(group.id)}
-              type="button"
-            >
-              {group.name}
-            </button>
-          ))}
-        </div>
+        ) : null}
         <ActionMessage state={deleteEventState} />
         {attendanceEvents.length === 0 ? (
           <article className="empty-table-state attendance-empty-state">
@@ -3490,13 +3526,13 @@ export function AttendanceManager({
             <span>날짜 검색어를 조정해보세요.</span>
           </article>
         ) : null}
-        {!hasExplicitAttendanceSelection && filteredEventDateOptions.length > 0 ? (
+        {!isWelcomeAttendanceOnly && !hasExplicitAttendanceSelection && filteredEventDateOptions.length > 0 ? (
           <article className="empty-table-state attendance-empty-state">
             <strong>출석 체크할 날짜를 선택해주세요</strong>
             <span>위에서 날짜를 고르면 주일 예배와 순모임 출석을 한 화면에서 체크할 수 있습니다.</span>
           </article>
         ) : null}
-        {hasExplicitAttendanceSelection && attendanceOverviewEvents.length > 0 ? (
+        {!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection && attendanceOverviewEvents.length > 0 ? (
           <section className="group-attendance-snapshot" aria-label={`${overviewGroupName} 출석현황`}>
             <div className="group-attendance-snapshot-heading">
               <div>
@@ -3574,7 +3610,7 @@ export function AttendanceManager({
             </div>
           </section>
         ) : null}
-        {hasExplicitAttendanceSelection && attendanceOverviewEvents.length === 0 ? (
+        {!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection && attendanceOverviewEvents.length === 0 ? (
         <div className="attendance-check-list">
           {attendanceMembers.map((member) => {
             const status = getMemberAttendanceStatus(member, attendanceEventId);

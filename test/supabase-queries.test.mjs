@@ -275,6 +275,13 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /attendanceGroupOptions/);
   assert.match(dashboardSource, /attendance-group-strip/);
   assert.match(dashboardSource, /attendance-group-chip/);
+  assert.match(dashboardSource, /const isWelcomeAttendanceOnly = user\.role === "welcome"/);
+  assert.match(dashboardSource, /pinned-attendance-total/);
+  assert.match(dashboardSource, /title="상세 출석 통계"/);
+  assert.match(dashboardSource, /welcome-attendance-input-panel/);
+  assert.match(dashboardSource, /aria-label="웰컴팀 예배 출석 입력"/);
+  assert.match(dashboardSource, /!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection/);
+  assert.match(dashboardSource, /!isWelcomeAttendanceOnly \? \(/);
   assert.match(dashboardSource, /AttendanceMemberActionModal/);
   assert.match(dashboardSource, /AttendanceReasonModal/);
   assert.match(dashboardSource, /<AttendanceMemberActionModal[\s\S]*attendanceEvents=\{attendanceOverviewEvents\}/);
