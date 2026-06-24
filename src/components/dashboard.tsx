@@ -1531,7 +1531,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
         items={[
           { href: "#group-metrics", label: "요약" },
           ...(canManageGroups ? [{ href: "#group-create", label: "순 추가" }] : []),
-          { href: "#group-list", label: isMemberView ? "내 순" : "순 목록" },
+          { href: "#group-network", label: "순 연결지도" },
           ...(!isMemberView ? [{ href: "#unassigned-members", label: "미배정" }] : []),
         ]}
       />
@@ -1590,7 +1590,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
         </DisclosurePanel>
       ) : null}
 
-      <section className="panel group-network-panel" aria-labelledby="group-network-title">
+      <section className="panel group-network-panel" id="group-network" aria-labelledby="group-network-title">
         <div className="panel-heading">
           <div>
             <span className="eyebrow">공동체 네트워크</span>
@@ -1639,123 +1639,28 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
         </div>
       </section>
 
-      <section className="group-grid" id="group-list">
-        {visibleGroups.map((group) => {
-          const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
-          const visibleGroupStats = groupStats?.groups.find((item) => item.id === group.id);
-          const previewMembers = groupMembers.slice(0, 5);
-          const careCount = groupMembers.filter(
-            (member) =>
-              member.status === "care" ||
-              member.careFollowups.some((followup) => followup.status !== "resolved"),
-          ).length;
-          return (
-            <article className="group-card" key={group.id}>
-              <header className="group-card-header">
-                <div className="group-node-heading">
-                  <div className="group-node-ring" aria-hidden="true">
-                    <span>{group.name.trim().charAt(0) || "순"}</span>
-                  </div>
-                  <div>
-                    <h2>{group.name}</h2>
-                    <p className="meta">리더 {group.leaderName}</p>
-                  </div>
-                </div>
-                <span className="role-pill">{visibleGroupStats?.memberCount ?? groupMembers.length}명</span>
-              </header>
-              <div className="group-card-overview">
-                <div>
-                  <strong>{visibleGroupStats?.memberCount ?? groupMembers.length}</strong>
-                  <span>멤버</span>
-                </div>
-                <div>
-                  <strong>{visibleGroupStats?.careCount ?? careCount}</strong>
-                  <span>돌봄</span>
-                </div>
-              </div>
-              <div className="group-member-preview" aria-label={`${group.name} 멤버 미리보기`}>
-                {previewMembers.length > 0 ? (
-                  previewMembers.map((member) => (
-                    <span className="group-member-node" key={member.id}>
-                      {member.displayName}
-                    </span>
-                  ))
-                ) : (
-                  <span className="group-member-node muted">배정 멤버 없음</span>
-                )}
-                {groupMembers.length > previewMembers.length ? (
-                  <span className="group-member-node more">+{groupMembers.length - previewMembers.length}</span>
-                ) : null}
-              </div>
-              <button className="secondary-button group-members-button" type="button" onClick={() => setGroupMembersModal(group)}>
-                멤버 보기
-              </button>
-              {canManageGroups ? (
-                <div className="group-admin-tools">
-                  <form
-                    action={renameGroupAction}
-                    className="management-form group-rename-form"
-                    onSubmit={() => setLastRenamedGroupId(group.id)}
-                  >
-                    <input name="id" type="hidden" value={group.id} />
-                    <label>
-                      순 이름 변경
-                      <input name="name" required defaultValue={group.name} />
-                    </label>
-                    <div className="form-actions">
-                      {lastRenamedGroupId === group.id ? <ActionMessage state={renameGroupState} /> : null}
-                      <button className="secondary-button" type="submit" disabled={isRenamingGroup}>
-                        이름 변경
-                      </button>
-                    </div>
-                  </form>
-                <form
-                  action={updateGroupAction}
-                  className="management-form group-edit-form"
-                  onSubmit={() => setLastUpdatedGroupId(group.id)}
-                >
-                  <input name="id" type="hidden" value={group.id} />
-                  <input name="name" type="hidden" value={group.name} />
-                  <label>
-                    리더
-                    <select name="leaderMemberId" defaultValue={group.leaderMemberId ?? ""}>
-                      <option value="">미배정</option>
-                      {groupLeaderOptions.map((member) => (
-                        <option key={member.id} value={member.id}>
-                          {member.displayName} · {member.groupName}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {lastUpdatedGroupId === group.id ? <ActionMessage state={updateGroupState} /> : null}
-                  <button className="secondary-button" type="submit" disabled={isUpdatingGroup}>
-                    리더 저장
-                  </button>
-                </form>
-                </div>
-              ) : null}
-              {canDeleteGroups ? (
-                <div className="group-delete-form">
-                  <button
-                    className="danger-text-button"
-                    type="button"
-                    disabled={isDeletingGroup}
-                    onClick={() => setGroupPendingDelete(group)}
-                  >
-                    삭제
-                  </button>
-                </div>
-              ) : null}
-              {lastDeletedGroupId === group.id ? <ActionMessage state={deleteGroupState} /> : null}
-            </article>
-          );
-        })}
-      </section>
       {groupMembersModal ? (
         <GroupMembersModal
+          canDeleteGroups={canDeleteGroups}
+          canManageGroups={canManageGroups}
+          deleteGroupState={deleteGroupState}
           group={groupMembersModal}
+          groupLeaderOptions={groupLeaderOptions}
+          isDeletingGroup={isDeletingGroup}
+          isRenamingGroup={isRenamingGroup}
+          isUpdatingGroup={isUpdatingGroup}
+          lastDeletedGroupId={lastDeletedGroupId}
+          lastRenamedGroupId={lastRenamedGroupId}
+          lastUpdatedGroupId={lastUpdatedGroupId}
           members={activeMembers.filter((member) => member.groupId === groupMembersModal.id)}
           onClose={() => setGroupMembersModal(null)}
+          renameGroupAction={renameGroupAction}
+          renameGroupState={renameGroupState}
+          setGroupPendingDelete={setGroupPendingDelete}
+          setLastRenamedGroupId={setLastRenamedGroupId}
+          setLastUpdatedGroupId={setLastUpdatedGroupId}
+          updateGroupAction={updateGroupAction}
+          updateGroupState={updateGroupState}
         />
       ) : null}
       {groupPendingDelete ? (
@@ -3932,13 +3837,47 @@ function AttendanceReasonModal({
 }
 
 function GroupMembersModal({
+  canDeleteGroups,
+  canManageGroups,
+  deleteGroupState,
   group,
+  groupLeaderOptions,
+  isDeletingGroup,
+  isRenamingGroup,
+  isUpdatingGroup,
+  lastDeletedGroupId,
+  lastRenamedGroupId,
+  lastUpdatedGroupId,
   members,
   onClose,
+  renameGroupAction,
+  renameGroupState,
+  setGroupPendingDelete,
+  setLastRenamedGroupId,
+  setLastUpdatedGroupId,
+  updateGroupAction,
+  updateGroupState,
 }: {
+  canDeleteGroups: boolean;
+  canManageGroups: boolean;
+  deleteGroupState: ActionState;
   group: Group;
+  groupLeaderOptions: Member[];
+  isDeletingGroup: boolean;
+  isRenamingGroup: boolean;
+  isUpdatingGroup: boolean;
+  lastDeletedGroupId: string | null;
+  lastRenamedGroupId: string | null;
+  lastUpdatedGroupId: string | null;
   members: Member[];
   onClose: () => void;
+  renameGroupAction: (payload: FormData) => void;
+  renameGroupState: ActionState;
+  setGroupPendingDelete: (group: Group) => void;
+  setLastRenamedGroupId: (id: string) => void;
+  setLastUpdatedGroupId: (id: string) => void;
+  updateGroupAction: (payload: FormData) => void;
+  updateGroupState: ActionState;
 }) {
   const sortedMembers = [...members].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -3981,6 +3920,66 @@ function GroupMembersModal({
             </article>
           ) : null}
         </div>
+        {canManageGroups ? (
+          <div className="group-modal-admin-tools">
+            <form
+              action={renameGroupAction}
+              className="management-form group-rename-form"
+              onSubmit={() => setLastRenamedGroupId(group.id)}
+            >
+              <input name="id" type="hidden" value={group.id} />
+              <label>
+                순 이름 변경
+                <input name="name" required defaultValue={group.name} />
+              </label>
+              <div className="form-actions">
+                {lastRenamedGroupId === group.id ? <ActionMessage state={renameGroupState} /> : null}
+                <button className="secondary-button" type="submit" disabled={isRenamingGroup}>
+                  이름 변경
+                </button>
+              </div>
+            </form>
+            <form
+              action={updateGroupAction}
+              className="management-form group-edit-form"
+              onSubmit={() => setLastUpdatedGroupId(group.id)}
+            >
+              <input name="id" type="hidden" value={group.id} />
+              <input name="name" type="hidden" value={group.name} />
+              <label>
+                리더
+                <select name="leaderMemberId" defaultValue={group.leaderMemberId ?? ""}>
+                  <option value="">미배정</option>
+                  {groupLeaderOptions.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.displayName} · {member.groupName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {lastUpdatedGroupId === group.id ? <ActionMessage state={updateGroupState} /> : null}
+              <button className="secondary-button" type="submit" disabled={isUpdatingGroup}>
+                리더 저장
+              </button>
+            </form>
+          </div>
+        ) : null}
+        {canDeleteGroups ? (
+          <div className="group-modal-delete-row">
+            <button
+              className="danger-text-button"
+              type="button"
+              disabled={isDeletingGroup}
+              onClick={() => {
+                onClose();
+                setGroupPendingDelete(group);
+              }}
+            >
+              삭제
+            </button>
+            {lastDeletedGroupId === group.id ? <ActionMessage state={deleteGroupState} /> : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
