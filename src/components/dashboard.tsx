@@ -3102,14 +3102,14 @@ export function AttendanceManager({
             <section className="attendance-total-panel" aria-label="총 출석 입력">
               <div className="attendance-total-heading">
                 <div>
-                  <span className="eyebrow">총 출석 집계</span>
+                  <span className="eyebrow">예배 총 출석 집계</span>
                   <h2>{attendanceDate}</h2>
-                  <p>순별 주일 예배 출석에 외부/운영 인원을 더해 총 출석을 계산합니다.</p>
+                  <p>순별 주일 예배 출석에 교역자/팀장 이상/방문자/새가족을 더해 예배 총 출석을 계산합니다.</p>
                 </div>
                 <div className="attendance-total-result">
-                  <span>총 출석</span>
+                  <span>예배 총 출석</span>
                   <strong>{totalAttendanceWithExtras}</strong>
-                  <small>청년 출석 {youthAttendanceTotal}명</small>
+                  <small>청년 예배 출석 {youthAttendanceTotal}명</small>
                 </div>
               </div>
               <div className="attendance-total-grid" aria-label="순별 출석 수">
