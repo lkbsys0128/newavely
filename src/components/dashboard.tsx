@@ -4261,7 +4261,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
     (member) => (member.role === "owner" || member.role === "admin") && member.status !== "inactive",
   );
   const visiblePermissionEntries = (Object.entries(permissionsByRole) as Array<[Role, (typeof permissionsByRole)[Role]]>).filter(
-    ([role]) => role !== "owner",
+    (entry): entry is [Exclude<Role, "owner">, (typeof permissionsByRole)[Exclude<Role, "owner">]] => entry[0] !== "owner",
   );
   const visibleRoleMembers = members.filter((member) => member.status !== "inactive" && !isMergedPlaceholderMember(member));
   const unlinkedActiveMembers = members
@@ -4308,9 +4308,9 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           <small>운영 권한 보유</small>
         </article>
         <article className="metric-card">
-          <span>멤버 기본 권한</span>
-          <strong>{permissionsByRole.member.length}</strong>
-          <small>읽기 중심 접근</small>
+          <span>웰컴팀</span>
+          <strong>{roleCountByRole.get("welcome") ?? visibleRoleMembers.filter((member) => member.role === "welcome").length}</strong>
+          <small>새가족/예배 보조</small>
         </article>
       </div>
 
@@ -4323,6 +4323,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
         </div>
         <div className="permission-matrix">
           {visiblePermissionEntries.map(([role, permissions]) => {
+            const summary = rolePermissionSummaries[role];
             const roleMembers = visibleRoleMembers.filter((member) => member.role === role).sort((a, b) => a.name.localeCompare(b.name));
             const roleMemberCount = roleCountByRole.get(role) ?? roleMembers.length;
             const hasFullRoleMemberList = roleMembers.length === roleMemberCount;
@@ -4351,6 +4352,20 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
                       ) : null}
                       {roleMemberCount === 0 ? <span className="role-member-overlay-empty">배정된 멤버가 없습니다</span> : null}
                     </div>
+                  </div>
+                </div>
+                <div className="permission-summary-grid" aria-label={`${roleLabels[role]} 권한 요약`}>
+                  <div>
+                    <span>접근 범위</span>
+                    <strong>{summary.scope}</strong>
+                  </div>
+                  <div>
+                    <span>주요 가능 작업</span>
+                    <strong>{summary.can}</strong>
+                  </div>
+                  <div>
+                    <span>제한</span>
+                    <strong>{summary.limits}</strong>
                   </div>
                 </div>
                 <div className="permission-list">
@@ -4934,6 +4949,34 @@ const roleLabels: Record<Role, string> = {
   staff: "순장",
   welcome: "웰컴팀",
   member: "멤버",
+};
+
+const rolePermissionSummaries: Record<Exclude<Role, "owner">, { scope: string; can: string; limits: string }> = {
+  admin: {
+    scope: "운영 전체",
+    can: "멤버, 출석, 순, 권한, 새가족, 민감 정보 관리",
+    limits: "최고 관리자 권한은 변경 불가",
+  },
+  leader: {
+    scope: "공동체 운영",
+    can: "멤버/출석/순 운영, 링크 추가, 삭제 가능",
+    limits: "권한 변경, 민감 정보, 새가족 관리는 불가",
+  },
+  staff: {
+    scope: "순장 운영",
+    can: "리더와 동일한 앱 권한으로 멤버/출석/순 운영",
+    limits: "권한 변경, 민감 정보, 새가족 관리는 불가",
+  },
+  welcome: {
+    scope: "웰컴팀 업무",
+    can: "새가족 읽기/수정, 예배 추가 출석 입력, 링크 보기",
+    limits: "멤버 수정, 순 수정, 멤버 출석 체크, 권한 변경은 불가",
+  },
+  member: {
+    scope: "본인 중심",
+    can: "대시보드, 내 프로필, 내 출석, 순 기본 정보, 링크 보기",
+    limits: "운영 데이터 수정과 관리자 기능은 불가",
+  },
 };
 
 const roleOrder: Record<Role, number> = {

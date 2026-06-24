@@ -5549,6 +5549,8 @@ tbody tr:hover {
 
 .permission-row {
   align-items: start;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(420px, 1.6fr) minmax(220px, 1fr);
   position: relative;
 }
 
@@ -5634,6 +5636,35 @@ tbody tr:hover {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.permission-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: min(680px, 100%);
+}
+
+.permission-summary-grid div {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(232, 249, 251, 0.55);
+  padding: 10px;
+}
+
+.permission-summary-grid span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 900;
+  margin-bottom: 5px;
+}
+
+.permission-summary-grid strong {
+  color: var(--text);
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .permission-chip {
@@ -5736,6 +5767,14 @@ tbody tr:hover {
   .group-edit-form {
     grid-template-columns: 1fr;
   }
+
+  .permission-row {
+    grid-template-columns: 1fr;
+  }
+
+  .permission-list {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 760px) {
@@ -5794,6 +5833,11 @@ tbody tr:hover {
 
   .group-modal-admin-tools {
     grid-template-columns: 1fr;
+  }
+
+  .permission-summary-grid {
+    grid-template-columns: 1fr;
+    min-width: 0;
   }
 
   .group-node-ring {
@@ -6829,6 +6873,10 @@ tbody tr:hover {
 :root[data-theme="dark"] .event-toolbar,
 :root[data-theme="dark"] .event-switcher {
   background: var(--surface-strong);
+}
+
+:root[data-theme="dark"] .permission-summary-grid div {
+  background: rgba(29, 70, 78, 0.58);
 }
 
 :root[data-theme="dark"] .metric-card,
