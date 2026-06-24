@@ -580,6 +580,11 @@ test("group management uses active member choices and supports audited delete", 
   assert.match(dashboardSource, /상세보기/);
   assert.match(dashboardSource, /group-admin-tools/);
   assert.match(dashboardSource, /group-card-overview/);
+  assert.match(dashboardSource, /group-node-ring/);
+  assert.match(dashboardSource, /group-member-preview/);
+  assert.match(globalCssSource, /\.group-card:hover/);
+  assert.match(globalCssSource, /\.group-node-ring/);
+  assert.match(globalCssSource, /\.group-member-node/);
   assert.doesNotMatch(dashboardSource, /group-card-stats/);
   assert.doesNotMatch(dashboardSource, /확인을 위해 순 이름을 입력/);
   assert.doesNotMatch(actionsSource, /const deleteGroupSchema[\s\S]{0,120}confirmName/);

@@ -1533,6 +1533,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
         {visibleGroups.map((group) => {
           const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
           const visibleGroupStats = groupStats?.groups.find((item) => item.id === group.id);
+          const previewMembers = groupMembers.slice(0, 5);
           const careCount = groupMembers.filter(
             (member) =>
               member.status === "care" ||
@@ -1540,10 +1541,15 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
           ).length;
           return (
             <article className="group-card" key={group.id}>
-              <header>
-                <div>
-                  <h2>{group.name}</h2>
-                  <p className="meta">리더 {group.leaderName}</p>
+              <header className="group-card-header">
+                <div className="group-node-heading">
+                  <div className="group-node-ring" aria-hidden="true">
+                    <span>{group.name.trim().charAt(0) || "순"}</span>
+                  </div>
+                  <div>
+                    <h2>{group.name}</h2>
+                    <p className="meta">리더 {group.leaderName}</p>
+                  </div>
                 </div>
                 <span className="role-pill">{visibleGroupStats?.memberCount ?? groupMembers.length}명</span>
               </header>
@@ -1556,6 +1562,20 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
                   <strong>{visibleGroupStats?.careCount ?? careCount}</strong>
                   <span>돌봄</span>
                 </div>
+              </div>
+              <div className="group-member-preview" aria-label={`${group.name} 멤버 미리보기`}>
+                {previewMembers.length > 0 ? (
+                  previewMembers.map((member) => (
+                    <span className="group-member-node" key={member.id}>
+                      {member.displayName}
+                    </span>
+                  ))
+                ) : (
+                  <span className="group-member-node muted">배정 멤버 없음</span>
+                )}
+                {groupMembers.length > previewMembers.length ? (
+                  <span className="group-member-node more">+{groupMembers.length - previewMembers.length}</span>
+                ) : null}
               </div>
               <button className="secondary-button group-members-button" type="button" onClick={() => setGroupMembersModal(group)}>
                 멤버 보기
