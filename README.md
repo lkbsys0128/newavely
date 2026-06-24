@@ -31,6 +31,7 @@ src/
     app-page-data.ts      로그인된 사용자의 공통 앱 데이터 로더
     new-family-sync.ts    새가족 Google Sheet 읽기와 upsert 동기화
     rbac.ts               앱 역할/권한 정의
+    role-policy.ts        역할 변경/삭제 가능 여부
     supabase/             Supabase browser/server client와 query
     types.ts              공통 타입
 db/
@@ -45,8 +46,14 @@ db/
   009_cleanup_stale_member_link_requests.sql 오래된 연결 요청 정리
   010_admin_member_delete_policy.sql 관리자 멤버 영구 삭제 정책
   011_member_link_request_admin_policy.sql 연결 요청 관리자 처리 정책
+  026_public_dashboard_data.sql 모든 역할에서 동일한 공통 dashboard 통계용 RPC
+  027_new_family_applicants.sql 새가족 신청 roster
+  032_public_permission_role_counts.sql 권한 페이지 공통 역할별 카운트 RPC
 test/
-  supabase-queries.test.mjs Supabase relationship embed 회귀 테스트
+  rbac.test.mjs             역할별 권한 정의 테스트
+  role-policy.test.mjs      역할 변경/삭제 정책 테스트
+  member-visibility.test.mjs 역할별 멤버 visibility 테스트
+  supabase-queries.test.mjs Supabase relationship embed와 운영 흐름 회귀 테스트
 ```
 
 ## 로컬 개발
@@ -123,6 +130,10 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 26. `db/026_public_dashboard_data.sql`
 27. `db/027_new_family_applicants.sql`
 28. `db/028_new_family_status_flow.sql`
+29. `db/029_new_family_expected_group.sql`
+30. `db/030_welcome_team_role.sql`
+31. `db/031_welcome_team_new_family_policies.sql`
+32. `db/032_public_permission_role_counts.sql`
 
 주요 테이블:
 
@@ -137,6 +148,12 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 - `member_status_messages`: 멤버별 짧은 상태 메시지/오늘의 한마디
 - `new_family_applicants`: Google Form으로 들어온 새가족 신청 roster. 기존 멤버 roster와 분리해서 관리하고, 수료/등록 시 `members`로 전환합니다.
 - `audit_logs`: 멤버/순/출석 변경에 대한 append-only 감사 로그
+
+공통 통계:
+
+- 일반 멤버/순장/관리자 등 모든 역할에서 대시보드와 권한 페이지의 **통계 숫자**는 같은 기준으로 보여야 합니다.
+- raw 개인 정보는 역할별 visibility에 따라 제한할 수 있지만, aggregate count는 역할에 따라 달라지면 안 됩니다.
+- 권한 페이지의 역할별 숫자는 `SUPABASE_SERVICE_ROLE_KEY`를 사용하는 서버 전용 service-role query로 계산합니다. `db/032_public_permission_role_counts.sql`의 RPC는 fallback입니다.
 
 중요한 관계:
 
@@ -195,6 +212,7 @@ CSV import 후 출석 사유에 `Imported from 2026 annual attendance CSV`가 �
 - `admin`: 운영 관리자. 멤버/순/출석/권한/감사 관리 권한
 - `leader`: 멤버/출석 관리 권한
 - `staff`: 순장. 본인이 리드하는 순 멤버는 상세 열람, 다른 순은 이름 중심 열람
+- `welcome`: 웰컴팀. 일반 멤버 기본 접근 + 새가족 페이지 read/write 권한
 - `member`: 기본 접근 권한
 
 권한은 두 레이어에서 적용됩니다.
@@ -203,6 +221,38 @@ CSV import 후 출석 사유에 `Imported from 2026 annual attendance CSV`가 �
 - Next.js server actions 내부의 app-level permission check
 
 멤버 추가, 출석 체크 같은 데이터 변경은 `src/app/actions.ts`에서 처리합니다.
+
+권한 관련 테스트:
+
+- `test/rbac.test.mjs`: 역할별 permission 정의와 `hasPermission` 판정
+- `test/role-policy.test.mjs`: 역할 변경/삭제 정책
+- `test/member-visibility.test.mjs`: 역할별 멤버 visibility와 공통 roster 기준
+- `test/supabase-queries.test.mjs`: RLS/RPC/query 구조 회귀 테스트
+
+권한이나 visibility를 바꾸면 위 테스트를 함께 업데이트하고 `npm test`, `npm run typecheck`, `npm run build`를 확인합니다.
+
+## 새가족 Google Sheet 동기화
+
+`/new-family`의 동기화는 Google Form 응답 Sheet를 읽어 `new_family_applicants`에 upsert합니다. 기준 키는 `source_key`입니다.
+
+동기화 때 Sheet 값으로 갱신되는 항목:
+
+- 이름
+- 이메일
+- 전화번호
+- 원본 관심/예정 순 값
+- Sheet 메모
+- `source_data`
+- `last_synced_at`, `updated_at`
+
+앱에서 관리자가 바꾸고 동기화해도 유지되는 항목:
+
+- `status`: 새 신청, 연락 완료, 1주차, 2주차, 3주차/수료예정, 수료/등록, 보관
+- `expected_group`: 앱에서 지정한 예정 순
+- `converted_member_id`
+- `converted_at`
+
+주의: 현재 `memo`는 Sheet 메모와 앱 수정 메모가 같은 컬럼입니다. 운영 메모를 Sheet 값과 분리해야 하면 추후 `admin_memo` 같은 별도 컬럼으로 나누는 것이 안전합니다.
 
 ## 멤버 상세와 커스텀 필드
 
@@ -287,6 +337,8 @@ Vercel에 필요한 환경 변수:
 - `GOOGLE_PRIVATE_KEY`
 - `GOOGLE_SHEET_ID`
 - `GOOGLE_SHEET_NAME`
+- `NEW_FAMILY_SHEET_ID`
+- `NEW_FAMILY_SHEET_NAME`
 
 자세한 배포 설정은 `DEPLOYMENT.md`를 참고합니다.
 

@@ -1,4 +1,4 @@
-import { hasPermission, type Role } from "@/lib/rbac";
+import { hasPermission, roles, type Role } from "@/lib/rbac";
 import type {
   AdminFeedbackMessage,
   AttendanceEvent,
@@ -17,6 +17,7 @@ import { scopeMembersForRole } from "@/lib/member-visibility";
 import { isMergedPlaceholderMember } from "@/lib/member-filters";
 import { calculateKoreanAge, getMemberMinistryValues, ministryOptions, normalizeJobValue } from "@/lib/member-field-options";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   ensureAttendanceEvent,
   formatSupabaseError,
@@ -305,6 +306,26 @@ export function buildGlobalAppStats(
       eventGroupTrend: buildEventGroupTrendStats(attendanceMembers, groups, attendanceEvents),
     },
   };
+}
+
+async function getServiceRolePermissionCounts(): Promise<PermissionRoleCount[] | undefined> {
+  try {
+    const supabase = createServiceRoleClient();
+    const { data, error } = await supabase.from("members").select("role, email, status").neq("status", "inactive");
+    if (error) throw error;
+
+    const counts = new Map<Role, number>(roles.map((role) => [role, 0]));
+    for (const member of data ?? []) {
+      const role = member.role as Role;
+      if (!roles.includes(role)) continue;
+      if (typeof member.email === "string" && member.email.toLowerCase().endsWith("@merged.local")) continue;
+      counts.set(role, (counts.get(role) ?? 0) + 1);
+    }
+
+    return roles.map((role) => ({ role, count: counts.get(role) ?? 0 }));
+  } catch {
+    return undefined;
+  }
 }
 
 export function enrichMemberStatusMessages(messages: MemberStatusMessage[], members: Member[]): MemberStatusMessage[] {
@@ -857,8 +878,9 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       groups: dashboardData.groups,
       members: dashboardData.members,
     });
-    const permissionRoleCounts =
+    const publicPermissionRoleCounts =
       "permissionRoleCounts" in publicDashboardData ? (publicDashboardData.permissionRoleCounts as PermissionRoleCount[]) : undefined;
+    const permissionRoleCounts = (await getServiceRolePermissionCounts()) ?? publicPermissionRoleCounts;
     const globalStats = buildGlobalAppStats(
       publicDashboardData.members,
       publicDashboardData.groups,

@@ -11,6 +11,7 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 - 기존 멤버 roster와 새가족 신청 roster는 분리해서 관리합니다.
 - 권한과 개인정보는 기능보다 우선입니다.
 - 관리자 화면에서 보이는 통계/공통 수치는 역할에 따라 달라지면 안 됩니다. 단, raw 개인 정보 노출 범위는 역할별로 제한할 수 있습니다.
+- aggregate count를 맞추기 위해 raw 데이터를 넓게 노출하지 않습니다. 필요한 경우 서버 전용 service-role query로 count만 계산합니다.
 - 새 로그인 사용자는 자동으로 관리자/리더가 되면 안 됩니다. 기본은 `member`이며, 교적 연결은 관리자 승인 흐름을 거칩니다.
 - 삭제/복구/권한 변경/출석 변경/새가족 전환 같은 control-plane 작업은 감사 로그 대상입니다.
 - UI는 모바일을 항상 고려합니다. 특히 modal, 메뉴, 출석 체크 화면은 모바일에서 실제 조작 가능해야 합니다.
@@ -32,6 +33,7 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 - `src/lib/rbac.ts`: 역할과 permission 정의.
 - `src/lib/role-policy.ts`: 역할 변경/삭제 가능 여부.
 - `src/lib/member-visibility.ts`: 역할별 멤버 visibility.
+- `src/lib/supabase/service-role.ts`: 서버/cron/service-role client. 절대 client component에서 import하지 않습니다.
 - `src/components/dashboard.tsx`: 여러 페이지의 주요 UI 컴포넌트가 모여 있습니다. 크기가 크므로 수정은 좁게 합니다.
 - `src/app/globals.css`: 전역 스타일, responsive/dark mode 스타일.
 - `db/schema.sql`: 전체 초기 스키마.
@@ -60,6 +62,7 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 - `admin`: 운영 관리자. 대부분의 운영/권한/감사 관리.
 - `leader`: 리더. 멤버/출석/순 운영 권한.
 - `staff`: 순장. 이름은 순장이지만 권한은 현재 leader와 동일하게 유지합니다.
+- `welcome`: 웰컴팀. 일반 멤버 기본 접근 + 새가족 read/write 권한. 멤버/출석/권한 관리는 할 수 없습니다.
 - `member`: 일반 멤버. 본인 프로필, 본인 출석 history/stat, 기본 dashboard 정보 중심.
 
 중요한 기대값:
@@ -67,7 +70,19 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 - 새 Google 로그인은 항상 `member`로 시작합니다.
 - `owner` 변경은 `owner`만 할 수 있어야 합니다.
 - `staff`와 `leader` 권한은 동등해야 합니다.
+- `welcome`은 새가족 페이지를 읽고 수정할 수 있지만 `members:write`, `attendance:write`, `roles:manage`는 없어야 합니다.
 - 멤버 삭제는 최소 leader/staff 이상이며, 자기보다 낮은 권한의 멤버만 삭제 가능해야 합니다.
+
+## 공통 통계와 권한 페이지 숫자
+
+대시보드/권한 페이지의 통계 숫자는 모든 역할에서 같은 값을 보여야 합니다.
+
+- 멤버가 보는 dashboard metric, 권한 페이지 role count 등이 관리자와 다르면 버그로 봅니다.
+- raw 멤버 상세 목록은 역할별 visibility를 유지합니다.
+- 권한 페이지 역할별 카운트는 `SUPABASE_SERVICE_ROLE_KEY`를 쓰는 서버 전용 service-role query가 우선입니다.
+- `db/032_public_permission_role_counts.sql`의 RPC는 fallback입니다. RLS 때문에 viewer-scoped count가 나오지 않도록 주의합니다.
+- 관련 코드는 `src/lib/app-page-data.ts`의 `buildGlobalAppStats`와 permission role count 흐름입니다.
+- 관련 테스트는 `test/supabase-queries.test.mjs`, `test/member-visibility.test.mjs`, `test/rbac.test.mjs`, `test/role-policy.test.mjs`입니다.
 
 ## Supabase query 주의사항
 
@@ -95,6 +110,13 @@ care_followups!care_followups_member_id_fkey(...)
 - 기본 Sheet ID: `1T-DD9i7lBoFqK6qHXKSKeEgs-FOsq24c8dWzwLWFGrg`
 
 새가족이 수료/등록되면 관리자가 “멤버로 등록” 액션을 통해 `members`에 추가합니다. 원본 Google Form 응답은 `source_data` JSONB에 보존합니다.
+
+동기화 overwrite 기준:
+
+- `source_key` 기준으로 upsert합니다.
+- Sheet에서 다시 갱신되는 값: 이름, 이메일, 전화번호, 원본 관심/예정 순, Sheet 메모, `source_data`, sync timestamp.
+- 앱에서 관리자가 바꾸고 유지되어야 하는 값: `status`, `expected_group`, `converted_member_id`, `converted_at`.
+- 현재 `memo`는 Sheet 메모와 앱 메모가 같은 컬럼입니다. 운영 메모 분리가 필요하면 `admin_memo` 같은 새 컬럼을 추가하는 방향이 안전합니다.
 
 필요 env:
 
@@ -213,6 +235,12 @@ DB migration을 추가하면:
 - `db/schema.sql` 반영
 - `README.md` migration 순서 반영
 - 필요한 테스트 추가
+
+현재 중요한 최근 migration:
+
+- `db/030_welcome_team_role.sql`: `welcome` 역할 추가
+- `db/031_welcome_team_new_family_policies.sql`: 웰컴팀 새가족 RLS
+- `db/032_public_permission_role_counts.sql`: 권한 페이지 공통 role count fallback RPC
 
 새 환경 변수를 추가하면:
 

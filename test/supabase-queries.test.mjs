@@ -351,6 +351,10 @@ test("common aggregate stats use unscoped server data while pages receive scoped
   assert.match(appPageDataSource, /members: scopedMembers/);
   assert.match(appPageDataSource, /publicDashboardData\.members/);
   assert.match(appPageDataSource, /publicDashboardData\.groups/);
+  assert.match(appPageDataSource, /createServiceRoleClient/);
+  assert.match(appPageDataSource, /getServiceRolePermissionCounts/);
+  assert.match(appPageDataSource, /select\("role, email, status"\)\.neq\("status", "inactive"\)/);
+  assert.match(appPageDataSource, /permissionRoleCounts = \(await getServiceRolePermissionCounts\(\)\) \?\? publicPermissionRoleCounts/);
   assert.match(appPageDataSource, /globalStats,/);
   assert.match(appPageDataSource, /statisticsSummary: buildStatisticsSummary\(activeMembers\)/);
   assert.match(appPageDataSource, /dashboardInsights: buildDashboardInsights\(activeMembers, groups\)/);
