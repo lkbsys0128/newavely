@@ -9,6 +9,11 @@ function isCommunityLeaderGroup(member: Pick<Member, "groupName">) {
   return member.groupName.trim().includes("공동체 리더");
 }
 
+function hasCommunityLeaderRole(member: Pick<Member, "customFields">) {
+  const value = member.customFields.community_leader_role;
+  return value === "clergy" || value === "team_leader" || value === "elder" || value === "deaconess";
+}
+
 export function getLedGroupIds(currentMemberId: string, groups: Group[]) {
   return new Set(groups.filter((group) => group.leaderMemberId === currentMemberId).map((group) => group.id));
 }
@@ -26,7 +31,7 @@ export function canViewFullMemberDetail({
 }) {
   if (role === "owner" || role === "admin" || role === "leader" || role === "staff") return true;
   if (role === "member") return member.id === currentMemberId;
-  if (role === "welcome" && isCommunityLeaderGroup(member)) return true;
+  if (role === "welcome" && (isCommunityLeaderGroup(member) || hasCommunityLeaderRole(member))) return true;
   if (member.id === currentMemberId) return true;
   return Boolean(member.groupId && ledGroupIds.has(member.groupId));
 }

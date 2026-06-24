@@ -46,6 +46,14 @@ const mixedMembers = [
     groupName: "공동체 리더 순",
     customFields: { community_leader_role: "clergy" },
   }),
+  member({
+    id: "clergy-in-group",
+    name: "이사야",
+    displayName: "이사야",
+    groupId: "group-b",
+    groupName: "B순",
+    customFields: { community_leader_role: "clergy" },
+  }),
   member({ id: "inactive", name: "비활성", displayName: "비활성", status: "inactive", groupId: "group-b", groupName: "B순" }),
   member({ id: "merged-placeholder", name: "병합 잔여", displayName: "병합 잔여", email: "old@merged.local", groupId: null, groupName: "미배정" }),
 ];
@@ -76,7 +84,7 @@ test("soonjang has the same full-detail view as leader", () => {
 });
 
 test("all roles use the same visible roster basis without merged placeholders", () => {
-  const expectedVisibleIds = ["soonjang", "same-group", "other-group", "community-leader", "inactive"];
+  const expectedVisibleIds = ["soonjang", "same-group", "other-group", "community-leader", "clergy-in-group", "inactive"];
 
   for (const role of roles) {
     const scopedMembers = scopeMembersForRole({
@@ -102,11 +110,15 @@ test("welcome team can see community leader attendance details without opening o
     members: mixedMembers,
   });
   const communityLeader = scopedMembers.find((item) => item.id === "community-leader");
+  const clergyInGroup = scopedMembers.find((item) => item.id === "clergy-in-group");
   const otherGroupMember = scopedMembers.find((item) => item.id === "other-group");
 
   assert.equal(communityLeader.phone, "010-0000-0000");
   assert.equal(communityLeader.customFields.community_leader_role, "clergy");
   assert.equal(communityLeader.present, true);
+  assert.equal(clergyInGroup.phone, "010-0000-0000");
+  assert.equal(clergyInGroup.customFields.community_leader_role, "clergy");
+  assert.equal(clergyInGroup.present, true);
   assert.equal(otherGroupMember.phone, "비공개");
   assert.equal(otherGroupMember.email, "");
   assert.deepEqual(Array.from(otherGroupMember.attendanceHistory), []);
