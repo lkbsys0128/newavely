@@ -44,6 +44,10 @@ const communityLeaderAttendanceRolesSource = readFileSync(
   new URL("../db/035_community_leader_attendance_roles.sql", import.meta.url),
   "utf8",
 );
+const publicDashboardCommunityLeaderRoleSource = readFileSync(
+  new URL("../db/036_public_dashboard_community_leader_role.sql", import.meta.url),
+  "utf8",
+);
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -376,9 +380,14 @@ test("common aggregate stats use unscoped server data while pages receive scoped
   assert.match(publicDashboardDataSource, /jsonb_build_object\(\s*'english_name'/);
   assert.match(publicDashboardDataSource, /'test_account', m\.custom_fields -> 'test_account'/);
   assert.doesNotMatch(publicDashboardDataSource, /'phone'/);
+  assert.match(publicDashboardCommunityLeaderRoleSource, /get_public_dashboard_members/);
+  assert.match(publicDashboardCommunityLeaderRoleSource, /'community_leader_role', m\.custom_fields -> 'community_leader_role'/);
+  assert.match(schemaSource, /'community_leader_role', m\.custom_fields -> 'community_leader_role'/);
   assert.match(testAccountStatsExclusionSource, /get_public_dashboard_members/);
   assert.match(testAccountStatsExclusionSource, /'test_account', m\.custom_fields -> 'test_account'/);
   assert.match(testAccountStatsExclusionSource, /coalesce\(\(m\.custom_fields ->> 'test_account'\)::boolean, false\) = false/);
+  assert.match(appPageDataSource, /const memberScopeSource =/);
+  assert.match(appPageDataSource, /currentMember\.role === "welcome" && page === "attendance" \? publicDashboardData\.members : dashboardData\.members/);
   assert.match(appPageDataSource, /const scopedMembers = scopeMembersForRole/);
   assert.match(appPageDataSource, /members: scopedMembers/);
   assert.match(appPageDataSource, /publicDashboardData\.members/);

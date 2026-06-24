@@ -596,6 +596,7 @@ as $$
         'age', m.custom_fields -> 'age',
         'job', m.custom_fields -> 'job',
         'test_account', m.custom_fields -> 'test_account',
+        'community_leader_role', m.custom_fields -> 'community_leader_role',
         'ministries', m.custom_fields -> 'ministries',
         'ministry_1', m.custom_fields -> 'ministry_1',
         'ministry_2', m.custom_fields -> 'ministry_2'
