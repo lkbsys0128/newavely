@@ -27,6 +27,14 @@ export function isMergedPlaceholderMember(member: Pick<Member, "email">) {
   return member.email.trim().toLowerCase().endsWith("@merged.local");
 }
 
+export function isTestAccountMember(member: Pick<Member, "customFields">) {
+  return member.customFields.test_account === true;
+}
+
+export function isStatsExcludedMember(member: Pick<Member, "email" | "customFields">) {
+  return isMergedPlaceholderMember(member) || isTestAccountMember(member);
+}
+
 export function filterMembers(members: Member[], filters: MemberFilters) {
   const normalizedQuery = filters.query.trim().toLowerCase();
 

@@ -266,6 +266,12 @@ export function MemberDetailPageContent({
               </select>
               {!canManageMembers ? <input name="status" type="hidden" value={member.status} /> : null}
             </label>
+            {canManageRoles ? (
+              <label className="toggle-field full-width">
+                <input name="isTestAccount" type="checkbox" defaultChecked={member.customFields.test_account === true} />
+                테스트 계정으로 표시하고 모든 통계에서 제외
+              </label>
+            ) : null}
             <label>
               주소
               <input name="address" defaultValue={member.address} disabled={!canEditProfile} />

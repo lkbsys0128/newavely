@@ -35,6 +35,10 @@ const welcomeTeamNewFamilyPoliciesSource = readFileSync(
   "utf8",
 );
 const publicPermissionRoleCountsSource = readFileSync(new URL("../db/032_public_permission_role_counts.sql", import.meta.url), "utf8");
+const testAccountStatsExclusionSource = readFileSync(
+  new URL("../db/033_test_account_stats_exclusion.sql", import.meta.url),
+  "utf8",
+);
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -57,6 +61,7 @@ const newFamilySyncSource = readFileSync(new URL("../src/lib/new-family-sync.ts"
 const newFamilyCronSource = readFileSync(new URL("../src/app/api/cron/sync-new-family/route.ts", import.meta.url), "utf8");
 const vercelConfigSource = readFileSync(new URL("../vercel.json", import.meta.url), "utf8");
 const mobileAwareNavSource = readFileSync(new URL("../src/components/mobile-aware-nav.tsx", import.meta.url), "utf8");
+const navigationSource = readFileSync(new URL("../src/lib/navigation.ts", import.meta.url), "utf8");
 const uiEmojisSource = readFileSync(new URL("../src/lib/ui-emojis.ts", import.meta.url), "utf8");
 const cronAttendanceRouteSource = readFileSync(
   new URL("../src/app/api/cron/ensure-sunday-attendance/route.ts", import.meta.url),
@@ -344,16 +349,23 @@ test("common aggregate stats use unscoped server data while pages receive scoped
   assert.match(publicPermissionRoleCountsSource, /create or replace function get_public_permission_role_counts\(\)/);
   assert.match(publicPermissionRoleCountsSource, /returns table \(\s*role member_role,\s*member_count bigint\s*\)/);
   assert.match(publicPermissionRoleCountsSource, /coalesce\(m\.email, ''\) not ilike '%@merged\.local'/);
+  assert.match(publicPermissionRoleCountsSource, /coalesce\(\(m\.custom_fields ->> 'test_account'\)::boolean, false\) = false/);
   assert.match(publicPermissionRoleCountsSource, /grant execute on function get_public_permission_role_counts\(\) to authenticated/);
   assert.match(publicDashboardDataSource, /jsonb_build_object\(\s*'english_name'/);
+  assert.match(publicDashboardDataSource, /'test_account', m\.custom_fields -> 'test_account'/);
   assert.doesNotMatch(publicDashboardDataSource, /'phone'/);
+  assert.match(testAccountStatsExclusionSource, /get_public_dashboard_members/);
+  assert.match(testAccountStatsExclusionSource, /'test_account', m\.custom_fields -> 'test_account'/);
+  assert.match(testAccountStatsExclusionSource, /coalesce\(\(m\.custom_fields ->> 'test_account'\)::boolean, false\) = false/);
   assert.match(appPageDataSource, /const scopedMembers = scopeMembersForRole/);
   assert.match(appPageDataSource, /members: scopedMembers/);
   assert.match(appPageDataSource, /publicDashboardData\.members/);
   assert.match(appPageDataSource, /publicDashboardData\.groups/);
   assert.match(appPageDataSource, /createServiceRoleClient/);
   assert.match(appPageDataSource, /getServiceRolePermissionCounts/);
-  assert.match(appPageDataSource, /select\("role, email, status"\)\.neq\("status", "inactive"\)/);
+  assert.match(appPageDataSource, /select\("role, email, status, custom_fields"\)\.neq\("status", "inactive"\)/);
+  assert.match(appPageDataSource, /customFields\.test_account === true/);
+  assert.match(appPageDataSource, /isStatsExcludedMember/);
   assert.match(appPageDataSource, /permissionRoleCounts = \(await getServiceRolePermissionCounts\(\)\) \?\? publicPermissionRoleCounts/);
   assert.match(appPageDataSource, /globalStats,/);
   assert.match(appPageDataSource, /statisticsSummary: buildStatisticsSummary\(activeMembers\)/);
@@ -371,13 +383,24 @@ test("mobile navigation collapses into an expandable dropdown", () => {
   assert.match(layoutSource, /<div className="sidebar-menu">/);
   assert.match(layoutSource, /className="mobile-menu-control"[\s\S]*type="checkbox"/);
   assert.match(layoutSource, /<label className="mobile-menu-toggle" htmlFor="mobile-menu-control">/);
-  assert.match(layoutSource, /<MobileAwareNav \/>/);
+  assert.match(layoutSource, /<MobileAwareNav items=\{visibleNavItems\} \/>/);
   assert.match(mobileAwareNavSource, /"use client"/);
   assert.match(mobileAwareNavSource, /function closeMobileMenu/);
   assert.match(mobileAwareNavSource, /control\.checked = false/);
   assert.match(mobileAwareNavSource, /onClick=\{closeMobileMenu\}/);
   assert.match(globalCssSource, /@media \(max-width: 760px\)[\s\S]*\.mobile-menu-control:not\(:checked\) ~ \.nav-list/);
   assert.match(globalCssSource, /\.mobile-menu-control:checked ~ \.nav-list[\s\S]*mobileMenuReveal/);
+});
+
+test("primary navigation hides pages without the current role permission", () => {
+  assert.match(layoutSource, /const navRole = await getCurrentNavRole\(\)/);
+  assert.match(layoutSource, /const visibleNavItems = getVisibleNavItems\(navRole\)/);
+  assert.match(navigationSource, /requiredPermission: "new-family:read"/);
+  assert.match(navigationSource, /requiredPermission: "attendance:read"/);
+  assert.match(navigationSource, /requiredPermission: "roles:manage"/);
+  assert.match(navigationSource, /return navItems\.filter/);
+  assert.match(navigationSource, /hasPermission\(role, item\.requiredPermission\)/);
+  assert.doesNotMatch(mobileAwareNavSource, /const navItems = \[/);
 });
 
 test("global styles include sharper control radius pass", () => {
@@ -414,6 +437,10 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.doesNotMatch(dataSource, /\.limit\(12\)/);
   assert.match(dataSource, /\.order\("event_date", \{ ascending: false \}\)[\s\S]*\.order\("title", \{ ascending: true \}\)/);
   assert.match(dashboardSource, /isAttendanceRosterMember/);
+  assert.match(dashboardSource, /getAttendanceVisibleGroups/);
+  assert.match(dashboardSource, /attendanceVisibleGroups/);
+  assert.match(appPageDataSource, /getAttendanceVisibleGroups/);
+  assert.match(appPageDataSource, /attendanceGroupIds/);
   assert.match(dashboardSource, /member\.status === "active" \|\| member\.status === "care"/);
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
   assert.match(dashboardSource, /attendanceSearchQuery/);
@@ -676,7 +703,7 @@ test("important links page is backed by audited role-gated data", () => {
   assert.match(dashboardSource, /deleteImportantLink/);
   assert.match(actionsSource, /important_link\.create/);
   assert.match(actionsSource, /important_link\.delete/);
-  assert.match(mobileAwareNavSource, /href: "\/links"/);
+  assert.match(navigationSource, /href: "\/links"/);
   assert.match(globalCssSource, /link-grid/);
 });
 
@@ -738,6 +765,19 @@ test("new member creation defaults to member role for non-role managers", () => 
   assert.match(dashboardSource, /!canManageRoles \? <input name="role" type="hidden" value="member" \/> : null/);
 });
 
+test("admins can flag test accounts and shared stats exclude them", () => {
+  assert.match(actionsSource, /const isTestAccount = canManageRoles && formData\.get\("isTestAccount"\) === "on"/);
+  assert.match(actionsSource, /test_account: true/);
+  assert.match(dashboardSource, /name="isTestAccount"/);
+  assert.match(dashboardSource, /테스트 계정으로 표시하고 모든 통계에서 제외/);
+  assert.match(dashboardSource, /테스트 계정으로 승인하고 모든 통계에서 제외/);
+  assert.doesNotMatch(dashboardSource, /테스트 계정으로 등록하고 모든 통계에서 제외/);
+  assert.match(memberDetailSource, /name="isTestAccount"/);
+  assert.match(memberDetailSource, /member\.customFields\.test_account === true/);
+  assert.match(dashboardSource, /!isStatsExcludedMember\(member\)/);
+  assert.match(appPageDataSource, /!isStatsExcludedMember\(member\)/);
+});
+
 test("admin feedback inbox lets users message admins and admins update status", () => {
   assert.match(schemaSource, /create table admin_feedback_messages/);
   assert.match(adminFeedbackMessagesSource, /users can create own feedback messages/);
@@ -750,7 +790,7 @@ test("admin feedback inbox lets users message admins and admins update status", 
   assert.match(dashboardSource, /관리자에게 보내기/);
   assert.match(appGateSource, /피드백 접수함으로 이동/);
   assert.match(feedbackPageSource, /FeedbackPageContent/);
-  assert.match(mobileAwareNavSource, /href: "\/feedback"/);
+  assert.match(navigationSource, /href: "\/feedback"/);
   assert.match(globalCssSource, /feedback-inbox-panel/);
 });
 
@@ -815,7 +855,7 @@ test("new family applicants sync from Google Sheets into a role-gated roster", (
   assert.match(dashboardSource, /멤버로 등록/);
   assert.match(dashboardSource, /수료\/등록은 멤버 로스터 등록으로 완료됩니다/);
   assert.doesNotMatch(dashboardSource, /데이터 출처/);
-  assert.match(mobileAwareNavSource, /href: "\/new-family"/);
+  assert.match(navigationSource, /href: "\/new-family"/);
   assert.match(globalCssSource, /new-family-stage-panel/);
   assert.match(globalCssSource, /new-family-insights/);
   assert.match(globalCssSource, /new-family-breakdown-card/);

@@ -571,6 +571,7 @@ as $$
         'birthdate', m.custom_fields -> 'birthdate',
         'age', m.custom_fields -> 'age',
         'job', m.custom_fields -> 'job',
+        'test_account', m.custom_fields -> 'test_account',
         'ministries', m.custom_fields -> 'ministries',
         'ministry_1', m.custom_fields -> 'ministry_1',
         'ministry_2', m.custom_fields -> 'ministry_2'
@@ -609,6 +610,7 @@ as $$
   from members m
   where m.status <> 'inactive'
     and coalesce(m.email, '') not ilike '%@merged.local'
+    and coalesce((m.custom_fields ->> 'test_account')::boolean, false) = false
   group by m.role
   order by m.role;
 $$;

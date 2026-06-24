@@ -14,7 +14,8 @@ import type {
 } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { scopeMembersForRole } from "@/lib/member-visibility";
-import { isMergedPlaceholderMember } from "@/lib/member-filters";
+import { isStatsExcludedMember } from "@/lib/member-filters";
+import { getAttendanceVisibleGroups } from "@/lib/group-filters";
 import { calculateKoreanAge, getMemberMinistryValues, ministryOptions, normalizeJobValue } from "@/lib/member-field-options";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -240,7 +241,7 @@ type AppPageDataOptions = {
 };
 
 export function buildDashboardMetrics(members: Member[], groups: Group[]): DashboardMetrics {
-  const visibleMembers = members.filter((member) => !isMergedPlaceholderMember(member));
+  const visibleMembers = members.filter((member) => !isStatsExcludedMember(member));
   const activeMembers = visibleMembers.filter((member) => member.status !== "inactive");
   const presentMembers = activeMembers.filter((member) => member.present);
 
@@ -261,9 +262,13 @@ export function buildGlobalAppStats(
   selectedEventId?: string,
   permissionRoleCounts?: PermissionRoleCount[],
 ): GlobalAppStats {
-  const visibleMembers = members.filter((member) => !isMergedPlaceholderMember(member));
+  const visibleMembers = members.filter((member) => !isStatsExcludedMember(member));
   const activeMembers = visibleMembers.filter((member) => member.status !== "inactive");
-  const attendanceMembers = visibleMembers.filter((member) => isAttendanceStatsMember(member));
+  const attendanceGroups = getAttendanceVisibleGroups(groups);
+  const attendanceGroupIds = new Set(attendanceGroups.map((group) => group.id));
+  const attendanceMembers = visibleMembers
+    .filter((member) => isAttendanceStatsMember(member))
+    .filter((member) => !member.groupId || attendanceGroupIds.has(member.groupId));
   const roleCounts =
     permissionRoleCounts ??
     (["owner", "admin", "leader", "staff", "welcome", "member"] as Role[]).map((role) => ({
@@ -281,7 +286,7 @@ export function buildGlobalAppStats(
     statisticsSummary: buildStatisticsSummary(activeMembers),
     dashboardInsights: buildDashboardInsights(activeMembers, groups),
     groupPage: buildGroupPageStats(activeMembers, groups),
-    groupAttendanceSummary: buildDashboardGroupAttendanceSummary(attendanceMembers, groups, attendanceEvents),
+    groupAttendanceSummary: buildDashboardGroupAttendanceSummary(attendanceMembers, attendanceGroups, attendanceEvents),
     permissions: {
       roleCounts,
       activeAdminCount: roleCounts.find((row) => row.role === "admin")?.count ?? 0,
@@ -294,7 +299,7 @@ export function buildGlobalAppStats(
       currentExcusedCount,
       currentAbsentCount,
       currentAttendanceRate: attendanceMembers.length ? Math.round((currentPresentCount / attendanceMembers.length) * 100) : 0,
-      groupAttendanceStats: buildCurrentGroupAttendanceStats(attendanceMembers, groups, selectedEvent?.id),
+      groupAttendanceStats: buildCurrentGroupAttendanceStats(attendanceMembers, attendanceGroups, selectedEvent?.id),
       unassigned: buildCurrentAttendanceGroupStat(
         "unassigned",
         "미배정",
@@ -302,8 +307,8 @@ export function buildGlobalAppStats(
         selectedEvent?.id,
       ),
       eventTrend: buildEventTrendStats(attendanceMembers, attendanceEvents, selectedEvent?.id, currentPresentCount),
-      aggregateGroupStats: buildAggregateAttendanceGroupStats(attendanceMembers, groups, attendanceEvents),
-      eventGroupTrend: buildEventGroupTrendStats(attendanceMembers, groups, attendanceEvents),
+      aggregateGroupStats: buildAggregateAttendanceGroupStats(attendanceMembers, attendanceGroups, attendanceEvents),
+      eventGroupTrend: buildEventGroupTrendStats(attendanceMembers, attendanceGroups, attendanceEvents),
     },
   };
 }
@@ -311,14 +316,16 @@ export function buildGlobalAppStats(
 async function getServiceRolePermissionCounts(): Promise<PermissionRoleCount[] | undefined> {
   try {
     const supabase = createServiceRoleClient();
-    const { data, error } = await supabase.from("members").select("role, email, status").neq("status", "inactive");
+    const { data, error } = await supabase.from("members").select("role, email, status, custom_fields").neq("status", "inactive");
     if (error) throw error;
 
     const counts = new Map<Role, number>(roles.map((role) => [role, 0]));
     for (const member of data ?? []) {
       const role = member.role as Role;
       if (!roles.includes(role)) continue;
+      const customFields = member.custom_fields && typeof member.custom_fields === "object" ? member.custom_fields : {};
       if (typeof member.email === "string" && member.email.toLowerCase().endsWith("@merged.local")) continue;
+      if (customFields.test_account === true) continue;
       counts.set(role, (counts.get(role) ?? 0) + 1);
     }
 
@@ -331,7 +338,7 @@ async function getServiceRolePermissionCounts(): Promise<PermissionRoleCount[] |
 export function enrichMemberStatusMessages(messages: MemberStatusMessage[], members: Member[]): MemberStatusMessage[] {
   const membersById = new Map(
     members
-      .filter((member) => !isMergedPlaceholderMember(member))
+      .filter((member) => !isStatsExcludedMember(member))
       .map((member) => [member.id, member]),
   );
 
@@ -689,7 +696,7 @@ function buildAggregateAttendanceStat(
 }
 
 function isAttendanceStatsMember(member: Member) {
-  return (member.status === "active" || member.status === "care") && !isMergedPlaceholderMember(member);
+  return (member.status === "active" || member.status === "care") && !isStatsExcludedMember(member);
 }
 
 function isPresentForEvent(member: Member, eventId?: string) {

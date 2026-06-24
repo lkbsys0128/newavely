@@ -14,6 +14,7 @@ as $$
   from members m
   where m.status <> 'inactive'
     and coalesce(m.email, '') not ilike '%@merged.local'
+    and coalesce((m.custom_fields ->> 'test_account')::boolean, false) = false
   group by m.role
   order by m.role;
 $$;

@@ -6,6 +6,9 @@ import { MobileAwareNav } from "@/components/mobile-aware-nav";
 import { PageTransition } from "@/components/page-transition";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getVisibleNavItems } from "@/lib/navigation";
+import { roles, type Role } from "@/lib/rbac";
+import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import "./globals.css";
 
@@ -14,8 +17,28 @@ export const metadata: Metadata = {
   description: "교회 공동체 멤버, 순, 출석, 권한 관리 앱",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+async function getCurrentNavRole(): Promise<Role | null> {
+  if (!hasSupabaseEnv()) return null;
+
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data } = await supabase.from("members").select("role").eq("auth_user_id", user.id).maybeSingle();
+    const role = data?.role;
+    return roles.includes(role as Role) ? (role as Role) : null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const authEnabled = hasSupabaseEnv();
+  const navRole = await getCurrentNavRole();
+  const visibleNavItems = getVisibleNavItems(navRole);
   const themeScript = `
     (() => {
       try {
@@ -51,7 +74,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 메뉴
               </label>
 
-              <MobileAwareNav />
+              <MobileAwareNav items={visibleNavItems} />
 
               <div className="auth-card" aria-label="계정 메뉴">
                 <ThemeToggle />
