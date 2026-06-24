@@ -286,6 +286,12 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /const isWelcomeAttendanceOnly = user\.role === "welcome"/);
   assert.match(dashboardSource, /pinned-attendance-total/);
   assert.match(dashboardSource, /title="상세 출석 통계"/);
+  assert.match(dashboardSource, /const worshipEventIdsForDate = sameDateEvents\.filter/);
+  assert.match(dashboardSource, /isPresentForAnyEvent\(member, worshipEventIdsForDate\)/);
+  assert.match(dashboardSource, /\[\.\.\.new Set\(sameDateEvents\.map\(\(event\) => event\.title\)\)\]\.join\(" · "\)/);
+  assert.match(dashboardSource, /function buildAttendanceAbsenceUnits/);
+  assert.match(dashboardSource, /const key = `\$\{event\.eventDate\}:\$\{event\.title\}`/);
+  assert.match(dashboardSource, /getMemberAttendanceStatusForAnyEvent\(member, unit\.eventIds\)/);
   assert.match(dashboardSource, /welcome-attendance-input-panel/);
   assert.match(dashboardSource, /aria-label="웰컴팀 예배 출석 입력"/);
   assert.match(dashboardSource, /toggleLeaderExtraAttendance/);
