@@ -424,6 +424,8 @@ test("attendance extra counts load through page data and save through a separate
   assert.match(actionsSource, /getAuthorizedCurrentMember\("attendance:extras:write"\)/);
   assert.match(actionsSource, /\.from\("attendance_extra_counts"\)/);
   assert.match(actionsSource, /attendance_extra_counts\.update/);
+  assert.match(actionsSource, /metadata: \{ eventDate: parsed\.eventDate \}/);
+  assert.doesNotMatch(actionsSource, /attendance_extra_counts\.update[\s\S]{0,240}targetId: parsed\.eventDate/);
   assert.match(dashboardSource, /canManageAttendanceExtraCounts/);
   assert.match(dashboardSource, /attendance-total-panel/);
   assert.match(dashboardSource, /totalAttendanceWithExtras/);

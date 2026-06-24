@@ -1723,9 +1723,9 @@ export async function updateAttendanceExtraCounts(_previousState: ActionState, f
       supabase,
       action: "attendance_extra_counts.update",
       targetTable: "attendance_extra_counts",
-      targetId: parsed.eventDate,
       beforeData: beforeData as Record<string, unknown> | null,
       afterData: afterData as Record<string, unknown>,
+      metadata: { eventDate: parsed.eventDate },
     });
     revalidateAppData();
     return "출석 추가 인원을 저장했습니다.";
