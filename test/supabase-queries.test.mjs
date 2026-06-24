@@ -287,9 +287,12 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /toggleLeaderExtraAttendance/);
   assert.match(dashboardSource, /communityLeaderRoleLabels/);
   assert.match(dashboardSource, /leader-extra-toggle/);
+  assert.match(dashboardSource, /leaderRole \|\| \(communityLeaderGroup && member\.groupId === communityLeaderGroup\.id\)/);
+  assert.match(dashboardSource, /설정 필요/);
   assert.match(actionsSource, /attendance\.extra_leader\.toggle/);
   assert.match(actionsSource, /attendance:extras:write/);
-  assert.match(actionsSource, /공동체 리더 순 멤버만 예배 추가 출석으로 체크할 수 있습니다/);
+  assert.match(actionsSource, /getCommunityLeaderRoleValue/);
+  assert.match(actionsSource, /공동체 리더 구분이 있거나 공동체 리더 순에 속한 멤버만 예배 추가 출석으로 체크할 수 있습니다/);
   assert.match(communityLeaderAttendanceRolesSource, /community_leader_role/);
   assert.match(dashboardSource, /!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection/);
   assert.match(dashboardSource, /!isWelcomeAttendanceOnly \? \(/);
@@ -644,10 +647,12 @@ test("group page renders a central Newavely network map", () => {
   assert.match(dashboardSource, /<strong>뉴웨이브<\/strong>/);
   assert.match(dashboardSource, /순장 \{node\.group\.leaderName\}/);
   assert.match(dashboardSource, /className="group-network-node"/);
+  assert.match(dashboardSource, /draggable=\{false\}/);
   assert.match(globalCssSource, /\.group-network-map/);
   assert.match(globalCssSource, /\.group-network-lines line/);
   assert.match(globalCssSource, /\.group-network-center/);
   assert.match(globalCssSource, /\.group-network-node:hover/);
+  assert.match(globalCssSource, /\.group-network-node:not\(:disabled\):active/);
   assert.doesNotMatch(globalCssSource, /\.group-network-node:hover[\s\S]{0,240}scale\(1\.05\)/);
 });
 

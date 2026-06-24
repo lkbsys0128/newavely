@@ -1629,6 +1629,8 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
               key={node.group.id}
               style={{ left: `${node.x}%`, top: `${node.y}%` }}
               type="button"
+              draggable={false}
+              onDragStart={(event) => event.preventDefault()}
               onClick={() => setGroupMembersModal(node.group)}
             >
               <strong>{node.group.name}</strong>
@@ -2783,12 +2785,11 @@ export function AttendanceManager({
   const worshipEventForDate = sameDateEvents.find((event) => event.title === "주일 예배") ?? null;
   const communityLeaderMembers = localMembers
     .filter(isAttendanceRosterMember)
-    .filter((member) => communityLeaderGroup && member.groupId === communityLeaderGroup.id)
     .map((member) => ({ member, leaderRole: getCommunityLeaderRole(member) }))
-    .filter((item) => item.leaderRole)
+    .filter(({ member, leaderRole }) => leaderRole || (communityLeaderGroup && member.groupId === communityLeaderGroup.id))
     .sort((a, b) => {
-      const roleOrder: Record<CommunityLeaderRole, number> = { clergy: 0, team_leader: 1, elder: 2, deaconess: 3 };
-      return roleOrder[a.leaderRole as CommunityLeaderRole] - roleOrder[b.leaderRole as CommunityLeaderRole] || a.member.name.localeCompare(b.member.name);
+      const roleOrder: Record<CommunityLeaderRole | "", number> = { clergy: 0, team_leader: 1, elder: 2, deaconess: 3, "": 4 };
+      return roleOrder[a.leaderRole] - roleOrder[b.leaderRole] || a.member.name.localeCompare(b.member.name);
     });
   const clergyAttendanceCount = communityLeaderMembers.filter(
     ({ member, leaderRole }) => leaderRole === "clergy" && getMemberAttendanceStatus(member, worshipEventForDate?.id) === "present",
@@ -3452,17 +3453,20 @@ export function AttendanceManager({
                       <div className="leader-extra-grid">
                         {communityLeaderMembers.map(({ member, leaderRole }) => {
                           const isPresent = getMemberAttendanceStatus(member, worshipEventForDate.id) === "present";
+                          const canToggleLeaderAttendance = Boolean(leaderRole);
                           return (
                             <button
-                              className={`leader-extra-toggle ${isPresent ? "present" : "absent"}`}
+                              className={`leader-extra-toggle ${isPresent ? "present" : "absent"} ${canToggleLeaderAttendance ? "" : "needs-role"}`}
                               key={member.id}
                               type="button"
-                              disabled={isPending}
+                              disabled={isPending || !canToggleLeaderAttendance}
                               onClick={() => handleToggleLeaderExtraAttendance(member, !isPresent)}
                             >
                               <span className="leader-extra-name">{member.displayName}</span>
-                              <span className="leader-extra-role">{communityLeaderRoleLabels[leaderRole as CommunityLeaderRole]}</span>
-                              <strong>{isPresent ? "출석" : "미출석"}</strong>
+                              <span className="leader-extra-role">
+                                {leaderRole ? communityLeaderRoleLabels[leaderRole] : "구분 필요"}
+                              </span>
+                              <strong>{canToggleLeaderAttendance ? (isPresent ? "출석" : "미출석") : "설정 필요"}</strong>
                             </button>
                           );
                         })}

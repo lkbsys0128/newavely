@@ -110,6 +110,12 @@ const leaderExtraAttendanceSchema = z.object({
   nextPresent: z.boolean(),
 });
 
+function getCommunityLeaderRoleValue(customFields: unknown) {
+  if (!customFields || typeof customFields !== "object" || Array.isArray(customFields)) return "";
+  const value = (customFields as Record<string, unknown>).community_leader_role;
+  return value === "clergy" || value === "team_leader" || value === "elder" || value === "deaconess" ? value : "";
+}
+
 const updateAdminFeedbackSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(["open", "reviewing", "resolved", "closed"]),
@@ -1737,7 +1743,7 @@ export async function toggleLeaderExtraAttendance(memberId: string, eventId: str
     supabase.from("attendance_events").select("id, title, event_date").eq("id", parsed.eventId).single(),
     supabase
       .from("members")
-      .select("id, group_id, groups!members_group_id_fkey(name)")
+      .select("id, group_id, custom_fields, groups!members_group_id_fkey(name)")
       .eq("id", parsed.memberId)
       .neq("status", "inactive")
       .single(),
@@ -1750,8 +1756,12 @@ export async function toggleLeaderExtraAttendance(memberId: string, eventId: str
   }
 
   const group = Array.isArray(targetMember.groups) ? targetMember.groups[0] : targetMember.groups;
-  if (!String(group?.name ?? "").includes(communityLeaderGroupName)) {
-    throw new Error("공동체 리더 순 멤버만 예배 추가 출석으로 체크할 수 있습니다.");
+  const communityLeaderRole = getCommunityLeaderRoleValue(targetMember.custom_fields);
+  if (!communityLeaderRole && !String(group?.name ?? "").includes(communityLeaderGroupName)) {
+    throw new Error("공동체 리더 구분이 있거나 공동체 리더 순에 속한 멤버만 예배 추가 출석으로 체크할 수 있습니다.");
+  }
+  if (!communityLeaderRole) {
+    throw new Error("먼저 멤버 상세에서 공동체 리더 구분을 지정해주세요.");
   }
 
   const { data: beforeData, error: beforeError } = await supabase
