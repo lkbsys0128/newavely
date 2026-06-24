@@ -30,6 +30,7 @@ const nullableText = z.preprocess((value) => {
 const memberSchema = z.object({
   name: z.string().min(1),
   englishName: nullableText,
+  communityLeaderRole: z.enum(["", "clergy", "team_leader", "elder", "deaconess"]).optional(),
   phone: z.string().min(1),
   groupId: nullableUuid,
   email: nullableText,
@@ -99,10 +100,14 @@ const adminFeedbackSchema = z.object({
 
 const attendanceExtraCountSchema = z.object({
   eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "출석 날짜를 확인해주세요."),
-  clergyCount: z.coerce.number().int().min(0).max(9999),
-  teamLeaderCount: z.coerce.number().int().min(0).max(9999),
   visitorCount: z.coerce.number().int().min(0).max(9999),
   newFamilyCount: z.coerce.number().int().min(0).max(9999),
+});
+
+const leaderExtraAttendanceSchema = z.object({
+  memberId: z.string().uuid(),
+  eventId: z.string().uuid(),
+  nextPresent: z.boolean(),
 });
 
 const updateAdminFeedbackSchema = z.object({
@@ -169,6 +174,7 @@ const deleteGroupSchema = z.object({
 });
 
 const attendanceEventTitles = ["주일 예배", "순모임"] as const;
+const communityLeaderGroupName = "공동체 리더";
 
 const attendanceEventSchema = z.object({
   eventDate: z.string().min(1, "날짜를 선택해주세요."),
@@ -461,6 +467,7 @@ export async function createMember(_previousState: ActionState, formData: FormDa
     const parsed = memberSchema.parse({
       name: formData.get("name"),
       englishName: formData.get("englishName"),
+      communityLeaderRole: formData.get("communityLeaderRole") ?? "",
       phone: formData.get("phone"),
       groupId: formData.get("groupId"),
       email: formData.get("email"),
@@ -493,6 +500,7 @@ export async function createMember(_previousState: ActionState, formData: FormDa
       care_notes: parsed.notes ?? "추가 정보 입력 필요",
       custom_fields: normalizeSubmittedCustomFields({
         ...(englishName ? { english_name: englishName } : {}),
+        ...(parsed.communityLeaderRole ? { community_leader_role: parsed.communityLeaderRole } : {}),
         ...(isTestAccount ? { test_account: true } : {}),
       }),
     };
@@ -529,6 +537,7 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
       id,
       name: formData.get("name"),
       englishName: formData.get("englishName"),
+      communityLeaderRole: formData.get("communityLeaderRole") ?? "",
       phone: formData.get("phone"),
       groupId: formData.has("groupId") ? formData.get("groupId") : beforeData.group_id,
       email: formData.get("email"),
@@ -553,6 +562,9 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     const nextCustomFields = normalizeSubmittedCustomFields({
       ...existingCustomFields,
       english_name: nextEnglishName,
+      community_leader_role: canManageMembers
+        ? parsed.communityLeaderRole || undefined
+        : existingCustomFields.community_leader_role,
       ...(canManageRoles
         ? formData.get("isTestAccount") === "on"
           ? { test_account: true }
@@ -1670,8 +1682,6 @@ export async function updateAttendanceExtraCounts(_previousState: ActionState, f
     const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:extras:write");
     const parsed = attendanceExtraCountSchema.parse({
       eventDate: formData.get("eventDate"),
-      clergyCount: formData.get("clergyCount"),
-      teamLeaderCount: formData.get("teamLeaderCount"),
       visitorCount: formData.get("visitorCount"),
       newFamilyCount: formData.get("newFamilyCount"),
     });
@@ -1689,8 +1699,8 @@ export async function updateAttendanceExtraCounts(_previousState: ActionState, f
       .upsert(
         {
           event_date: parsed.eventDate,
-          clergy_count: parsed.clergyCount,
-          team_leader_count: parsed.teamLeaderCount,
+          clergy_count: 0,
+          team_leader_count: 0,
           visitor_count: parsed.visitorCount,
           new_family_count: parsed.newFamilyCount,
           updated_by_member_id: currentMember.id,
@@ -1714,6 +1724,74 @@ export async function updateAttendanceExtraCounts(_previousState: ActionState, f
     revalidateAppData();
     return "출석 추가 인원을 저장했습니다.";
   });
+}
+
+export async function toggleLeaderExtraAttendance(memberId: string, eventId: string, nextPresent: boolean) {
+  const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:extras:write");
+  const parsed = leaderExtraAttendanceSchema.parse({ memberId, eventId, nextPresent });
+
+  const [
+    { data: targetEvent, error: targetEventError },
+    { data: targetMember, error: targetMemberError },
+  ] = await Promise.all([
+    supabase.from("attendance_events").select("id, title, event_date").eq("id", parsed.eventId).single(),
+    supabase
+      .from("members")
+      .select("id, group_id, groups!members_group_id_fkey(name)")
+      .eq("id", parsed.memberId)
+      .neq("status", "inactive")
+      .single(),
+  ]);
+
+  if (targetEventError) throw targetEventError;
+  if (targetMemberError) throw targetMemberError;
+  if (targetEvent.title !== "주일 예배") {
+    throw new Error("교역자/팀장 이상 출석은 주일 예배에만 체크할 수 있습니다.");
+  }
+
+  const group = Array.isArray(targetMember.groups) ? targetMember.groups[0] : targetMember.groups;
+  if (!String(group?.name ?? "").includes(communityLeaderGroupName)) {
+    throw new Error("공동체 리더 순 멤버만 예배 추가 출석으로 체크할 수 있습니다.");
+  }
+
+  const { data: beforeData, error: beforeError } = await supabase
+    .from("attendance_records")
+    .select("*")
+    .eq("event_id", parsed.eventId)
+    .eq("member_id", parsed.memberId)
+    .maybeSingle();
+
+  if (beforeError) throw beforeError;
+
+  const { data: afterData, error } = await supabase
+    .from("attendance_records")
+    .upsert(
+      {
+        event_id: parsed.eventId,
+        member_id: parsed.memberId,
+        status: parsed.nextPresent ? "present" : "absent",
+        note: beforeData?.note ?? null,
+        excuse_start_date: beforeData?.excuse_start_date ?? null,
+        excuse_end_date: beforeData?.excuse_end_date ?? null,
+        checked_by_member_id: currentMember.id,
+        checked_at: new Date().toISOString(),
+      },
+      { onConflict: "event_id,member_id" },
+    )
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  await writeAuditLog({
+    supabase,
+    action: "attendance.extra_leader.toggle",
+    targetTable: "attendance_records",
+    targetId: afterData.id as string,
+    beforeData: beforeData as Record<string, unknown> | null,
+    afterData: afterData as Record<string, unknown>,
+    metadata: { eventId: parsed.eventId, memberId: parsed.memberId, nextPresent: parsed.nextPresent },
+  });
+  revalidateAppData();
 }
 
 export async function deactivateMember(_previousState: ActionState, formData: FormData) {

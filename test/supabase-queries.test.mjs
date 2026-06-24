@@ -40,6 +40,10 @@ const testAccountStatsExclusionSource = readFileSync(
   "utf8",
 );
 const attendanceExtraCountsSource = readFileSync(new URL("../db/034_attendance_extra_counts.sql", import.meta.url), "utf8");
+const communityLeaderAttendanceRolesSource = readFileSync(
+  new URL("../db/035_community_leader_attendance_roles.sql", import.meta.url),
+  "utf8",
+);
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -280,6 +284,13 @@ test("attendance check screen summarizes selected group worship and group attend
   assert.match(dashboardSource, /title="상세 출석 통계"/);
   assert.match(dashboardSource, /welcome-attendance-input-panel/);
   assert.match(dashboardSource, /aria-label="웰컴팀 예배 출석 입력"/);
+  assert.match(dashboardSource, /toggleLeaderExtraAttendance/);
+  assert.match(dashboardSource, /communityLeaderRoleLabels/);
+  assert.match(dashboardSource, /leader-extra-toggle/);
+  assert.match(actionsSource, /attendance\.extra_leader\.toggle/);
+  assert.match(actionsSource, /attendance:extras:write/);
+  assert.match(actionsSource, /공동체 리더 순 멤버만 예배 추가 출석으로 체크할 수 있습니다/);
+  assert.match(communityLeaderAttendanceRolesSource, /community_leader_role/);
   assert.match(dashboardSource, /!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection/);
   assert.match(dashboardSource, /!isWelcomeAttendanceOnly \? \(/);
   assert.match(dashboardSource, /AttendanceMemberActionModal/);
