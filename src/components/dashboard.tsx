@@ -318,6 +318,27 @@ function getAttendanceOverviewEvents(events: AttendanceEvent[], selectedEventId?
   });
 }
 
+function buildAttendanceAbsenceUnits(events: AttendanceEvent[], eventTypeFilter: string, dateFilter: string) {
+  const units = new Map<string, { eventDate: string; eventType: string; eventIds: string[] }>();
+  for (const event of events) {
+    if (eventTypeFilter !== "all" && event.title !== eventTypeFilter) continue;
+    if (dateFilter !== "all" && event.eventDate !== dateFilter) continue;
+
+    const key = `${event.eventDate}:${event.title}`;
+    const current = units.get(key) ?? { eventDate: event.eventDate, eventType: event.title, eventIds: [] };
+    current.eventIds.push(event.id);
+    units.set(key, current);
+  }
+
+  return Array.from(units.values()).sort((first, second) => {
+    const dateSort = second.eventDate.localeCompare(first.eventDate);
+    if (dateSort !== 0) return dateSort;
+    const firstOrder = attendanceOverviewTitleOrder.indexOf(first.eventType as (typeof attendanceOverviewTitleOrder)[number]);
+    const secondOrder = attendanceOverviewTitleOrder.indexOf(second.eventType as (typeof attendanceOverviewTitleOrder)[number]);
+    return (firstOrder === -1 ? 99 : firstOrder) - (secondOrder === -1 ? 99 : secondOrder);
+  });
+}
+
 function formatStatusUpdatedAt(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "방금";
@@ -2919,16 +2940,13 @@ export function AttendanceManager({
     .sort((a, b) => b.eventDate.localeCompare(a.eventDate))
     .slice(0, 10);
   const comparisonRows = [...displayAggregateGroupStats].sort((a, b) => b.rate - a.rate).slice(0, 8);
+  const absenceUnits = buildAttendanceAbsenceUnits(attendanceEvents, statsEventTypeFilter, statsDateFilter).slice(0, 10);
   const absenceWatchList = activeMembers
     .map((member) => {
       let streak = 0;
-      const scopedEvents = attendanceEvents
-        .filter((event) => statsEventTypeFilter === "all" || event.title === statsEventTypeFilter)
-        .filter((event) => statsDateFilter === "all" || event.eventDate === statsDateFilter)
-        .slice(0, 10);
-      for (const event of scopedEvents) {
-        const record = member.attendanceHistory.find((item) => item.eventId === event.id);
-        if (record?.status === "present" || record?.status === "excused") break;
+      for (const unit of absenceUnits) {
+        const status = getMemberAttendanceStatusForAnyEvent(member, unit.eventIds);
+        if (status === "present" || status === "excused") break;
         streak += 1;
       }
       return { member, streak };
@@ -4137,8 +4155,18 @@ function getMemberAttendanceStatus(member: Member, eventId?: string): Attendance
 }
 
 function isPresentForAnyEvent(member: Member, eventIds: string[]) {
+  return getMemberAttendanceStatusForAnyEvent(member, eventIds) === "present";
+}
+
+function getMemberAttendanceStatusForAnyEvent(member: Member, eventIds: string[]): AttendanceStatus {
   const eventIdSet = new Set(eventIds);
-  return member.attendanceHistory.some((record) => eventIdSet.has(record.eventId) && record.status === "present");
+  let hasExcused = false;
+  for (const record of member.attendanceHistory) {
+    if (!eventIdSet.has(record.eventId)) continue;
+    if (record.status === "present") return "present";
+    if (record.status === "excused") hasExcused = true;
+  }
+  return hasExcused ? "excused" : "absent";
 }
 
 function buildAggregateAttendanceStat(
