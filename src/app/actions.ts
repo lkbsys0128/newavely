@@ -332,6 +332,61 @@ async function getAuthorizedCurrentMember(
   return { supabase, currentMember };
 }
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+async function getLedGroupIdsForMember(supabase: SupabaseServerClient, memberId: string) {
+  const { data, error } = await supabase.from("groups").select("id").eq("leader_member_id", memberId);
+  if (error) throw error;
+  return new Set((data ?? []).map((group) => String(group.id)));
+}
+
+function assertStaffCanUseGroup(ledGroupIds: Set<string>, groupId: string | null, message = "순장은 본인이 리드하는 순의 멤버만 변경할 수 있습니다.") {
+  if (!groupId || !ledGroupIds.has(groupId)) {
+    throw new Error(message);
+  }
+}
+
+async function assertStaffCanManageMember({
+  supabase,
+  currentMember,
+  targetMemberId,
+  nextGroupId,
+}: {
+  supabase: SupabaseServerClient;
+  currentMember: { id: string; role: Role };
+  targetMemberId: string;
+  nextGroupId?: string | null;
+}) {
+  if (currentMember.role !== "staff") return;
+  if (currentMember.id === targetMemberId) return;
+
+  const [{ data: targetMember, error: targetMemberError }, ledGroupIds] = await Promise.all([
+    supabase.from("members").select("group_id").eq("id", targetMemberId).single(),
+    getLedGroupIdsForMember(supabase, currentMember.id),
+  ]);
+
+  if (targetMemberError) throw targetMemberError;
+
+  assertStaffCanUseGroup(ledGroupIds, targetMember.group_id as string | null);
+  if (nextGroupId !== undefined) {
+    assertStaffCanUseGroup(ledGroupIds, nextGroupId, "순장은 멤버를 본인이 리드하는 순 안에서만 배정할 수 있습니다.");
+  }
+}
+
+async function assertStaffCanCreateMemberInGroup({
+  supabase,
+  currentMember,
+  groupId,
+}: {
+  supabase: SupabaseServerClient;
+  currentMember: { id: string; role: Role };
+  groupId: string | null;
+}) {
+  if (currentMember.role !== "staff") return;
+  const ledGroupIds = await getLedGroupIdsForMember(supabase, currentMember.id);
+  assertStaffCanUseGroup(ledGroupIds, groupId, "순장은 본인이 리드하는 순에만 멤버를 추가할 수 있습니다.");
+}
+
 function parseCustomFieldValue(value: FormDataEntryValue | null) {
   if (value === null) return null;
   const normalized = String(value).trim();
@@ -493,6 +548,7 @@ export async function createMember(_previousState: ActionState, formData: FormDa
       throw new Error("최고 관리자 권한은 최고 관리자만 지정할 수 있습니다.");
     }
     const nextRole = canManageRoles ? requestedRole : "member";
+    await assertStaffCanCreateMemberInGroup({ supabase, currentMember, groupId: parsed.groupId });
 
     const insertPayload = {
       name: splitName.koreanName,
@@ -588,6 +644,7 @@ export async function updateMember(_previousState: ActionState, formData: FormDa
     const nextRole = canManageRoles ? requestedRole : currentRole;
     const nextGroupId = canManageMembers ? parsed.groupId : (beforeData.group_id as string | null);
     const nextStatus = canManageMembers ? parsed.status : (beforeData.status as "active" | "new" | "care" | "inactive");
+    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: parsed.id, nextGroupId });
     if (nextRole !== currentRole) {
       const [
         { count: activeAdminCount, error: activeAdminCountError },
@@ -1448,6 +1505,7 @@ export async function updateMemberCustomFields(_previousState: ActionState, form
     if (!hasPermission(currentMember.role, "members:write") && currentMember.id !== id) {
       throw new Error("본인 추가 정보만 수정할 수 있습니다.");
     }
+    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: id });
     const existingCustomFields =
       beforeData && typeof beforeData === "object" && "custom_fields" in beforeData
         ? ((beforeData.custom_fields as Record<string, unknown> | null) ?? {})
@@ -1806,11 +1864,12 @@ export async function toggleLeaderExtraAttendance(memberId: string, eventId: str
 
 export async function deactivateMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
     const id = z.string().uuid().parse(formData.get("id"));
 
     const { data: beforeData, error: beforeError } = await supabase.from("members").select("*").eq("id", id).single();
     if (beforeError) throw beforeError;
+    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: id });
 
     const { data: afterData, error } = await supabase
       .from("members")
@@ -1835,11 +1894,12 @@ export async function deactivateMember(_previousState: ActionState, formData: Fo
 
 export async function reactivateMember(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
     const id = z.string().uuid().parse(formData.get("id"));
 
     const { data: beforeData, error: beforeError } = await supabase.from("members").select("*").eq("id", id).single();
     if (beforeError) throw beforeError;
+    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: id });
 
     const { data: afterData, error } = await supabase
       .from("members")
@@ -1879,6 +1939,7 @@ export async function deleteMemberPermanently(_previousState: ActionState, formD
     if (!canDeleteMemberRole({ actorRole: currentMember.role, targetRole })) {
       throw new Error("자신보다 낮은 권한의 멤버만 삭제할 수 있습니다.");
     }
+    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: parsed.id });
     if (parsed.confirmName.trim() !== memberName) {
       throw new Error("삭제 확인 이름이 멤버 이름과 일치하지 않습니다.");
     }
@@ -2506,6 +2567,7 @@ export async function deleteGroup(_previousState: ActionState, formData: FormDat
 
 export async function toggleAttendance(memberId: string, eventId: string, nextPresent: boolean) {
   const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
+  await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: memberId });
 
   const { data: beforeData, error: beforeError } = await supabase
     .from("attendance_records")
@@ -2568,6 +2630,7 @@ export async function updateAttendanceReason(_previousState: ActionState, formDa
       excuseStartDate: formData.get("excuseStartDate"),
       excuseEndDate: formData.get("excuseEndDate"),
     });
+    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: parsed.memberId });
 
     let targetEventIds = [parsed.eventId];
 
@@ -2635,6 +2698,7 @@ export async function createCareFollowup(_previousState: ActionState, formData: 
       status: formData.get("status"),
       note: formData.get("note"),
     });
+    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: parsed.memberId });
 
     const { data: inserted, error } = await supabase
       .from("care_followups")
@@ -2666,7 +2730,7 @@ export async function createCareFollowup(_previousState: ActionState, formData: 
 
 export async function updateCareFollowup(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase } = await getAuthorizedCurrentMember("members:write");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:write");
     const parsed = updateCareFollowupSchema.parse({
       id: formData.get("id"),
       memberId: formData.get("memberId"),
@@ -2674,6 +2738,7 @@ export async function updateCareFollowup(_previousState: ActionState, formData: 
       status: formData.get("status"),
       note: formData.get("note"),
     });
+    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: parsed.memberId });
 
     const { data: beforeData, error: beforeError } = await supabase
       .from("care_followups")
