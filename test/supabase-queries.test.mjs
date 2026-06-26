@@ -659,21 +659,28 @@ test("group management uses active member choices and supports audited delete", 
 });
 
 test("group page renders a central Newavely network map", () => {
-  assert.match(dashboardSource, /const networkNodes = visibleGroups\.map/);
+  assert.match(dashboardSource, /const networkGroups = communityLeaderNetworkGroup \? visibleGroups\.filter/);
+  assert.match(dashboardSource, /const networkNodes = networkGroups\.map/);
+  assert.match(dashboardSource, /communityLeaderNetworkNode/);
+  assert.match(dashboardSource, /const allNetworkNodes = communityLeaderNetworkNode \? \[communityLeaderNetworkNode, \.\.\.networkNodes\] : networkNodes/);
   assert.match(dashboardSource, /className="panel group-network-panel"/);
   assert.match(dashboardSource, /className="group-network-lines"/);
   assert.match(dashboardSource, /className="group-network-center"/);
   assert.match(dashboardSource, /src="\/newave-icon\.png"/);
   assert.match(dashboardSource, /<strong>뉴웨이브<\/strong>/);
   assert.match(dashboardSource, /순장 \{node\.group\.leaderName\}/);
-  assert.match(dashboardSource, /className="group-network-node"/);
+  assert.match(dashboardSource, /className=\{`group-network-node/);
+  assert.match(dashboardSource, /community-leader/);
+  assert.doesNotMatch(dashboardSource, /key=\{`outer-\$\{node\.group\.id\}`\}/);
   assert.match(dashboardSource, /draggable=\{false\}/);
   assert.match(globalCssSource, /\.group-network-map/);
   assert.match(globalCssSource, /\.group-network-lines line/);
   assert.match(globalCssSource, /\.group-network-center/);
+  assert.match(globalCssSource, /\.group-network-node\.community-leader/);
   assert.match(globalCssSource, /\.group-network-node:hover/);
   assert.match(globalCssSource, /\.group-network-node:not\(:disabled\):active/);
   assert.doesNotMatch(globalCssSource, /\.group-network-node:hover[\s\S]{0,240}scale\(1\.05\)/);
+  assert.doesNotMatch(globalCssSource, /\.group-network-lines \.outer-line/);
 });
 
 test("permissions page exposes member search for role management", () => {

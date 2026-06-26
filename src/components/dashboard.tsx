@@ -1525,11 +1525,24 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
   const assignedLeaderCount = visibleGroups.filter((group) => group.leaderMemberId).length;
   const groupStats = isMemberView ? undefined : globalStats?.groupPage;
   const groupLeaderOptions = [...activeMembers].sort((a, b) => a.name.localeCompare(b.name));
-  const networkNodes = visibleGroups.map((group, index) => {
-    const nodeCount = Math.max(visibleGroups.length, 1);
-    const angle = -90 + (index * 360) / nodeCount;
+  const communityLeaderNetworkGroup = visibleGroups.find((group) => group.name.includes("공동체 리더")) ?? null;
+  const networkGroups = communityLeaderNetworkGroup ? visibleGroups.filter((group) => group.id !== communityLeaderNetworkGroup.id) : visibleGroups;
+  const communityLeaderMembers = communityLeaderNetworkGroup
+    ? activeMembers.filter((member) => member.groupId === communityLeaderNetworkGroup.id)
+    : [];
+  const communityLeaderNetworkNode = communityLeaderNetworkGroup
+    ? {
+        group: communityLeaderNetworkGroup,
+        x: 50,
+        y: 12,
+        memberCount: groupStats?.groups.find((item) => item.id === communityLeaderNetworkGroup.id)?.memberCount ?? communityLeaderMembers.length,
+      }
+    : null;
+  const networkNodes = networkGroups.map((group, index) => {
+    const nodeCount = Math.max(networkGroups.length, 1);
+    const angle = nodeCount === 1 ? 90 : -28 + (index * 236) / (nodeCount - 1);
     const radians = (angle * Math.PI) / 180;
-    const radius = nodeCount <= 5 ? 34 : 38;
+    const radius = nodeCount <= 5 ? 33 : 37;
     const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
     return {
       group,
@@ -1538,6 +1551,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
       memberCount: groupStats?.groups.find((item) => item.id === group.id)?.memberCount ?? groupMembers.length,
     };
   });
+  const allNetworkNodes = communityLeaderNetworkNode ? [communityLeaderNetworkNode, ...networkNodes] : networkNodes;
 
   useEffect(() => {
     if (deleteGroupState.ok) {
@@ -1622,31 +1636,17 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
         </div>
         <div className="group-network-map" role="img" aria-label="뉴웨이브 순 연결 지도">
           <svg aria-hidden="true" className="group-network-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {networkNodes.map((node) => (
+            {allNetworkNodes.map((node) => (
               <line className="center-line" key={`center-${node.group.id}`} x1="50" y1="50" x2={node.x} y2={node.y} />
             ))}
-            {networkNodes.map((node, index) => {
-              const nextNode = networkNodes[(index + 1) % networkNodes.length];
-              if (!nextNode || networkNodes.length < 3) return null;
-              return (
-                <line
-                  className="outer-line"
-                  key={`outer-${node.group.id}`}
-                  x1={node.x}
-                  y1={node.y}
-                  x2={nextNode.x}
-                  y2={nextNode.y}
-                />
-              );
-            })}
           </svg>
           <div className="group-network-center" aria-hidden="true">
             <img alt="" src="/newave-icon.png" />
             <strong>뉴웨이브</strong>
           </div>
-          {networkNodes.map((node) => (
+          {allNetworkNodes.map((node) => (
             <button
-              className="group-network-node"
+              className={`group-network-node${node.group.id === communityLeaderNetworkGroup?.id ? " community-leader" : ""}`}
               key={node.group.id}
               style={{ left: `${node.x}%`, top: `${node.y}%` }}
               type="button"
