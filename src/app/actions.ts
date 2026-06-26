@@ -37,7 +37,7 @@ const memberSchema = z.object({
   address: nullableText,
   baptismStatus: z.preprocess(normalizeBaptismStatus, nullableText),
   notes: nullableText,
-  role: z.enum(["owner", "admin", "leader", "staff", "welcome", "member"]),
+  role: z.enum(["owner", "admin", "leader", "staff", "assistant", "welcome", "member"]),
   status: z.enum(["active", "new", "care", "inactive"]),
 });
 
@@ -62,7 +62,7 @@ const mergeMemberProfileSchema = z.object({
 
 const updateMemberRoleSchema = z.object({
   id: z.string().uuid(),
-  role: z.enum(["owner", "admin", "leader", "staff", "welcome", "member"]),
+  role: z.enum(["owner", "admin", "leader", "staff", "assistant", "welcome", "member"]),
 });
 
 const deleteMemberSchema = z.object({
@@ -373,6 +373,30 @@ async function assertStaffCanManageMember({
   }
 }
 
+async function assertCanManageAttendanceForMember({
+  supabase,
+  currentMember,
+  targetMemberId,
+}: {
+  supabase: SupabaseServerClient;
+  currentMember: { id: string; role: Role; groupId?: string | null };
+  targetMemberId: string;
+}) {
+  if (currentMember.role === "staff") {
+    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId });
+    return;
+  }
+
+  if (currentMember.role !== "assistant") return;
+  if (currentMember.id === targetMemberId) return;
+
+  const { data: targetMember, error } = await supabase.from("members").select("group_id").eq("id", targetMemberId).single();
+  if (error) throw error;
+  if (!currentMember.groupId || targetMember.group_id !== currentMember.groupId) {
+    throw new Error("부순장은 본인 순의 출석만 체크할 수 있습니다.");
+  }
+}
+
 async function assertStaffCanCreateMemberInGroup({
   supabase,
   currentMember,
@@ -385,6 +409,18 @@ async function assertStaffCanCreateMemberInGroup({
   if (currentMember.role !== "staff") return;
   const ledGroupIds = await getLedGroupIdsForMember(supabase, currentMember.id);
   assertStaffCanUseGroup(ledGroupIds, groupId, "순장은 본인이 리드하는 순에만 멤버를 추가할 수 있습니다.");
+}
+
+function canManageAssistantAssignment(actorRole: Role) {
+  return actorRole === "owner" || actorRole === "admin" || actorRole === "leader" || actorRole === "staff";
+}
+
+function isAssistantAssignmentChange(currentRole: Role, nextRole: Role) {
+  return (
+    (currentRole === "member" && nextRole === "assistant") ||
+    (currentRole === "assistant" && nextRole === "member") ||
+    (currentRole === "assistant" && nextRole === "assistant")
+  );
 }
 
 function parseCustomFieldValue(value: FormDataEntryValue | null) {
@@ -475,6 +511,7 @@ const rolePriority: Record<Role, number> = {
   admin: 4,
   leader: 3,
   staff: 3,
+  assistant: 2,
   welcome: 1,
   member: 1,
 };
@@ -1424,7 +1461,7 @@ export async function reopenMemberLinkRequest(_previousState: ActionState, formD
 
 export async function updateMemberRole(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:read");
     const parsed = updateMemberRoleSchema.parse({
       id: formData.get("id"),
       role: formData.get("role"),
@@ -1437,6 +1474,16 @@ export async function updateMemberRole(_previousState: ActionState, formData: Fo
       .single();
 
     if (beforeError) throw beforeError;
+    const targetCurrentRole = beforeData.role as Role;
+    const isAssistantChange = isAssistantAssignmentChange(targetCurrentRole, parsed.role);
+    const canManageRoles = hasPermission(currentMember.role, "roles:manage");
+
+    if (!canManageRoles) {
+      if (!isAssistantChange || !canManageAssistantAssignment(currentMember.role)) {
+        throw new Error("작업 권한이 없습니다.");
+      }
+      await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: parsed.id });
+    }
 
     const [
       { count: activeAdminCount, error: activeAdminCountError },
@@ -1451,7 +1498,7 @@ export async function updateMemberRole(_previousState: ActionState, formData: Fo
 
     const blockReason = getRoleChangeBlockReason({
       actorRole: currentMember.role,
-      targetCurrentRole: beforeData.role,
+      targetCurrentRole,
       nextRole: parsed.role,
       activeAdminCount: activeAdminCount ?? 0,
       activeOwnerCount: activeOwnerCount ?? 0,
@@ -1644,6 +1691,9 @@ export async function deleteCustomFieldDefinition(_previousState: ActionState, f
 export async function createAttendanceEvent(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
+    if (currentMember.role === "assistant") {
+      throw new Error("부순장은 출석 이벤트를 만들 수 없습니다.");
+    }
     const submittedTitles = formData.getAll("titles");
     const legacyTitle = formData.get("title");
     const parsed = attendanceEventSchema.parse({
@@ -2056,6 +2106,8 @@ export async function restoreDeletedAuthUser(_previousState: ActionState, formDa
     beforeData?.role === "admin" ||
     beforeData?.role === "leader" ||
     beforeData?.role === "staff" ||
+    beforeData?.role === "assistant" ||
+    beforeData?.role === "welcome" ||
     beforeData?.role === "member"
       ? beforeData.role
       : "member") as Role;
@@ -2567,7 +2619,7 @@ export async function deleteGroup(_previousState: ActionState, formData: FormDat
 
 export async function toggleAttendance(memberId: string, eventId: string, nextPresent: boolean) {
   const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
-  await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: memberId });
+  await assertCanManageAttendanceForMember({ supabase, currentMember, targetMemberId: memberId });
 
   const { data: beforeData, error: beforeError } = await supabase
     .from("attendance_records")
@@ -2630,7 +2682,7 @@ export async function updateAttendanceReason(_previousState: ActionState, formDa
       excuseStartDate: formData.get("excuseStartDate"),
       excuseEndDate: formData.get("excuseEndDate"),
     });
-    await assertStaffCanManageMember({ supabase, currentMember, targetMemberId: parsed.memberId });
+    await assertCanManageAttendanceForMember({ supabase, currentMember, targetMemberId: parsed.memberId });
 
     let targetEventIds = [parsed.eventId];
 

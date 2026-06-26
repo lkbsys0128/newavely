@@ -98,10 +98,12 @@ test("role policy allows safe role changes", () => {
 test("delete policy allows only leader and above to delete lower roles", () => {
   assert.equal(canUseDeleteActions("leader"), true);
   assert.equal(canUseDeleteActions("staff"), true);
+  assert.equal(canUseDeleteActions("assistant"), false);
   assert.equal(canUseDeleteActions("welcome"), false);
   assert.equal(canUseDeleteActions("member"), false);
   assert.equal(canDeleteMemberRole({ actorRole: "leader", targetRole: "member" }), true);
   assert.equal(canDeleteMemberRole({ actorRole: "staff", targetRole: "member" }), true);
+  assert.equal(canDeleteMemberRole({ actorRole: "assistant", targetRole: "member" }), false);
   assert.equal(canDeleteMemberRole({ actorRole: "welcome", targetRole: "member" }), false);
   assert.equal(canDeleteMemberRole({ actorRole: "leader", targetRole: "staff" }), false);
   assert.equal(canDeleteMemberRole({ actorRole: "staff", targetRole: "leader" }), false);

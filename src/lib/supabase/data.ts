@@ -233,7 +233,7 @@ export async function getOrCreateCurrentMember(
 
   const { data: existing, error: existingError } = await supabase
     .from("members")
-    .select("id, role, status")
+    .select("id, group_id, role, status")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -245,6 +245,7 @@ export async function getOrCreateCurrentMember(
 
     return {
       id: existing.id as string,
+      groupId: (existing.group_id as string | null) ?? null,
       role: existing.role as Role,
       status: existing.status as DbMember["status"],
       needsOnboarding: existing.status === "new",

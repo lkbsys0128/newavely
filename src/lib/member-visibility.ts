@@ -70,6 +70,10 @@ export function scopeMembersForRole({
   if (role === "owner" || role === "admin" || role === "leader") return visibleMembers;
 
   const ledGroupIds = getLedGroupIds(currentMemberId, groups);
+  if (role === "assistant") {
+    const currentMember = visibleMembers.find((member) => member.id === currentMemberId);
+    if (currentMember?.groupId) ledGroupIds.add(currentMember.groupId);
+  }
   return visibleMembers.map((member) =>
     canViewFullMemberDetail({ role, currentMemberId, ledGroupIds, member }) ? member : maskMemberToDirectoryEntry(member),
   );
