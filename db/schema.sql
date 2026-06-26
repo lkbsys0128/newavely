@@ -1,4 +1,4 @@
-create type member_role as enum ('owner', 'admin', 'leader', 'staff', 'welcome', 'member');
+create type member_role as enum ('owner', 'admin', 'leader', 'staff', 'assistant', 'welcome', 'member');
 create type member_status as enum ('active', 'new', 'care', 'inactive');
 create type attendance_status as enum ('present', 'absent', 'excused');
 create type care_followup_status as enum ('needed', 'contacted', 'prayer', 'resolved');
@@ -266,10 +266,20 @@ stable
 security definer
 set search_path = public
 as $$
-  select current_member_role() in ('owner', 'admin', 'leader', 'staff');
+  select current_member_role() in ('owner', 'admin', 'leader', 'staff', 'assistant');
 $$;
 
 create or replace function can_manage_attendance()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select current_member_role() in ('owner', 'admin', 'leader', 'staff', 'assistant');
+$$;
+
+create or replace function can_manage_attendance_events()
 returns boolean
 language sql
 stable
@@ -318,8 +328,8 @@ to authenticated
 with check (
   current_member_role() = 'owner'
   or (current_member_role() = 'admin' and role <> 'owner')
-  or (current_member_role() = 'leader' and role = 'member')
-  or (current_member_role() = 'staff' and role = 'member')
+  or (current_member_role() = 'leader' and role in ('member', 'assistant'))
+  or (current_member_role() = 'staff' and role in ('member', 'assistant'))
 );
 
 create policy "admins and leaders can update members"
@@ -329,8 +339,8 @@ using (can_manage_members())
 with check (
   current_member_role() = 'owner'
   or (current_member_role() = 'admin' and role <> 'owner')
-  or (current_member_role() = 'leader' and role = 'member')
-  or (current_member_role() = 'staff' and role = 'member')
+  or (current_member_role() = 'leader' and role in ('member', 'assistant'))
+  or (current_member_role() = 'staff' and role in ('member', 'assistant'))
 );
 
 create policy "users can update their own member profile"
@@ -351,7 +361,7 @@ create policy "authorized users can delete lower role members"
 on members for delete
 to authenticated
 using (
-  current_member_role() in ('owner', 'admin', 'leader', 'staff')
+  current_member_role() in ('owner', 'admin', 'leader', 'staff', 'assistant', 'welcome')
   and
   case current_member_role()
     when 'owner' then 5
@@ -405,8 +415,8 @@ using (true);
 create policy "admins and leaders can manage attendance events"
 on attendance_events for all
 to authenticated
-using (can_manage_attendance())
-with check (can_manage_attendance());
+using (can_manage_attendance_events())
+with check (can_manage_attendance_events());
 
 create policy "authorized users can read attendance records"
 on attendance_records for select

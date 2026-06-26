@@ -48,8 +48,10 @@ const publicDashboardCommunityLeaderRoleSource = readFileSync(
   new URL("../db/036_public_dashboard_community_leader_role.sql", import.meta.url),
   "utf8",
 );
+const assistantRoleSource = readFileSync(new URL("../db/037_assistant_role.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
+const rbacSource = readFileSync(new URL("../src/lib/rbac.ts", import.meta.url), "utf8");
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
@@ -203,12 +205,13 @@ test("member permanent delete follows role hierarchy and is audited", () => {
   assert.match(dashboardSource, /완전 삭제/);
 });
 
-test("schema supports owner role above admin", () => {
-  assert.match(schemaSource, /create type member_role as enum \('owner', 'admin', 'leader', 'staff', 'welcome', 'member'\)/);
+test("schema supports owner role above admin and assistant role below soonjang", () => {
+  assert.match(schemaSource, /create type member_role as enum \('owner', 'admin', 'leader', 'staff', 'assistant', 'welcome', 'member'\)/);
   assert.match(actionsSource, /owner:manage/);
   assert.match(dashboardSource, /최고 관리자/);
   assert.match(ownerRoleMigrationSource, /alter type member_role add value if not exists 'owner'/);
   assert.match(welcomeTeamRoleSource, /alter type member_role add value if not exists 'welcome'/);
+  assert.match(assistantRoleSource, /alter type member_role add value if not exists 'assistant' after 'staff'/);
   assert.match(ownerRolePoliciesSource, /set role = 'owner'/);
 });
 
@@ -465,8 +468,8 @@ test("primary navigation hides pages without the current role permission", () =>
   assert.match(navigationSource, /requiredPermission: "new-family:read"/);
   assert.match(navigationSource, /requiredPermission: "attendance:read"/);
   assert.match(navigationSource, /requiredPermission: "roles:manage"/);
-  assert.match(navigationSource, /href: "\/members"[\s\S]*hiddenForRoles: \["welcome", "member"\]/);
-  assert.match(navigationSource, /href: "\/groups"[\s\S]*hiddenForRoles: \["welcome", "member"\]/);
+  assert.match(navigationSource, /href: "\/members"[\s\S]*hiddenForRoles: \["assistant", "welcome", "member"\]/);
+  assert.match(navigationSource, /href: "\/groups"[\s\S]*hiddenForRoles: \["assistant", "welcome", "member"\]/);
   assert.match(navigationSource, /return navItems\.filter/);
   assert.match(navigationSource, /item\.hiddenForRoles\?\.includes\(role\)/);
   assert.match(navigationSource, /hasPermission\(role, item\.requiredPermission\)/);
@@ -732,10 +735,25 @@ test("soonjang writes are limited to members in their led groups", () => {
   assert.match(actionsSource, /순장은 본인이 리드하는 순의 멤버만 변경할 수 있습니다/);
   assert.match(actionsSource, /assertStaffCanCreateMemberInGroup\(\{ supabase, currentMember, groupId: parsed\.groupId \}\)/);
   assert.match(actionsSource, /assertStaffCanManageMember\(\{ supabase, currentMember, targetMemberId: parsed\.id, nextGroupId \}\)/);
-  assert.match(actionsSource, /assertStaffCanManageMember\(\{ supabase, currentMember, targetMemberId: memberId \}\)/);
-  assert.match(actionsSource, /assertStaffCanManageMember\(\{ supabase, currentMember, targetMemberId: parsed\.memberId \}\)/);
+  assert.match(actionsSource, /assertCanManageAttendanceForMember\(\{ supabase, currentMember, targetMemberId: memberId \}\)/);
+  assert.match(actionsSource, /assertCanManageAttendanceForMember\(\{ supabase, currentMember, targetMemberId: parsed\.memberId \}\)/);
   assert.match(memberVisibilitySource, /role === "owner" \|\| role === "admin" \|\| role === "leader"/);
   assert.doesNotMatch(memberVisibilitySource, /role === "owner" \|\| role === "admin" \|\| role === "leader" \|\| role === "staff"/);
+});
+
+test("assistant role can check attendance for own group but cannot edit members", () => {
+  assert.match(assistantRoleSource, /current_member_role\(\) in \('owner', 'admin', 'leader', 'staff', 'assistant'\)/);
+  assert.match(assistantRoleSource, /can_manage_attendance_events/);
+  assert.match(assistantRoleSource, /current_member_role\(\) in \('owner', 'admin', 'leader', 'staff'\)/);
+  assert.match(assistantRoleSource, /role in \('member', 'assistant'\)/);
+  assert.match(actionsSource, /function canManageAssistantAssignment/);
+  assert.match(actionsSource, /isAssistantAssignmentChange/);
+  assert.match(actionsSource, /부순장은 본인 순의 출석만 체크할 수 있습니다/);
+  assert.match(actionsSource, /부순장은 출석 이벤트를 만들 수 없습니다/);
+  assert.match(actionsSource, /assertCanManageAttendanceForMember\(\{ supabase, currentMember, targetMemberId: memberId \}\)/);
+  assert.match(actionsSource, /assertCanManageAttendanceForMember\(\{ supabase, currentMember, targetMemberId: parsed\.memberId \}\)/);
+  assert.match(memberVisibilitySource, /role === "assistant"/);
+  assert.doesNotMatch(rbacSource, /assistant: \[[^\]]*"members:write"/);
 });
 
 test("member detail manages multiple ministry labels", () => {

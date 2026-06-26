@@ -61,7 +61,8 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 - `owner`: 최고 관리자. owner 관련 변경과 최상위 관리 권한.
 - `admin`: 운영 관리자. 대부분의 운영/권한/감사 관리.
 - `leader`: 리더. 멤버/출석/순 운영 권한.
-- `staff`: 순장. 이름은 순장이지만 권한은 현재 leader와 동일하게 유지합니다.
+- `staff`: 순장. 본인이 리드하는 순 멤버의 상세 정보 수정과 출석 체크가 가능하며, 다른 순 raw 정보는 제한합니다.
+- `assistant`: 부순장. 순장을 대신해 본인 순 출석 체크와 출석 사유 입력만 할 수 있습니다. 멤버 정보 수정/권한 변경/출석 이벤트 생성은 할 수 없습니다.
 - `welcome`: 웰컴팀. 일반 멤버 기본 접근 + 새가족 read/write + 출석 페이지의 총 출석 보정 입력 권한. 멤버 출석 체크/멤버/권한 관리는 할 수 없습니다.
 - `member`: 일반 멤버. 본인 프로필, 본인 출석 history/stat, 기본 dashboard 정보 중심.
 
@@ -69,7 +70,9 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 
 - 새 Google 로그인은 항상 `member`로 시작합니다.
 - `owner` 변경은 `owner`만 할 수 있어야 합니다.
-- `staff`와 `leader` 권한은 동등해야 합니다.
+- `leader`는 전체 운영 권한을 가지며, `staff`는 본인이 리드하는 순으로 변경 범위가 제한됩니다.
+- 순장 이상(`owner`, `admin`, `leader`, `staff`)은 `member`를 `assistant`로 지정하거나 `assistant`를 `member`로 되돌릴 수 있습니다. 단, `staff`는 본인 순 멤버만 가능합니다.
+- `assistant`는 `attendance:read/write`를 가지지만 앱 액션에서 본인 순 멤버 출석으로 제한해야 합니다. `assistant`에게 `members:write`, `roles:manage`, `new-family:*`를 주면 안 됩니다.
 - `welcome`은 새가족 페이지를 읽고 수정할 수 있고 `attendance:extras:write`로 총 출석 보정값을 입력할 수 있지만 `members:write`, `attendance:write`, `roles:manage`는 없어야 합니다.
 - 멤버 삭제는 최소 leader/staff 이상이며, 자기보다 낮은 권한의 멤버만 삭제 가능해야 합니다.
 
@@ -245,6 +248,7 @@ DB migration을 추가하면:
 - `db/032_public_permission_role_counts.sql`: 권한 페이지 공통 role count fallback RPC
 - `db/033_test_account_stats_exclusion.sql`: 테스트 계정 통계 제외와 public dashboard payload 보강
 - `db/034_attendance_extra_counts.sql`: 날짜별 교역자/팀장 이상/방문자/새가족 추가 출석 집계
+- `db/037_assistant_role.sql`: 부순장 역할, 출석 권한, RLS policy
 
 새 환경 변수를 추가하면:
 

@@ -11,7 +11,7 @@ test("new logins always start with member role", () => {
 });
 
 test("owner sits above admin for privileged operations", () => {
-  assert.deepEqual(Array.from(roles), ["owner", "admin", "leader", "staff", "welcome", "member"]);
+  assert.deepEqual(Array.from(roles), ["owner", "admin", "leader", "staff", "assistant", "welcome", "member"]);
   assert(permissionsByRole.owner.includes("owner:manage"));
   assert(permissionsByRole.admin.includes("roles:manage"));
   assert.equal(permissionsByRole.admin.includes("owner:manage"), false);
@@ -27,6 +27,17 @@ test("important links can be added by soonjang and deleted by admins", () => {
 
 test("soonjang keeps the same app permissions as leader", () => {
   assert.deepEqual(permissionsByRole.staff, permissionsByRole.leader);
+});
+
+test("assistant can only help with attendance for their group", () => {
+  assert(permissionsByRole.assistant.includes("members:read"));
+  assert(permissionsByRole.assistant.includes("attendance:read"));
+  assert(permissionsByRole.assistant.includes("attendance:write"));
+  assert(permissionsByRole.assistant.includes("groups:read"));
+  assert(permissionsByRole.assistant.includes("links:read"));
+  assert.equal(permissionsByRole.assistant.includes("members:write"), false);
+  assert.equal(permissionsByRole.assistant.includes("roles:manage"), false);
+  assert.equal(permissionsByRole.assistant.includes("new-family:read"), false);
 });
 
 test("welcome team keeps member access plus new family read and write", () => {
@@ -52,6 +63,8 @@ test("role permissions are enforced through hasPermission", () => {
   assert.equal(hasPermission("admin", "owner:manage"), false);
   assert.equal(hasPermission("leader", "members:write"), true);
   assert.equal(hasPermission("staff", "members:write"), true);
+  assert.equal(hasPermission("assistant", "attendance:write"), true);
+  assert.equal(hasPermission("assistant", "members:write"), false);
   assert.equal(hasPermission("member", "members:write"), false);
   assert.equal(hasPermission("member", "new-family:read"), false);
   assert.equal(hasPermission("welcome", "new-family:read"), true);

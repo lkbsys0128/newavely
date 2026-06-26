@@ -49,6 +49,7 @@ db/
   026_public_dashboard_data.sql 모든 역할에서 동일한 공통 dashboard 통계용 RPC
   027_new_family_applicants.sql 새가족 신청 roster
   032_public_permission_role_counts.sql 권한 페이지 공통 역할별 카운트 RPC
+  037_assistant_role.sql 부순장 역할, 출석 권한, RLS policy
 test/
   rbac.test.mjs             역할별 권한 정의 테스트
   role-policy.test.mjs      역할 변경/삭제 정책 테스트
@@ -136,6 +137,9 @@ Supabase SQL Editor에서 아래 순서대로 실행합니다.
 32. `db/032_public_permission_role_counts.sql`
 33. `db/033_test_account_stats_exclusion.sql`
 34. `db/034_attendance_extra_counts.sql`
+35. `db/035_community_leader_attendance_roles.sql`
+36. `db/036_public_dashboard_community_leader_role.sql`
+37. `db/037_assistant_role.sql`
 
 주요 테이블:
 
@@ -216,9 +220,17 @@ CSV import 후 출석 사유에 `Imported from 2026 annual attendance CSV`가 �
 - `owner`: 최고 관리자. 관리자 지정/회수, 영구 삭제 같은 최상위 작업 권한
 - `admin`: 운영 관리자. 멤버/순/출석/권한/감사 관리 권한
 - `leader`: 멤버/출석 관리 권한
-- `staff`: 순장. 본인이 리드하는 순 멤버는 상세 열람, 다른 순은 이름 중심 열람
+- `staff`: 순장. 본인이 리드하는 순 멤버의 상세 정보 수정과 출석 체크 가능. 다른 순은 제한된 정보만 열람
+- `assistant`: 부순장. 본인 순 출석 체크와 출석 사유 입력만 가능. 멤버 정보 수정, 출석 이벤트 생성, 권한 관리는 불가
 - `welcome`: 웰컴팀. 일반 멤버 기본 접근 + 새가족 페이지 read/write + 출석 페이지 총 출석 입력 권한. 멤버 출석 체크는 할 수 없습니다.
 - `member`: 기본 접근 권한
+
+부순장 운영 규칙:
+
+- 순장 이상(`owner`, `admin`, `leader`, `staff`)만 일반 멤버를 부순장으로 지정하거나 부순장을 일반 멤버로 되돌릴 수 있습니다.
+- 순장(`staff`)은 본인이 리드하는 순 안에서만 부순장을 지정할 수 있습니다.
+- 부순장은 출석 페이지에서 본인 순 멤버의 주일 예배/순모임 출석 상태와 사유만 변경할 수 있습니다.
+- 부순장은 멤버 정보, 순 정보, 권한, 새가족, 링크, 출석 이벤트 생성/삭제를 변경할 수 없습니다.
 
 권한은 두 레이어에서 적용됩니다.
 

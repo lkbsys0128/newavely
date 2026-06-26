@@ -36,6 +36,7 @@ const groups = [
 
 const mixedMembers = [
   member({ id: "soonjang", name: "순장", displayName: "순장", groupId: "group-a", groupName: "A순", role: "staff" }),
+  member({ id: "assistant", name: "부순장", displayName: "부순장", groupId: "group-a", groupName: "A순", role: "assistant" }),
   member({ id: "same-group", name: "같은 순", displayName: "같은 순", groupId: "group-a", groupName: "A순" }),
   member({ id: "other-group", name: "다른 순", displayName: "다른 순", groupId: "group-b", groupName: "B순" }),
   member({
@@ -83,13 +84,33 @@ test("soonjang sees full detail only for members in led groups", () => {
   assert.deepEqual(Array.from(scopedMembers.find((item) => item.id === "other-group").careFollowups), []);
 });
 
+test("assistant sees full detail only for members in their own group", () => {
+  const scopedMembers = scopeMembersForRole({
+    role: "assistant",
+    currentMemberId: "assistant",
+    groups,
+    members: mixedMembers,
+  });
+
+  const sameGroup = scopedMembers.find((item) => item.id === "same-group");
+  const otherGroup = scopedMembers.find((item) => item.id === "other-group");
+
+  assert.equal(sameGroup.phone, "010-0000-0000");
+  assert.equal(sameGroup.email, "person@example.com");
+  assert.deepEqual(Array.from(sameGroup.attendanceHistory), mixedMembers.find((item) => item.id === "same-group").attendanceHistory);
+  assert.equal(otherGroup.name, "다른 순");
+  assert.equal(otherGroup.phone, "비공개");
+  assert.equal(otherGroup.email, "");
+  assert.deepEqual(Array.from(otherGroup.attendanceHistory), []);
+});
+
 test("all roles use the same visible roster basis without merged placeholders", () => {
-  const expectedVisibleIds = ["soonjang", "same-group", "other-group", "community-leader", "clergy-in-group", "inactive"];
+  const expectedVisibleIds = ["soonjang", "assistant", "same-group", "other-group", "community-leader", "clergy-in-group", "inactive"];
 
   for (const role of roles) {
     const scopedMembers = scopeMembersForRole({
       role,
-      currentMemberId: role === "staff" ? "soonjang" : `${role}-user`,
+      currentMemberId: role === "staff" ? "soonjang" : role === "assistant" ? "assistant" : `${role}-user`,
       groups,
       members: mixedMembers,
     });

@@ -274,7 +274,7 @@ export function buildGlobalAppStats(
     .filter((member) => !member.groupId || attendanceGroupIds.has(member.groupId));
   const roleCounts =
     permissionRoleCounts ??
-    (["owner", "admin", "leader", "staff", "welcome", "member"] as Role[]).map((role) => ({
+    (["owner", "admin", "leader", "staff", "assistant", "welcome", "member"] as Role[]).map((role) => ({
       role,
       count: activeMembers.filter((member) => member.role === role).length,
     }));

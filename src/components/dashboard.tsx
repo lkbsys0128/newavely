@@ -4246,6 +4246,7 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
   const [restoreState, restoreAction, isRestoringDeletedUser] = useActionState(restoreDeletedAuthUser, initialActionState);
   const canManageRoles = hasPermission(user.role, "roles:manage");
   const assignableRoleEntries = getAssignableRoleEntries(user.role);
+  const userLedGroupIds = new Set(groups.filter((group) => group.leaderMemberId === user.id).map((group) => group.id));
   const pendingLinkRequests = memberLinkRequests.filter(isActionableLinkRequest);
   const rejectedLinkRequests = memberLinkRequests
     .filter((request) => request.status === "rejected" && request.requesterStatus !== "inactive")
@@ -4642,27 +4643,35 @@ export function PermissionsPageContent({ user, members, groups, memberLinkReques
           </button>
         </div>
         <div className="role-management-list">
-          {filteredRoleManagedMembers.map((member) => (
-            <form action={roleAction} className="role-management-row" key={member.id}>
-              <input name="id" type="hidden" value={member.id} />
-              <div className="person-block">
-                <strong>{member.displayName}</strong>
-                <span>
-                  {member.groupName} · {member.email || "이메일 없음"} · {member.authUserId ? "Google 연결" : "미연결"}
-                </span>
-              </div>
-              <select name="role" defaultValue={member.role} disabled={!canManageRoles}>
-                {assignableRoleEntries.map(([role, label]) => (
-                  <option key={role} value={role}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <button className="secondary-button" type="submit" disabled={!canManageRoles || isUpdatingRole}>
-                변경
-              </button>
-            </form>
-          ))}
+          {filteredRoleManagedMembers.map((member) => {
+            const canManageAssistantRole =
+              (user.role === "leader" || user.role === "staff") &&
+              (member.role === "member" || member.role === "assistant") &&
+              (user.role === "leader" || Boolean(member.groupId && userLedGroupIds.has(member.groupId)));
+            const canUseRoleControl = canManageRoles || canManageAssistantRole;
+            const roleOptions = canUseRoleControl ? assignableRoleEntries : ([[member.role, roleLabels[member.role]]] as Array<[Role, string]>);
+            return (
+              <form action={roleAction} className="role-management-row" key={member.id}>
+                <input name="id" type="hidden" value={member.id} />
+                <div className="person-block">
+                  <strong>{member.displayName}</strong>
+                  <span>
+                    {member.groupName} · {member.email || "이메일 없음"} · {member.authUserId ? "Google 연결" : "미연결"}
+                  </span>
+                </div>
+                <select name="role" defaultValue={member.role} disabled={!canUseRoleControl}>
+                  {roleOptions.map(([role, label]) => (
+                    <option key={role} value={role}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <button className="secondary-button" type="submit" disabled={!canUseRoleControl || isUpdatingRole}>
+                  변경
+                </button>
+              </form>
+            );
+          })}
           {filteredRoleManagedMembers.length === 0 ? (
             <article className="empty-state">
               <strong>검색 결과가 없습니다</strong>
@@ -4947,6 +4956,7 @@ const roleLabels: Record<Role, string> = {
   admin: "관리자",
   leader: "리더",
   staff: "순장",
+  assistant: "부순장",
   welcome: "웰컴팀",
   member: "멤버",
 };
@@ -4964,8 +4974,13 @@ const rolePermissionSummaries: Record<Exclude<Role, "owner">, { scope: string; c
   },
   staff: {
     scope: "본인 순 운영",
-    can: "본인이 리드하는 순 멤버 수정, 출석 체크, 링크 추가",
+    can: "본인이 리드하는 순 멤버 수정, 출석 체크, 부순장 지정, 링크 추가",
     limits: "다른 순 멤버 수정/출석 체크, 권한 변경, 새가족 관리는 불가",
+  },
+  assistant: {
+    scope: "본인 순 출석",
+    can: "본인 소속 순 멤버 출석 체크와 사유 입력",
+    limits: "멤버 정보 수정, 다른 순 출석 체크, 권한 변경은 불가",
   },
   welcome: {
     scope: "웰컴팀 업무",
@@ -4984,12 +4999,19 @@ const roleOrder: Record<Role, number> = {
   admin: 1,
   leader: 2,
   staff: 3,
-  welcome: 4,
-  member: 5,
+  assistant: 4,
+  welcome: 5,
+  member: 6,
 };
 
 function getAssignableRoleEntries(actorRole: Role): Array<[Role, string]> {
-  return (Object.entries(roleLabels) as Array<[Role, string]>).filter(([role]) => actorRole === "owner" || role !== "owner");
+  const entries = Object.entries(roleLabels) as Array<[Role, string]>;
+  if (actorRole === "owner") return entries;
+  if (actorRole === "admin") return entries.filter(([role]) => role !== "owner");
+  if (actorRole === "leader" || actorRole === "staff") {
+    return entries.filter(([role]) => role === "assistant" || role === "member");
+  }
+  return entries.filter(([role]) => role === actorRole);
 }
 
 const statusLabels: Record<Member["status"], string> = {
