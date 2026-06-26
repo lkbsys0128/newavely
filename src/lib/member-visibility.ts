@@ -29,7 +29,7 @@ export function canViewFullMemberDetail({
   ledGroupIds: Set<string>;
   member: Member;
 }) {
-  if (role === "owner" || role === "admin" || role === "leader" || role === "staff") return true;
+  if (role === "owner" || role === "admin" || role === "leader") return true;
   if (role === "member") return member.id === currentMemberId;
   if (role === "welcome" && (isCommunityLeaderGroup(member) || hasCommunityLeaderRole(member))) return true;
   if (member.id === currentMemberId) return true;
@@ -67,7 +67,7 @@ export function scopeMembersForRole({
 }) {
   const visibleMembers = members.filter((member) => !isMergedPlaceholderForVisibility(member));
 
-  if (role === "owner" || role === "admin" || role === "leader" || role === "staff") return visibleMembers;
+  if (role === "owner" || role === "admin" || role === "leader") return visibleMembers;
 
   const ledGroupIds = getLedGroupIds(currentMemberId, groups);
   return visibleMembers.map((member) =>

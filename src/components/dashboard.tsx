@@ -4963,9 +4963,9 @@ const rolePermissionSummaries: Record<Exclude<Role, "owner">, { scope: string; c
     limits: "권한 변경, 민감 정보, 새가족 관리는 불가",
   },
   staff: {
-    scope: "순장 운영",
-    can: "리더와 동일한 앱 권한으로 멤버/출석/순 운영",
-    limits: "권한 변경, 민감 정보, 새가족 관리는 불가",
+    scope: "본인 순 운영",
+    can: "본인이 리드하는 순 멤버 수정, 출석 체크, 링크 추가",
+    limits: "다른 순 멤버 수정/출석 체크, 권한 변경, 새가족 관리는 불가",
   },
   welcome: {
     scope: "웰컴팀 업무",

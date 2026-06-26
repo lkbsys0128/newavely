@@ -53,6 +53,7 @@ const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", im
 const globalCssSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const appGateSource = readFileSync(new URL("../src/components/app-page-gate.tsx", import.meta.url), "utf8");
 const dashboardSource = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+const memberVisibilitySource = readFileSync(new URL("../src/lib/member-visibility.ts", import.meta.url), "utf8");
 const feedbackPageSource = readFileSync(new URL("../src/app/feedback/page.tsx", import.meta.url), "utf8");
 const googleSheetsSource = readFileSync(new URL("../src/lib/google-sheets.ts", import.meta.url), "utf8");
 const layoutSource = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
@@ -722,6 +723,19 @@ test("member roster can be exported to Google Sheets without internal fields", (
   assert.match(googleSheetsSource, /GOOGLE_SHEET_ID/);
   assert.match(googleSheetsSource, /spreadsheetUrl: `https:\/\/docs\.google\.com\/spreadsheets\/d\/\$\{spreadsheetId\}\/edit`/);
   assert.match(googleSheetsSource, /:clear/);
+});
+
+test("soonjang writes are limited to members in their led groups", () => {
+  assert.match(actionsSource, /async function assertStaffCanManageMember/);
+  assert.match(actionsSource, /currentMember\.role !== "staff"/);
+  assert.match(actionsSource, /groups"\)\.select\("id"\)\.eq\("leader_member_id", memberId\)/);
+  assert.match(actionsSource, /순장은 본인이 리드하는 순의 멤버만 변경할 수 있습니다/);
+  assert.match(actionsSource, /assertStaffCanCreateMemberInGroup\(\{ supabase, currentMember, groupId: parsed\.groupId \}\)/);
+  assert.match(actionsSource, /assertStaffCanManageMember\(\{ supabase, currentMember, targetMemberId: parsed\.id, nextGroupId \}\)/);
+  assert.match(actionsSource, /assertStaffCanManageMember\(\{ supabase, currentMember, targetMemberId: memberId \}\)/);
+  assert.match(actionsSource, /assertStaffCanManageMember\(\{ supabase, currentMember, targetMemberId: parsed\.memberId \}\)/);
+  assert.match(memberVisibilitySource, /role === "owner" \|\| role === "admin" \|\| role === "leader"/);
+  assert.doesNotMatch(memberVisibilitySource, /role === "owner" \|\| role === "admin" \|\| role === "leader" \|\| role === "staff"/);
 });
 
 test("member detail manages multiple ministry labels", () => {
