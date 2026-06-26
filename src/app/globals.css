@@ -4461,11 +4461,6 @@ tbody tr:hover {
   vector-effect: non-scaling-stroke;
 }
 
-.group-network-lines .outer-line {
-  stroke: color-mix(in srgb, var(--accent-dark) 32%, transparent);
-  stroke-width: 1.2;
-}
-
 .group-network-center,
 .group-network-node {
   position: absolute;
@@ -4528,6 +4523,14 @@ tbody tr:hover {
     background var(--motion-medium) var(--motion-ease),
     box-shadow var(--motion-medium) var(--motion-ease),
     color var(--motion-fast) var(--motion-ease);
+}
+
+.group-network-node.community-leader {
+  border-color: color-mix(in srgb, var(--accent-dark) 46%, var(--line));
+  background:
+    radial-gradient(circle at 32% 22%, rgba(255, 255, 255, 0.98), transparent 38%),
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 14%, #ffffff), rgba(255, 255, 255, 0.98));
+  box-shadow: 0 18px 36px rgba(21, 119, 144, 0.18);
 }
 
 .group-network-node:hover,
@@ -6719,10 +6722,6 @@ tbody tr:hover {
   stroke: rgba(104, 216, 239, 0.42);
 }
 
-:root[data-theme="dark"] .group-network-lines .outer-line {
-  stroke: rgba(104, 216, 239, 0.26);
-}
-
 :root[data-theme="dark"] .group-network-center,
 :root[data-theme="dark"] .group-network-node {
   border-color: rgba(104, 216, 239, 0.3);
@@ -6730,6 +6729,14 @@ tbody tr:hover {
     radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.1), transparent 38%),
     linear-gradient(145deg, #142a31, #0e2025);
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="dark"] .group-network-node.community-leader {
+  border-color: rgba(104, 216, 239, 0.42);
+  background:
+    radial-gradient(circle at 34% 22%, rgba(255, 255, 255, 0.1), transparent 38%),
+    linear-gradient(145deg, rgba(22, 75, 88, 0.98), rgba(9, 31, 36, 0.96));
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.3);
 }
 
 :root[data-theme="dark"] .group-network-node:hover,
