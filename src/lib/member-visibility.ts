@@ -70,7 +70,7 @@ export function scopeMembersForRole({
   if (role === "owner" || role === "admin" || role === "leader") return visibleMembers;
 
   const ledGroupIds = getLedGroupIds(currentMemberId, groups);
-  if (role === "assistant") {
+  if (role === "staff" || role === "assistant") {
     const currentMember = visibleMembers.find((member) => member.id === currentMemberId);
     if (currentMember?.groupId) ledGroupIds.add(currentMember.groupId);
   }

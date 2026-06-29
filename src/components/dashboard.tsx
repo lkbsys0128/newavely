@@ -2598,11 +2598,24 @@ export function AttendanceManager({
   const attendanceVisibleGroups = getAttendanceVisibleGroups(groups);
   const attendanceVisibleGroupIds = new Set(attendanceVisibleGroups.map((group) => group.id));
   const communityLeaderGroup = groups.find((group) => group.name.includes("공동체 리더")) ?? null;
+  const initialCurrentAttendanceMember = members.find((member) => member.authUserId === user.id) ?? members.find((member) => member.email === user.email);
+  const manageableAttendanceGroups =
+    user.role === "staff"
+      ? attendanceVisibleGroups.filter(
+          (group) => group.leaderMemberId === initialCurrentAttendanceMember?.id || group.id === initialCurrentAttendanceMember?.groupId,
+        )
+      : user.role === "assistant"
+        ? attendanceVisibleGroups.filter((group) => initialCurrentAttendanceMember?.groupId && group.id === initialCurrentAttendanceMember.groupId)
+        : attendanceVisibleGroups;
+  const manageableAttendanceGroupIds = new Set(manageableAttendanceGroups.map((group) => group.id));
+  const shouldScopeAttendanceGroups = user.role === "staff" || user.role === "assistant";
   const initialAttendanceGroupId =
-    requestedAttendanceGroupId && attendanceVisibleGroups.some((group) => group.id === requestedAttendanceGroupId)
+    requestedAttendanceGroupId && manageableAttendanceGroups.some((group) => group.id === requestedAttendanceGroupId)
       ? requestedAttendanceGroupId
-      : requestedAttendanceGroupId === "unassigned"
+      : requestedAttendanceGroupId === "unassigned" && !shouldScopeAttendanceGroups
         ? "unassigned"
+        : shouldScopeAttendanceGroups && manageableAttendanceGroups[0]
+          ? manageableAttendanceGroups[0].id
         : "all";
   const [localMembers, setLocalMembers] = useState(members);
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
@@ -2713,6 +2726,7 @@ export function AttendanceManager({
   const activeMembers = localMembers
     .filter(isAttendanceRosterMember)
     .filter((member) => !member.groupId || attendanceVisibleGroupIds.has(member.groupId))
+    .filter((member) => !shouldScopeAttendanceGroups || Boolean(member.groupId && manageableAttendanceGroupIds.has(member.groupId)))
     .filter((member) => user.role !== "member" || member.id === currentAttendanceMember?.id);
   const activeMemberCount = activeMembers.length;
   const currentPresentCount = activeMembers.filter((member) => member.present).length;
@@ -2987,15 +3001,15 @@ export function AttendanceManager({
         ? "미배정"
         : attendanceVisibleGroups.find((group) => group.id === attendanceGroupId)?.name ?? "미배정";
   const attendanceGroupOptions = [
-    { id: "all", name: "전체" },
+    ...(shouldScopeAttendanceGroups ? [] : [{ id: "all", name: "전체" }]),
     ...(isWelcomeAttendanceOnly
       ? []
       : user.role === "member"
         ? attendanceVisibleGroups
             .filter((group) => currentAttendanceMember?.groupId && group.id === currentAttendanceMember.groupId)
             .map((group) => ({ id: group.id, name: group.name }))
-        : attendanceVisibleGroups.map((group) => ({ id: group.id, name: group.name }))),
-    ...(isWelcomeAttendanceOnly || (user.role === "member" && currentAttendanceMember?.groupId)
+        : manageableAttendanceGroups.map((group) => ({ id: group.id, name: group.name }))),
+    ...(isWelcomeAttendanceOnly || shouldScopeAttendanceGroups || (user.role === "member" && currentAttendanceMember?.groupId)
       ? []
       : [{ id: "unassigned", name: "미배정" }]),
   ];

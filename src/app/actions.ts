@@ -353,7 +353,7 @@ async function assertStaffCanManageMember({
   nextGroupId,
 }: {
   supabase: SupabaseServerClient;
-  currentMember: { id: string; role: Role };
+  currentMember: { id: string; role: Role; groupId?: string | null };
   targetMemberId: string;
   nextGroupId?: string | null;
 }) {
@@ -366,6 +366,10 @@ async function assertStaffCanManageMember({
   ]);
 
   if (targetMemberError) throw targetMemberError;
+
+  if (currentMember.groupId) {
+    ledGroupIds.add(currentMember.groupId);
+  }
 
   assertStaffCanUseGroup(ledGroupIds, targetMember.group_id as string | null);
   if (nextGroupId !== undefined) {
