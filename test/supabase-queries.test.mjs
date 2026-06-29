@@ -739,6 +739,7 @@ test("soonjang writes are limited to members in their led groups", () => {
   assert.match(actionsSource, /async function assertStaffCanManageMember/);
   assert.match(actionsSource, /currentMember\.role !== "staff"/);
   assert.match(actionsSource, /groups"\)\.select\("id"\)\.eq\("leader_member_id", memberId\)/);
+  assert.match(actionsSource, /if \(currentMember\.groupId\) \{\s*ledGroupIds\.add\(currentMember\.groupId\);/);
   assert.match(actionsSource, /순장은 본인이 리드하는 순의 멤버만 변경할 수 있습니다/);
   assert.match(actionsSource, /assertStaffCanCreateMemberInGroup\(\{ supabase, currentMember, groupId: parsed\.groupId \}\)/);
   assert.match(actionsSource, /assertStaffCanManageMember\(\{ supabase, currentMember, targetMemberId: parsed\.id, nextGroupId \}\)/);
@@ -765,7 +766,7 @@ test("assistant role can check attendance for own group but cannot edit members"
 
 test("attendance page scopes soonjang and assistant checklist groups", () => {
   assert.match(dashboardSource, /const manageableAttendanceGroups =/);
-  assert.match(dashboardSource, /user\.role === "staff"[\s\S]*group\.leaderMemberId === initialCurrentAttendanceMember\?\.id/);
+  assert.match(dashboardSource, /user\.role === "staff"[\s\S]*group\.leaderMemberId === initialCurrentAttendanceMember\?\.id \|\| group\.id === initialCurrentAttendanceMember\?\.groupId/);
   assert.match(dashboardSource, /user\.role === "assistant"[\s\S]*group\.id === initialCurrentAttendanceMember\.groupId/);
   assert.match(dashboardSource, /const shouldScopeAttendanceGroups = user\.role === "staff" \|\| user\.role === "assistant"/);
   assert.match(dashboardSource, /!shouldScopeAttendanceGroups \|\| Boolean\(member\.groupId && manageableAttendanceGroupIds\.has\(member\.groupId\)\)/);

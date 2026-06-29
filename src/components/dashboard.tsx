@@ -2601,7 +2601,9 @@ export function AttendanceManager({
   const initialCurrentAttendanceMember = members.find((member) => member.authUserId === user.id) ?? members.find((member) => member.email === user.email);
   const manageableAttendanceGroups =
     user.role === "staff"
-      ? attendanceVisibleGroups.filter((group) => group.leaderMemberId === initialCurrentAttendanceMember?.id)
+      ? attendanceVisibleGroups.filter(
+          (group) => group.leaderMemberId === initialCurrentAttendanceMember?.id || group.id === initialCurrentAttendanceMember?.groupId,
+        )
       : user.role === "assistant"
         ? attendanceVisibleGroups.filter((group) => initialCurrentAttendanceMember?.groupId && group.id === initialCurrentAttendanceMember.groupId)
         : attendanceVisibleGroups;

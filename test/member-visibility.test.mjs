@@ -84,6 +84,20 @@ test("soonjang sees full detail only for members in led groups", () => {
   assert.deepEqual(Array.from(scopedMembers.find((item) => item.id === "other-group").careFollowups), []);
 });
 
+test("soonjang keeps full detail for own group even when group leader assignment is missing", () => {
+  const scopedMembers = scopeMembersForRole({
+    role: "staff",
+    currentMemberId: "soonjang",
+    groups: groups.map((group) => (group.id === "group-a" ? { ...group, leaderMemberId: null, leaderName: "미배정" } : group)),
+    members: mixedMembers,
+  });
+
+  assert.equal(scopedMembers.find((item) => item.id === "same-group").phone, "010-0000-0000");
+  assert.equal(scopedMembers.find((item) => item.id === "same-group").email, "person@example.com");
+  assert.deepEqual(Array.from(scopedMembers.find((item) => item.id === "same-group").attendanceHistory), mixedMembers.find((item) => item.id === "same-group").attendanceHistory);
+  assert.equal(scopedMembers.find((item) => item.id === "other-group").phone, "비공개");
+});
+
 test("assistant sees full detail only for members in their own group", () => {
   const scopedMembers = scopeMembersForRole({
     role: "assistant",
