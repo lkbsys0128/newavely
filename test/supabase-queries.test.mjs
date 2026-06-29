@@ -763,6 +763,16 @@ test("assistant role can check attendance for own group but cannot edit members"
   assert.doesNotMatch(rbacSource, /assistant: \[[^\]]*"members:write"/);
 });
 
+test("attendance page scopes soonjang and assistant checklist groups", () => {
+  assert.match(dashboardSource, /const manageableAttendanceGroups =/);
+  assert.match(dashboardSource, /user\.role === "staff"[\s\S]*group\.leaderMemberId === initialCurrentAttendanceMember\?\.id/);
+  assert.match(dashboardSource, /user\.role === "assistant"[\s\S]*group\.id === initialCurrentAttendanceMember\.groupId/);
+  assert.match(dashboardSource, /const shouldScopeAttendanceGroups = user\.role === "staff" \|\| user\.role === "assistant"/);
+  assert.match(dashboardSource, /!shouldScopeAttendanceGroups \|\| Boolean\(member\.groupId && manageableAttendanceGroupIds\.has\(member\.groupId\)\)/);
+  assert.match(dashboardSource, /shouldScopeAttendanceGroups \? \[\] : \[\{ id: "all", name: "전체" \}\]/);
+  assert.match(dashboardSource, /isWelcomeAttendanceOnly \|\| shouldScopeAttendanceGroups/);
+});
+
 test("member detail manages multiple ministry labels", () => {
   assert.match(dashboardSource, /MemberMinistryLabels/);
   assert.match(dashboardSource, /MemberMinistryEditor/);
