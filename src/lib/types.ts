@@ -96,6 +96,7 @@ export type AuditLog = {
   afterData: Record<string, unknown> | null;
   metadata: Record<string, unknown>;
   eventSummaries: string[];
+  memberSummaries: string[];
   createdAt: string;
 };
 
