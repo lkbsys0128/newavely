@@ -4722,6 +4722,9 @@ export function AuditLogPageContent({ user, auditLogs }: { user: AppUser; auditL
                     {log.actorName} · {log.targetTable}
                     {log.targetId ? ` · ${log.targetId.slice(0, 8)}` : ""}
                   </span>
+                  {log.eventSummaries.length > 0 ? (
+                    <span>이벤트: {log.eventSummaries.join(", ")}</span>
+                  ) : null}
                 </div>
                 <time className="meta" dateTime={log.createdAt}>
                   {new Date(log.createdAt).toLocaleString("ko-KR")}
