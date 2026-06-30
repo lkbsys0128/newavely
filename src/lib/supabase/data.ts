@@ -134,6 +134,12 @@ type DbAuditLog = {
   actor?: { name: string | null } | Array<{ name: string | null }> | null;
 };
 
+type DbAuditMemberSummary = {
+  id: string;
+  name: string | null;
+  groups?: { name: string | null } | Array<{ name: string | null }> | null;
+};
+
 type DbImportantLink = {
   id: string;
   title: string;
@@ -640,10 +646,14 @@ export async function getAuditLogs(supabase: SupabaseClient) {
 
   const logs = data as unknown as DbAuditLog[];
   const eventIds = new Set<string>();
+  const memberIds = new Set<string>();
 
   for (const log of logs) {
     for (const eventId of getAuditLogEventIds(log)) {
       eventIds.add(eventId);
+    }
+    for (const memberId of getAuditLogMemberIds(log)) {
+      memberIds.add(memberId);
     }
   }
 
@@ -661,9 +671,25 @@ export async function getAuditLogs(supabase: SupabaseClient) {
     }
   }
 
+  const memberSummaryById = new Map<string, string>();
+  if (memberIds.size > 0) {
+    const { data: members, error: membersError } = await supabase
+      .from("members")
+      .select("id, name, groups!members_group_id_fkey(name)")
+      .in("id", Array.from(memberIds));
+
+    if (membersError) throw membersError;
+
+    for (const member of (members ?? []) as DbAuditMemberSummary[]) {
+      const group = Array.isArray(member.groups) ? member.groups[0] : member.groups;
+      memberSummaryById.set(member.id, `${member.name ?? "이름 없음"} · ${group?.name ?? "미배정"}`);
+    }
+  }
+
   return logs.map<AuditLog>((log) => {
     const actor = Array.isArray(log.actor) ? log.actor[0] : log.actor;
     const logEventIds = getAuditLogEventIds(log);
+    const logMemberIds = getAuditLogMemberIds(log);
     return {
       id: log.id,
       action: log.action,
@@ -674,6 +700,7 @@ export async function getAuditLogs(supabase: SupabaseClient) {
       afterData: log.after_data,
       metadata: log.metadata ?? {},
       eventSummaries: logEventIds.map((eventId) => eventSummaryById.get(eventId) ?? eventId),
+      memberSummaries: logMemberIds.map((memberId) => memberSummaryById.get(memberId) ?? memberId),
       createdAt: log.created_at,
     };
   });
@@ -692,6 +719,23 @@ function getAuditLogEventIds(log: DbAuditLog) {
   collect(log.before_data?.event_id);
   collect(log.after_data?.event_id);
   if (log.target_table === "attendance_events") collect(log.target_id);
+
+  return Array.from(ids);
+}
+
+function getAuditLogMemberIds(log: DbAuditLog) {
+  const ids = new Set<string>();
+  const collect = (value: unknown) => {
+    if (typeof value === "string" && value.trim()) ids.add(value);
+  };
+
+  collect(log.metadata?.memberId);
+  if (Array.isArray(log.metadata?.memberIds)) {
+    for (const memberId of log.metadata.memberIds) collect(memberId);
+  }
+  collect(log.before_data?.member_id);
+  collect(log.after_data?.member_id);
+  if (log.target_table === "members") collect(log.target_id);
 
   return Array.from(ids);
 }
