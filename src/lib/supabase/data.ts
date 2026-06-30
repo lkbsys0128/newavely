@@ -638,8 +638,32 @@ export async function getAuditLogs(supabase: SupabaseClient) {
 
   if (error) throw error;
 
-  return (data as unknown as DbAuditLog[]).map<AuditLog>((log) => {
+  const logs = data as unknown as DbAuditLog[];
+  const eventIds = new Set<string>();
+
+  for (const log of logs) {
+    for (const eventId of getAuditLogEventIds(log)) {
+      eventIds.add(eventId);
+    }
+  }
+
+  const eventSummaryById = new Map<string, string>();
+  if (eventIds.size > 0) {
+    const { data: events, error: eventsError } = await supabase
+      .from("attendance_events")
+      .select("id, event_date, title")
+      .in("id", Array.from(eventIds));
+
+    if (eventsError) throw eventsError;
+
+    for (const event of (events ?? []) as DbAttendanceEvent[]) {
+      eventSummaryById.set(event.id, `${event.event_date} · ${event.title}`);
+    }
+  }
+
+  return logs.map<AuditLog>((log) => {
     const actor = Array.isArray(log.actor) ? log.actor[0] : log.actor;
+    const logEventIds = getAuditLogEventIds(log);
     return {
       id: log.id,
       action: log.action,
@@ -649,9 +673,27 @@ export async function getAuditLogs(supabase: SupabaseClient) {
       beforeData: log.before_data,
       afterData: log.after_data,
       metadata: log.metadata ?? {},
+      eventSummaries: logEventIds.map((eventId) => eventSummaryById.get(eventId) ?? eventId),
       createdAt: log.created_at,
     };
   });
+}
+
+function getAuditLogEventIds(log: DbAuditLog) {
+  const ids = new Set<string>();
+  const collect = (value: unknown) => {
+    if (typeof value === "string" && value.trim()) ids.add(value);
+  };
+
+  collect(log.metadata?.eventId);
+  if (Array.isArray(log.metadata?.eventIds)) {
+    for (const eventId of log.metadata.eventIds) collect(eventId);
+  }
+  collect(log.before_data?.event_id);
+  collect(log.after_data?.event_id);
+  if (log.target_table === "attendance_events") collect(log.target_id);
+
+  return Array.from(ids);
 }
 
 export async function getImportantLinks(supabase: SupabaseClient): Promise<ImportantLink[]> {
