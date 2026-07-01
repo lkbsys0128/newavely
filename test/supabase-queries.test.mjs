@@ -436,7 +436,9 @@ test("attendance extra counts load through page data and save through a separate
   assert.match(dataSource, /export async function getAttendanceExtraCounts/);
   assert.match(dataSource, /\.from\("attendance_extra_counts"\)/);
   assert.match(appPageDataSource, /attendanceExtraCounts: AttendanceExtraCount\[\]/);
-  assert.match(appPageDataSource, /hasPermission\(currentMember\.role, "attendance:extras:read"\)/);
+  assert.match(appPageDataSource, /hasPermission\(currentMember\.role, "attendance:read"\)/);
+  assert.match(appPageDataSource, /getServiceRoleAttendanceExtraCounts/);
+  assert.match(appPageDataSource, /getServiceRoleAttendanceExtraCounts\(\)\.then/);
   assert.match(appPageDataSource, /getAttendanceExtraCounts\(supabase\)/);
   assert.match(actionsSource, /attendanceExtraCountSchema/);
   assert.match(actionsSource, /getAuthorizedCurrentMember\("attendance:extras:write"\)/);
@@ -445,8 +447,14 @@ test("attendance extra counts load through page data and save through a separate
   assert.match(actionsSource, /metadata: \{ eventDate: parsed\.eventDate \}/);
   assert.doesNotMatch(actionsSource, /attendance_extra_counts\.update[\s\S]{0,240}targetId: parsed\.eventDate/);
   assert.match(dashboardSource, /canManageAttendanceExtraCounts/);
+  assert.match(dashboardSource, /canReadAttendanceTotals/);
+  assert.match(dashboardSource, /\{canReadAttendanceTotals \? \(/);
   assert.match(dashboardSource, /attendance-total-panel/);
   assert.match(dashboardSource, /totalAttendanceWithExtras/);
+  assert.match(dashboardSource, /combinedAttendanceEventIdsForDate/);
+  assert.match(dashboardSource, /youthWorshipAttendanceTotal/);
+  assert.match(dashboardSource, /youthGroupMeetingAttendanceTotal/);
+  assert.match(dashboardSource, /canManageAttendanceExtraCounts \? \(/);
 });
 
 test("mobile navigation collapses into an expandable dropdown", () => {

@@ -338,6 +338,14 @@ async function getServiceRolePermissionCounts(): Promise<PermissionRoleCount[] |
   }
 }
 
+async function getServiceRoleAttendanceExtraCounts(): Promise<AttendanceExtraCount[] | undefined> {
+  try {
+    return await getAttendanceExtraCounts(createServiceRoleClient());
+  } catch {
+    return undefined;
+  }
+}
+
 export function enrichMemberStatusMessages(messages: MemberStatusMessage[], members: Member[]): MemberStatusMessage[] {
   const membersById = new Map(
     members
@@ -857,7 +865,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
     const shouldLoadMemberStatusMessages = page === "dashboard";
     const shouldLoadAdminFeedback = canManageRoles || page === "feedback";
     const shouldLoadNewFamilyApplicants = page === "new-family";
-    const shouldLoadAttendanceExtraCounts = page === "attendance" && hasPermission(currentMember.role, "attendance:extras:read");
+    const shouldLoadAttendanceExtraCounts = page === "attendance" && hasPermission(currentMember.role, "attendance:read");
     const [
       allCustomFieldDefinitions,
       auditLogs,
@@ -879,7 +887,9 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       shouldLoadAdminFeedback ? getAdminFeedbackMessages(supabase, currentMember.id, canManageRoles) : Promise.resolve([]),
       getMemberLinkRequests(supabase, currentMember.id, canManageRoles),
       shouldLoadNewFamilyApplicants && canReadNewFamily ? getNewFamilyApplicants(supabase) : Promise.resolve([]),
-      shouldLoadAttendanceExtraCounts ? getAttendanceExtraCounts(supabase) : Promise.resolve([]),
+      shouldLoadAttendanceExtraCounts
+        ? getServiceRoleAttendanceExtraCounts().then((counts) => counts ?? getAttendanceExtraCounts(supabase).catch(() => []))
+        : Promise.resolve([]),
     ]);
     const customFieldDefinitions = hasPermission(currentMember.role, "sensitive:read")
       ? allCustomFieldDefinitions
