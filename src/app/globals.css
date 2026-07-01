@@ -3675,6 +3675,27 @@ tbody tr:hover {
   line-height: 0.95;
 }
 
+.attendance-total-substats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.attendance-total-substats span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: rgba(18, 118, 145, 0.08);
+  color: var(--accent-dark);
+  font-size: 0.76rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .attendance-total-breakdown {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3715,10 +3736,11 @@ tbody tr:hover {
 
 .attendance-total-chip {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 66px;
   border: 1px solid var(--line);
   border-radius: 5px;
   padding: 8px 10px;
@@ -3738,6 +3760,17 @@ tbody tr:hover {
 .attendance-total-chip strong {
   color: var(--accent-dark);
   font-size: 1.1rem;
+}
+
+.attendance-total-chip small {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attendance-extra-form {
@@ -6083,7 +6116,7 @@ tbody tr:hover {
   }
 
   .attendance-total-chip {
-    flex: 0 0 104px;
+    flex: 0 0 138px;
     scroll-snap-align: start;
   }
 
@@ -6679,6 +6712,12 @@ tbody tr:hover {
 :root[data-theme="dark"] .attendance-total-hero-card.primary,
 :root[data-theme="dark"] .leader-extra-toggle.present {
   background: rgba(93, 213, 238, 0.11);
+}
+
+:root[data-theme="dark"] .attendance-total-substats span {
+  border-color: rgba(93, 213, 238, 0.25);
+  background: rgba(93, 213, 238, 0.1);
+  color: var(--accent);
 }
 
 :root[data-theme="dark"] .leader-extra-toggle.absent {

@@ -2833,42 +2833,60 @@ export function AttendanceManager({
     ({ member, leaderRole }) => isTeamLeaderPlusRole(leaderRole) && getMemberAttendanceStatus(member, worshipEventForDate?.id) === "present",
   ).length;
   const worshipEventIdsForDate = sameDateEvents.filter((event) => event.title === "주일 예배").map((event) => event.id);
-  const worshipGroupTotalRows =
-    worshipEventIdsForDate.length > 0
+  const groupMeetingEventIdsForDate = sameDateEvents.filter((event) => event.title === "순모임").map((event) => event.id);
+  const combinedAttendanceEventIdsForDate = [...worshipEventIdsForDate, ...groupMeetingEventIdsForDate];
+  const combinedGroupTotalRows =
+    combinedAttendanceEventIdsForDate.length > 0
       ? [
           ...attendanceVisibleGroups.map((group) => {
             const groupMembers = activeMembers.filter((member) => member.groupId === group.id);
-            const presentCount = groupMembers.filter((member) => isPresentForAnyEvent(member, worshipEventIdsForDate)).length;
+            const presentCount = groupMembers.filter((member) => isPresentForAnyEvent(member, combinedAttendanceEventIdsForDate)).length;
+            const worshipPresentCount = groupMembers.filter((member) => isPresentForAnyEvent(member, worshipEventIdsForDate)).length;
+            const groupMeetingPresentCount = groupMembers.filter((member) => isPresentForAnyEvent(member, groupMeetingEventIdsForDate)).length;
             return {
               id: group.id,
               name: group.name,
               presentCount,
+              worshipPresentCount,
+              groupMeetingPresentCount,
               totalCount: groupMembers.length,
               rate: groupMembers.length ? Math.round((presentCount / groupMembers.length) * 100) : 0,
             };
           }),
           (() => {
-            const presentCount = unassignedMembers.filter((member) => isPresentForAnyEvent(member, worshipEventIdsForDate)).length;
+            const presentCount = unassignedMembers.filter((member) => isPresentForAnyEvent(member, combinedAttendanceEventIdsForDate)).length;
+            const worshipPresentCount = unassignedMembers.filter((member) => isPresentForAnyEvent(member, worshipEventIdsForDate)).length;
+            const groupMeetingPresentCount = unassignedMembers.filter((member) => isPresentForAnyEvent(member, groupMeetingEventIdsForDate)).length;
             return {
               id: "unassigned",
               name: "미배정",
               presentCount,
+              worshipPresentCount,
+              groupMeetingPresentCount,
               totalCount: unassignedMembers.length,
               rate: unassignedMembers.length ? Math.round((presentCount / unassignedMembers.length) * 100) : 0,
             };
           })(),
         ]
       : [];
-  const attendanceGroupTotalRows = (worshipGroupTotalRows.length > 0 ? worshipGroupTotalRows : displayGroupAttendanceStats).filter(
-    (group) => group.totalCount > 0,
-  );
+  const attendanceGroupTotalRows = (combinedGroupTotalRows.length > 0 ? combinedGroupTotalRows : displayGroupAttendanceStats)
+    .filter((group) => group.totalCount > 0)
+    .map((group) => ({
+      ...group,
+      worshipPresentCount: "worshipPresentCount" in group && typeof group.worshipPresentCount === "number" ? group.worshipPresentCount : group.presentCount,
+      groupMeetingPresentCount:
+        "groupMeetingPresentCount" in group && typeof group.groupMeetingPresentCount === "number" ? group.groupMeetingPresentCount : 0,
+    }));
   const youthAttendanceTotal = attendanceGroupTotalRows.reduce((total, group) => total + group.presentCount, 0);
+  const youthWorshipAttendanceTotal = attendanceGroupTotalRows.reduce((total, group) => total + group.worshipPresentCount, 0);
+  const youthGroupMeetingAttendanceTotal = attendanceGroupTotalRows.reduce((total, group) => total + group.groupMeetingPresentCount, 0);
   const externalAttendanceTotal =
     clergyAttendanceCount +
     teamLeaderPlusAttendanceCount +
     attendanceExtraValues.visitorCount +
     attendanceExtraValues.newFamilyCount;
   const totalAttendanceWithExtras = youthAttendanceTotal + externalAttendanceTotal;
+  const totalWorshipAttendanceWithExtras = youthWorshipAttendanceTotal + externalAttendanceTotal;
   const displayEventTrend = attendanceStats?.eventTrend ?? eventTrend;
   const aggregateStatsFromTrend = Object.values(
     (attendanceStats?.eventGroupTrend ?? []).reduce<
@@ -3158,19 +3176,27 @@ export function AttendanceManager({
             <div>
               <span className="eyebrow">예배 총 출석 집계</span>
               <h2>{attendanceDate}</h2>
-              <p>순별 주일 예배 출석에 교역자/팀장 이상/방문자/새가족을 더해 예배 총 출석을 계산합니다.</p>
+              <p>순별 예배 또는 순모임 출석에 교역자/팀장 이상/방문자/새가족을 더해 총 출석을 계산합니다.</p>
             </div>
           </div>
           <div className="attendance-total-hero-grid">
             <article className="attendance-total-hero-card primary">
               <span>예배 총 출석</span>
               <strong>{totalAttendanceWithExtras}</strong>
-              <small>청년 + 교역자/팀장 이상 + 방문자 + 새가족</small>
+              <small>청년 하나 이상 출석 + 교역자/팀장 이상 + 방문자 + 새가족</small>
+              <div className="attendance-total-substats" aria-label="예배 총 출석 세부 수치">
+                <span>예배 {totalWorshipAttendanceWithExtras}</span>
+                <span>순모임 {youthGroupMeetingAttendanceTotal}</span>
+              </div>
             </article>
             <article className="attendance-total-hero-card">
-              <span>청년 예배 출석</span>
+              <span>청년 출석</span>
               <strong>{youthAttendanceTotal}</strong>
-              <small>순별 주일 예배 출석 합계</small>
+              <small>예배 또는 순모임 중 하나 이상 출석</small>
+              <div className="attendance-total-substats" aria-label="청년 출석 세부 수치">
+                <span>예배 {youthWorshipAttendanceTotal}</span>
+                <span>순모임 {youthGroupMeetingAttendanceTotal}</span>
+              </div>
             </article>
           </div>
           <div className="attendance-total-breakdown" aria-label="예배 총 출석 세부 집계">
@@ -3196,6 +3222,9 @@ export function AttendanceManager({
               <div className="attendance-total-chip" key={group.id}>
                 <span>{group.name}</span>
                 <strong>{group.presentCount}</strong>
+                <small>
+                  예배 {group.worshipPresentCount} · 순모임 {group.groupMeetingPresentCount}
+                </small>
               </div>
             ))}
           </div>
