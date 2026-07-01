@@ -236,6 +236,7 @@ type AppPageKind =
   | "audit"
   | "feedback"
   | "new-family"
+  | "calendar"
   | "links";
 
 type AppPageDataOptions = {

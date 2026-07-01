@@ -69,6 +69,7 @@ const profilePageSource = readFileSync(new URL("../src/app/profile/page.tsx", im
 const sectionNavSource = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
 const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const newFamilyPageSource = readFileSync(new URL("../src/app/new-family/page.tsx", import.meta.url), "utf8");
+const calendarPageSource = readFileSync(new URL("../src/app/calendar/page.tsx", import.meta.url), "utf8");
 const newFamilySyncSource = readFileSync(new URL("../src/lib/new-family-sync.ts", import.meta.url), "utf8");
 const newFamilyCronSource = readFileSync(new URL("../src/app/api/cron/sync-new-family/route.ts", import.meta.url), "utf8");
 const vercelConfigSource = readFileSync(new URL("../vercel.json", import.meta.url), "utf8");
@@ -236,6 +237,7 @@ test("pages expose section navigation anchors for operator workflows", () => {
 test("app chrome uses compact emoji accents without replacing labels", () => {
   assert.match(uiEmojisSource, /getPageEmoji/);
   assert.match(uiEmojisSource, /getSectionEmoji/);
+  assert.match(uiEmojisSource, /캘린더: "🗓️"/);
   assert.match(sectionNavSource, /section-nav-emoji/);
   assert.match(mobileAwareNavSource, /nav-emoji/);
   assert.match(dashboardSource, /page-title-emoji/);
@@ -473,6 +475,7 @@ test("mobile navigation collapses into an expandable dropdown", () => {
 test("primary navigation hides pages without the current role permission", () => {
   assert.match(layoutSource, /const navRole = await getCurrentNavRole\(\)/);
   assert.match(layoutSource, /const visibleNavItems = getVisibleNavItems\(navRole\)/);
+  assert.match(navigationSource, /\{ href: "\/calendar", label: "캘린더" \}/);
   assert.match(navigationSource, /requiredPermission: "new-family:read"/);
   assert.match(navigationSource, /requiredPermission: "attendance:read"/);
   assert.match(navigationSource, /requiredPermission: "roles:manage"/);
@@ -482,6 +485,19 @@ test("primary navigation hides pages without the current role permission", () =>
   assert.match(navigationSource, /item\.hiddenForRoles\?\.includes\(role\)/);
   assert.match(navigationSource, /hasPermission\(role, item\.requiredPermission\)/);
   assert.doesNotMatch(mobileAwareNavSource, /const navItems = \[/);
+});
+
+test("calendar page is available to every role with shared birthdays and worship events", () => {
+  assert.match(appPageDataSource, /\| "calendar"/);
+  assert.match(calendarPageSource, /getAppPageData\(\{ page: "calendar" \}\)/);
+  assert.match(calendarPageSource, /<CalendarPageContent/);
+  assert.match(dashboardSource, /export function CalendarPageContent/);
+  assert.match(dashboardSource, /globalStats\?\.dashboardInsights\.birthdayMonths/);
+  assert.match(dashboardSource, /event\.title !== "주일 예배"/);
+  assert.match(dashboardSource, /day\.date\.getDay\(\) === 0/);
+  assert.match(dashboardSource, /hasPermission\(user\.role, "roles:manage"\)/);
+  assert.match(globalCssSource, /\.calendar-month-grid/);
+  assert.match(globalCssSource, /:root\[data-theme="dark"\] \.calendar-day-card/);
 });
 
 test("global styles include sharper control radius pass", () => {

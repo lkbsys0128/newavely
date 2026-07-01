@@ -827,6 +827,292 @@ function getCustomFieldString(member: Member, key: string) {
   return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
 }
 
+type CalendarDay = {
+  date: Date;
+  dateKey: string;
+  day: number;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+};
+
+type CalendarEventItem = {
+  id: string;
+  dateKey: string;
+  type: "birthday" | "worship";
+  title: string;
+  meta: string;
+  href?: string;
+  isPlanned?: boolean;
+};
+
+export function CalendarPageContent({ user, members, groups, attendanceEvents = [], globalStats }: AppDataProps) {
+  const todayKey = useMemo(() => formatCalendarDateKey(new Date()), []);
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  const canManageCalendar = hasPermission(user.role, "roles:manage");
+  const monthYear = visibleMonth.getFullYear();
+  const monthIndex = visibleMonth.getMonth();
+  const monthNumber = monthIndex + 1;
+  const monthLabel = formatCalendarMonthLabel(visibleMonth);
+  const birthdayMonths =
+    globalStats?.dashboardInsights.birthdayMonths ??
+    buildDashboardInsights(
+      members.filter((member) => member.status !== "inactive" && !isStatsExcludedMember(member)),
+      groups,
+    ).birthdayMonths;
+  const birthdaysByDay = useMemo(() => {
+    const bucket = birthdayMonths[monthIndex]?.members ?? [];
+    const nextMap = new Map<number, BirthdayInsightMember[]>();
+
+    for (const member of bucket) {
+      const current = nextMap.get(member.day) ?? [];
+      current.push(member);
+      nextMap.set(member.day, current);
+    }
+
+    return nextMap;
+  }, [birthdayMonths, monthIndex]);
+  const worshipEventsByDate = useMemo(() => {
+    const nextMap = new Map<string, AttendanceEvent>();
+
+    for (const event of attendanceEvents) {
+      if (event.title !== "주일 예배") continue;
+      if (!nextMap.has(event.eventDate)) nextMap.set(event.eventDate, event);
+    }
+
+    return nextMap;
+  }, [attendanceEvents]);
+  const calendarDays = useMemo(() => buildCalendarDays(monthYear, monthIndex, todayKey), [monthYear, monthIndex, todayKey]);
+  const eventsByDate = useMemo(() => {
+    const nextMap = new Map<string, CalendarEventItem[]>();
+
+    for (const day of calendarDays) {
+      if (!day.isCurrentMonth) continue;
+
+      const birthdays = birthdaysByDay.get(day.day) ?? [];
+      for (const birthday of birthdays) {
+        addCalendarEvent(nextMap, {
+          id: `birthday-${day.dateKey}-${birthday.id}`,
+          dateKey: day.dateKey,
+          type: "birthday",
+          title: birthday.name,
+          meta: birthday.meta ?? `${day.day}일 생일`,
+          href: canManageCalendar ? `/members?memberId=${birthday.id}` : undefined,
+        });
+      }
+
+      if (day.date.getDay() === 0) {
+        const worshipEvent = worshipEventsByDate.get(day.dateKey);
+        addCalendarEvent(nextMap, {
+          id: `worship-${day.dateKey}`,
+          dateKey: day.dateKey,
+          type: "worship",
+          title: "주일 예배",
+          meta: worshipEvent ? "출석 이벤트 연결됨" : "예정",
+          href: worshipEvent && canManageCalendar ? `/attendance?eventId=${worshipEvent.id}` : canManageCalendar ? "/attendance#event-setup" : undefined,
+          isPlanned: !worshipEvent,
+        });
+      }
+    }
+
+    return nextMap;
+  }, [birthdaysByDay, calendarDays, canManageCalendar, worshipEventsByDate]);
+  const monthEvents = useMemo(
+    () =>
+      [...eventsByDate.values()]
+        .flat()
+        .sort((first, second) => first.dateKey.localeCompare(second.dateKey) || calendarEventSortOrder(first) - calendarEventSortOrder(second)),
+    [eventsByDate],
+  );
+  const birthdayEventCount = monthEvents.filter((event) => event.type === "birthday").length;
+  const worshipEventCount = monthEvents.filter((event) => event.type === "worship").length;
+
+  function moveMonth(offset: number) {
+    setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+  }
+
+  function showToday() {
+    const today = new Date();
+    setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+  }
+
+  return (
+    <>
+      <PageHeader eyebrow="공동체 일정" title="캘린더" user={user}>
+        <span className="status-pill active">{monthNumber}월 일정</span>
+      </PageHeader>
+
+      <SectionNav
+        items={[
+          { href: "#calendar-month", label: "월간" },
+          { href: "#calendar-list", label: "일정 목록" },
+        ]}
+      />
+
+      <section className="calendar-layout" id="calendar-month">
+        <div className="panel calendar-panel">
+          <div className="calendar-toolbar">
+            <div className="calendar-title-block">
+              <span>Birthdays & Worship</span>
+              <strong>{monthLabel}</strong>
+            </div>
+            <div className="calendar-controls" aria-label="캘린더 월 이동">
+              <button className="secondary-button compact-button" type="button" onClick={() => moveMonth(-1)}>
+                이전
+              </button>
+              <button className="secondary-button compact-button" type="button" onClick={showToday}>
+                오늘
+              </button>
+              <button className="secondary-button compact-button" type="button" onClick={() => moveMonth(1)}>
+                다음
+              </button>
+            </div>
+          </div>
+
+          <div className="calendar-month-scroll">
+            <div className="calendar-weekdays" aria-hidden="true">
+              {["일", "월", "화", "수", "목", "금", "토"].map((weekday) => (
+                <span key={weekday}>{weekday}</span>
+              ))}
+            </div>
+            <div className="calendar-month-grid">
+              {calendarDays.map((day) => {
+                const events = eventsByDate.get(day.dateKey) ?? [];
+                return (
+                  <article
+                    className={`calendar-day-card${day.isCurrentMonth ? "" : " outside"}${day.isToday ? " today" : ""}`}
+                    key={day.dateKey}
+                  >
+                    <div className="calendar-day-heading">
+                      <strong>{day.day}</strong>
+                      {day.isToday ? <span>오늘</span> : null}
+                    </div>
+                    <div className="calendar-event-stack">
+                      {events.slice(0, 3).map((event) => (
+                        <CalendarEventBadge canManage={canManageCalendar} event={event} key={event.id} />
+                      ))}
+                      {events.length > 3 ? <span className="calendar-more-event">+{events.length - 3}</span> : null}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <aside className="calendar-summary-panel">
+          <article className="panel calendar-mini-panel">
+            <div className="panel-heading">
+              <div>
+                <h2>이번 달 요약</h2>
+                <span>{monthLabel}</span>
+              </div>
+            </div>
+            <div className="calendar-summary-grid">
+              <div>
+                <span>생일</span>
+                <strong>{birthdayEventCount}</strong>
+              </div>
+              <div>
+                <span>주일 예배</span>
+                <strong>{worshipEventCount}</strong>
+              </div>
+            </div>
+          </article>
+
+          <article className="panel calendar-mini-panel" id="calendar-list">
+            <div className="panel-heading">
+              <div>
+                <h2>일정 목록</h2>
+                <span>날짜순으로 정리</span>
+              </div>
+            </div>
+            <div className="calendar-list">
+              {monthEvents.length ? (
+                monthEvents.map((event) => (
+                  <div className="calendar-list-row" key={`${event.dateKey}-${event.id}`}>
+                    <div>
+                      <strong>{formatCalendarListDate(event.dateKey)}</strong>
+                      <CalendarEventBadge canManage={canManageCalendar} event={event} />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state compact-empty-state">이번 달에 표시할 일정이 없습니다.</div>
+              )}
+            </div>
+          </article>
+        </aside>
+      </section>
+    </>
+  );
+}
+
+function CalendarEventBadge({ event, canManage }: { event: CalendarEventItem; canManage: boolean }) {
+  const content = (
+    <>
+      <span className="calendar-event-dot" aria-hidden="true" />
+      <span className="calendar-event-title">{event.title}</span>
+      <small>{event.meta}</small>
+      {event.isPlanned ? <em>예정</em> : null}
+    </>
+  );
+
+  if (event.href && canManage) {
+    return (
+      <Link className={`calendar-event ${event.type}`} href={event.href}>
+        {content}
+      </Link>
+    );
+  }
+
+  return <span className={`calendar-event ${event.type}`}>{content}</span>;
+}
+
+function buildCalendarDays(year: number, monthIndex: number, todayKey: string): CalendarDay[] {
+  const firstDay = new Date(year, monthIndex, 1);
+  const startDate = new Date(year, monthIndex, 1 - firstDay.getDay());
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + index);
+    const dateKey = formatCalendarDateKey(date);
+
+    return {
+      date,
+      dateKey,
+      day: date.getDate(),
+      isCurrentMonth: date.getMonth() === monthIndex,
+      isToday: dateKey === todayKey,
+    };
+  });
+}
+
+function addCalendarEvent(eventsByDate: Map<string, CalendarEventItem[]>, event: CalendarEventItem) {
+  const current = eventsByDate.get(event.dateKey) ?? [];
+  current.push(event);
+  eventsByDate.set(event.dateKey, current);
+}
+
+function calendarEventSortOrder(event: CalendarEventItem) {
+  return event.type === "worship" ? 0 : 1;
+}
+
+function formatCalendarDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function formatCalendarMonthLabel(date: Date) {
+  return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long" }).format(date);
+}
+
+function formatCalendarListDate(dateKey: string) {
+  const [, month, day] = dateKey.split("-");
+  return `${Number(month)}월 ${Number(day)}일`;
+}
+
 export function MembersManager({ user, members, groups }: AppDataProps) {
   const [filters, setFilters] = useState<MemberFilters>(defaultMemberFilters);
   const [selectedMemberId, setSelectedMemberId] = useState("");

@@ -1,5 +1,6 @@
 const pageEmojis: Record<string, string> = {
   "감사 로그": "🧾",
+  캘린더: "🗓️",
   권한: "🛡️",
   대시보드: "🏡",
   링크: "🔗",
