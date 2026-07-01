@@ -2624,6 +2624,7 @@ export function AttendanceManager({
   const [extraCountState, extraCountAction, isSavingExtraCounts] = useActionState(updateAttendanceExtraCounts, initialActionState);
   const [isPending, startTransition] = useTransition();
   const canManageAttendance = hasPermission(user.role, "attendance:write");
+  const canReadAttendanceTotals = hasPermission(user.role, "attendance:read");
   const canManageAttendanceExtraCounts = hasPermission(user.role, "attendance:extras:write");
   const isWelcomeAttendanceOnly = user.role === "welcome";
   const canDeleteAttendanceEvents = canUseDeleteActions(user.role);
@@ -3170,7 +3171,7 @@ export function AttendanceManager({
         />
       ) : null}
 
-      {canManageAttendanceExtraCounts ? (
+      {canReadAttendanceTotals ? (
         <section className="attendance-total-panel pinned-attendance-total" aria-label="예배 총 출석 집계">
           <div className="attendance-total-heading">
             <div>
