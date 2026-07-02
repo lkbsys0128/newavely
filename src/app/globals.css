@@ -2237,6 +2237,11 @@ h3 {
   background: rgba(47, 145, 181, 0.08);
 }
 
+.calendar-event.custom {
+  border-color: rgba(37, 166, 138, 0.24);
+  background: rgba(235, 249, 244, 0.92);
+}
+
 .calendar-event-dot {
   flex: 0 0 auto;
   width: 7px;
@@ -2247,6 +2252,10 @@ h3 {
 
 .calendar-event.birthday .calendar-event-dot {
   background: #d49431;
+}
+
+.calendar-event.custom .calendar-event-dot {
+  background: var(--accent-3);
 }
 
 .calendar-event-title,
@@ -2283,7 +2292,7 @@ h3 {
 
 .calendar-summary-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -2333,6 +2342,59 @@ h3 {
 
 .compact-empty-state {
   padding: 14px;
+}
+
+.calendar-event-editor {
+  border-color: rgba(47, 145, 181, 0.24);
+}
+
+.calendar-event-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.calendar-event-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.calendar-event-form input,
+.calendar-event-form select,
+.calendar-event-form textarea {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 11px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-weight: 750;
+}
+
+.calendar-event-form textarea {
+  min-height: 78px;
+  resize: vertical;
+}
+
+.calendar-editor-actions,
+.calendar-list-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.calendar-editor-actions button,
+.calendar-list-actions button {
+  min-width: 72px;
+}
+
+.calendar-list-actions form {
+  margin: 0;
 }
 
 .person-block {
@@ -6700,18 +6762,93 @@ tbody tr:hover {
     width: 100%;
   }
 
+  .calendar-month-scroll {
+    overflow-x: visible;
+  }
+
   .calendar-weekdays,
   .calendar-month-grid {
-    grid-template-columns: repeat(7, minmax(82px, 1fr));
-    min-width: 620px;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    min-width: 0;
   }
 
   .calendar-day-card {
-    min-height: 104px;
+    min-height: 64px;
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .calendar-weekdays {
+    gap: 3px;
+  }
+
+  .calendar-month-grid {
+    gap: 4px;
+  }
+
+  .calendar-weekdays span {
+    font-size: 0.66rem;
+  }
+
+  .calendar-day-heading strong {
+    font-size: 0.78rem;
+  }
+
+  .calendar-day-heading span {
+    display: none;
+  }
+
+  .calendar-event-stack {
+    gap: 3px;
+  }
+
+  .calendar-event {
+    justify-content: center;
+    gap: 3px;
+    min-height: 17px;
+    border-radius: 4px;
+    padding: 2px 3px;
+    font-size: 0.55rem;
+  }
+
+  .calendar-event-dot,
+  .calendar-event small,
+  .calendar-event em {
+    display: none;
+  }
+
+  .calendar-event-title {
+    flex: 0 1 auto;
+    max-width: 100%;
+  }
+
+  .calendar-more-event {
+    padding: 1px 3px;
+    font-size: 0.54rem;
   }
 
   .calendar-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .calendar-summary-grid div {
+    padding: 10px 8px;
+  }
+
+  .calendar-event-form {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-editor-actions,
+  .calendar-list-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .calendar-editor-actions button,
+  .calendar-list-actions button,
+  .calendar-list-actions form {
+    width: 100%;
   }
 }
 
@@ -6932,7 +7069,10 @@ tbody tr:hover {
 :root[data-theme="dark"] .attendance-toolbar select,
 :root[data-theme="dark"] .event-toolbar input,
 :root[data-theme="dark"] .event-toolbar select,
-:root[data-theme="dark"] .event-selector-panel select {
+:root[data-theme="dark"] .event-selector-panel select,
+:root[data-theme="dark"] .calendar-event-form input,
+:root[data-theme="dark"] .calendar-event-form select,
+:root[data-theme="dark"] .calendar-event-form textarea {
   background: var(--surface-strong);
   color: var(--ink);
   border-color: var(--line);
@@ -7099,6 +7239,11 @@ tbody tr:hover {
 :root[data-theme="dark"] .calendar-event.worship {
   border-color: rgba(93, 213, 238, 0.22);
   background: rgba(93, 213, 238, 0.08);
+}
+
+:root[data-theme="dark"] .calendar-event.custom {
+  border-color: rgba(102, 210, 164, 0.22);
+  background: rgba(102, 210, 164, 0.08);
 }
 
 :root[data-theme="dark"] .calendar-weekdays span,

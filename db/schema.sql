@@ -53,6 +53,17 @@ create table attendance_events (
   created_at timestamptz not null default now()
 );
 
+create table calendar_events (
+  id uuid primary key default gen_random_uuid(),
+  event_date date not null,
+  title text not null,
+  description text,
+  event_type text not null default 'event' check (event_type in ('event', 'meeting', 'notice')),
+  created_by_member_id uuid references members(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table attendance_records (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references attendance_events(id) on delete cascade,
@@ -168,6 +179,7 @@ create index deleted_auth_users_created_at_idx on deleted_auth_users(created_at 
 create index deleted_auth_users_deleted_member_id_idx on deleted_auth_users(deleted_member_id);
 create index attendance_records_event_idx on attendance_records(event_id);
 create index attendance_records_member_idx on attendance_records(member_id);
+create index calendar_events_event_date_idx on calendar_events(event_date, created_at);
 create index attendance_extra_counts_updated_at_idx on attendance_extra_counts(updated_at desc);
 create index care_followups_member_idx on care_followups(member_id);
 create index care_followups_status_idx on care_followups(status);
@@ -187,6 +199,7 @@ alter table groups enable row level security;
 alter table members enable row level security;
 alter table deleted_auth_users enable row level security;
 alter table attendance_events enable row level security;
+alter table calendar_events enable row level security;
 alter table attendance_records enable row level security;
 alter table attendance_extra_counts enable row level security;
 alter table member_custom_field_definitions enable row level security;
@@ -417,6 +430,27 @@ on attendance_events for all
 to authenticated
 using (can_manage_attendance_events())
 with check (can_manage_attendance_events());
+
+create policy "authenticated users can read calendar events"
+on calendar_events for select
+to authenticated
+using (true);
+
+create policy "owners and admins can insert calendar events"
+on calendar_events for insert
+to authenticated
+with check (current_member_role() in ('owner', 'admin'));
+
+create policy "owners and admins can update calendar events"
+on calendar_events for update
+to authenticated
+using (current_member_role() in ('owner', 'admin'))
+with check (current_member_role() in ('owner', 'admin'));
+
+create policy "owners and admins can delete calendar events"
+on calendar_events for delete
+to authenticated
+using (current_member_role() in ('owner', 'admin'));
 
 create policy "authorized users can read attendance records"
 on attendance_records for select

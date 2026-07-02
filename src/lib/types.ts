@@ -33,6 +33,17 @@ export type AttendanceEvent = {
   title: string;
 };
 
+export type CalendarEvent = {
+  id: string;
+  eventDate: string;
+  title: string;
+  description: string;
+  eventType: "event" | "meeting" | "notice";
+  createdByName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AttendanceRecordSummary = {
   eventId: string;
   eventDate: string;

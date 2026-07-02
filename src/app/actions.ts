@@ -88,6 +88,21 @@ const deleteImportantLinkSchema = z.object({
   id: z.string().uuid(),
 });
 
+const calendarEventSchema = z.object({
+  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "날짜를 선택해주세요."),
+  title: z.string().trim().min(1, "일정 이름을 입력해주세요.").max(80, "일정 이름은 80자 이내로 적어주세요."),
+  description: nullableText,
+  eventType: z.enum(["event", "meeting", "notice"]),
+});
+
+const updateCalendarEventSchema = calendarEventSchema.extend({
+  id: z.string().uuid(),
+});
+
+const deleteCalendarEventSchema = z.object({
+  id: z.string().uuid(),
+});
+
 const memberStatusMessageSchema = z.object({
   message: z.string().trim().max(80, "한마디는 80자 이내로 적어주세요."),
 });
@@ -474,6 +489,7 @@ function revalidateAppData() {
   revalidatePath("/members");
   revalidatePath("/groups");
   revalidatePath("/attendance");
+  revalidatePath("/calendar");
   revalidatePath("/links");
   revalidatePath("/feedback");
   revalidatePath("/new-family");
@@ -2290,6 +2306,107 @@ export async function deleteImportantLink(_previousState: ActionState, formData:
     });
     revalidateAppData();
     return "링크를 삭제했습니다.";
+  });
+}
+
+export async function createCalendarEvent(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = calendarEventSchema.parse({
+      eventDate: formData.get("eventDate"),
+      title: formData.get("title"),
+      description: formData.get("description"),
+      eventType: formData.get("eventType"),
+    });
+
+    const { data: inserted, error } = await supabase
+      .from("calendar_events")
+      .insert({
+        event_date: parsed.eventDate,
+        title: parsed.title,
+        description: parsed.description,
+        event_type: parsed.eventType,
+        created_by_member_id: currentMember.id,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "calendar_event.create",
+      targetTable: "calendar_events",
+      targetId: inserted.id as string,
+      afterData: inserted as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "캘린더 일정을 추가했습니다.";
+  });
+}
+
+export async function updateCalendarEvent(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = updateCalendarEventSchema.parse({
+      id: formData.get("id"),
+      eventDate: formData.get("eventDate"),
+      title: formData.get("title"),
+      description: formData.get("description"),
+      eventType: formData.get("eventType"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase.from("calendar_events").select("*").eq("id", parsed.id).single();
+    if (beforeError) throw beforeError;
+
+    const { data: updated, error } = await supabase
+      .from("calendar_events")
+      .update({
+        event_date: parsed.eventDate,
+        title: parsed.title,
+        description: parsed.description,
+        event_type: parsed.eventType,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    await writeAuditLog({
+      supabase,
+      action: "calendar_event.update",
+      targetTable: "calendar_events",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+      afterData: updated as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "캘린더 일정을 수정했습니다.";
+  });
+}
+
+export async function deleteCalendarEvent(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("roles:manage");
+    const parsed = deleteCalendarEventSchema.parse({
+      id: formData.get("id"),
+    });
+
+    const { data: beforeData, error: beforeError } = await supabase.from("calendar_events").select("*").eq("id", parsed.id).single();
+    if (beforeError) throw beforeError;
+
+    const { error } = await supabase.from("calendar_events").delete().eq("id", parsed.id);
+    if (error) throw error;
+
+    await writeAuditLog({
+      supabase,
+      action: "calendar_event.delete",
+      targetTable: "calendar_events",
+      targetId: parsed.id,
+      beforeData: beforeData as Record<string, unknown>,
+    });
+    revalidateAppData();
+    return "캘린더 일정을 삭제했습니다.";
   });
 }
 

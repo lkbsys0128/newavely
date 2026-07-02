@@ -49,6 +49,7 @@ const publicDashboardCommunityLeaderRoleSource = readFileSync(
   "utf8",
 );
 const assistantRoleSource = readFileSync(new URL("../db/037_assistant_role.sql", import.meta.url), "utf8");
+const calendarEventsSource = readFileSync(new URL("../db/038_calendar_events.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const rbacSource = readFileSync(new URL("../src/lib/rbac.ts", import.meta.url), "utf8");
@@ -372,7 +373,7 @@ test("app page data avoids avoidable serial fetches", () => {
   assert.match(appPageDataSource, /const shouldLoadAuditLogs = page === "audit"/);
   assert.match(appPageDataSource, /const shouldLoadImportantLinks = page === "links"/);
   assert.match(appPageDataSource, /const shouldLoadMemberStatusMessages = page === "dashboard"/);
-  assert.match(appPageDataSource, /const \[\s*allCustomFieldDefinitions,\s*auditLogs,\s*deletedAuthUsers,\s*importantLinks,\s*memberStatusMessagesData,\s*adminFeedbackMessages,\s*memberLinkRequests,\s*newFamilyApplicants,\s*attendanceExtraCounts,\s*\] = await Promise\.all/);
+  assert.match(appPageDataSource, /const \[\s*allCustomFieldDefinitions,\s*auditLogs,\s*deletedAuthUsers,\s*importantLinks,\s*memberStatusMessagesData,\s*adminFeedbackMessages,\s*memberLinkRequests,\s*newFamilyApplicants,\s*calendarEvents,\s*attendanceExtraCounts,\s*\] = await Promise\.all/);
   assert.match(appPageDataSource, /shouldLoadAuditLogs && canManageRoles \? getAuditLogs\(supabase\) : Promise\.resolve\(undefined\)/);
   assert.match(homePageSource, /getAppPageData\(\{ page: "dashboard" \}\)/);
   assert.match(profilePageSource, /getAppPageData\(\{ page: "profile" \}\)/);
@@ -492,11 +493,23 @@ test("calendar page is available to every role with shared birthdays and worship
   assert.match(calendarPageSource, /getAppPageData\(\{ page: "calendar" \}\)/);
   assert.match(calendarPageSource, /<CalendarPageContent/);
   assert.match(dashboardSource, /export function CalendarPageContent/);
+  assert.match(appPageDataSource, /shouldLoadCalendarEvents = page === "calendar"/);
+  assert.match(dataSource, /getCalendarEvents/);
+  assert.match(actionsSource, /createCalendarEvent/);
+  assert.match(actionsSource, /updateCalendarEvent/);
+  assert.match(actionsSource, /deleteCalendarEvent/);
+  assert.match(actionsSource, /getAuthorizedCurrentMember\("roles:manage"\)/);
   assert.match(dashboardSource, /globalStats\?\.dashboardInsights\.birthdayMonths/);
   assert.match(dashboardSource, /event\.title !== "주일 예배"/);
   assert.match(dashboardSource, /day\.date\.getDay\(\) === 0/);
   assert.match(dashboardSource, /hasPermission\(user\.role, "roles:manage"\)/);
+  assert.match(dashboardSource, /calendarEvents = \[\]/);
+  assert.match(dashboardSource, /일정 추가/);
+  assert.match(schemaSource, /create table calendar_events/);
+  assert.match(calendarEventsSource, /alter table calendar_events enable row level security/);
+  assert.match(calendarEventsSource, /owners and admins can insert calendar events/);
   assert.match(globalCssSource, /\.calendar-month-grid/);
+  assert.match(globalCssSource, /@media \(max-width: 760px\)[\s\S]*\.calendar-weekdays,[\s\S]*\.calendar-month-grid \{[\s\S]*grid-template-columns: repeat\(7, minmax\(0, 1fr\)\)/);
   assert.match(globalCssSource, /:root\[data-theme="dark"\] \.calendar-day-card/);
 });
 

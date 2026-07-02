@@ -15,6 +15,7 @@ export default async function CalendarPage() {
           members={readyData.members}
           groups={readyData.groups}
           attendanceEvents={readyData.attendanceEvents}
+          calendarEvents={readyData.calendarEvents}
           globalStats={readyData.globalStats}
         />
       )}
