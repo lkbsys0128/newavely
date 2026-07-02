@@ -14,6 +14,7 @@ export const navItems: NavItem[] = [
   { href: "/new-family", label: "새가족", requiredPermission: "new-family:read" },
   { href: "/groups", label: "순", requiredPermission: "groups:read", hiddenForRoles: ["assistant", "welcome", "member"] },
   { href: "/attendance", label: "출석", requiredPermission: "attendance:read" },
+  { href: "/calendar", label: "캘린더" },
   { href: "/links", label: "링크", requiredPermission: "links:read" },
   { href: "/feedback", label: "피드백" },
   { href: "/permissions", label: "권한" },
