@@ -2341,7 +2341,7 @@ h3 {
   gap: 5px;
 }
 
-.calendar-day-detail-item strong {
+.calendar-day-detail-item > div > strong {
   color: var(--ink);
   font-size: 1rem;
   font-weight: 950;
@@ -2358,10 +2358,25 @@ h3 {
 }
 
 .calendar-day-detail-type {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   color: var(--accent-dark);
   font-size: 0.72rem;
   font-weight: 950;
-  text-transform: uppercase;
+}
+
+.calendar-day-detail-type strong {
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: rgba(47, 145, 181, 0.1);
+  color: var(--accent-dark);
+  font-size: 0.68rem;
+}
+
+.calendar-day-detail-type span {
+  color: var(--muted);
 }
 
 .calendar-summary-panel {
