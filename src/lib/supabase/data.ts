@@ -4,6 +4,7 @@ import type {
   AttendanceExtraCount,
   AttendanceEvent,
   AuditLog,
+  CalendarEvent,
   CareFollowup,
   CustomFieldDefinition,
   DeletedAuthUser,
@@ -112,6 +113,17 @@ type DbAttendanceEvent = {
   id: string;
   event_date: string;
   title: string;
+};
+
+type DbCalendarEvent = {
+  id: string;
+  event_date: string;
+  title: string;
+  description: string | null;
+  event_type: CalendarEvent["eventType"] | null;
+  created_at: string;
+  updated_at: string;
+  creator?: { name: string | null } | Array<{ name: string | null }> | null;
 };
 
 type DbCustomFieldDefinition = {
@@ -762,6 +774,33 @@ export async function getImportantLinks(supabase: SupabaseClient): Promise<Impor
       iconKey: link.icon_key ?? "default",
       createdByName: creator?.name ?? "알 수 없음",
       createdAt: link.created_at,
+    };
+  });
+}
+
+export async function getCalendarEvents(supabase: SupabaseClient): Promise<CalendarEvent[]> {
+  const { data, error } = await supabase
+    .from("calendar_events")
+    .select("id, event_date, title, description, event_type, created_at, updated_at, creator:members!calendar_events_created_by_member_id_fkey(name)")
+    .order("event_date", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  return ((data ?? []) as unknown as DbCalendarEvent[]).map((event) => {
+    const creator = Array.isArray(event.creator) ? event.creator[0] : event.creator;
+    return {
+      id: event.id,
+      eventDate: event.event_date,
+      title: event.title,
+      description: event.description ?? "",
+      eventType: event.event_type ?? "event",
+      createdByName: creator?.name ?? "알 수 없음",
+      createdAt: event.created_at,
+      updatedAt: event.updated_at,
     };
   });
 }

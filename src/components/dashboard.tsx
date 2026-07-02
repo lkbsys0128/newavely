@@ -6,11 +6,13 @@ import { useActionState, useEffect, useMemo, useState, useTransition, type React
 import {
   createAttendanceEvent,
   createAdminFeedbackMessage,
+  createCalendarEvent,
   createGroup,
   createImportantLink,
   createMember,
   convertNewFamilyApplicantToMember,
   deleteAttendanceEvent,
+  deleteCalendarEvent,
   deleteGroup,
   deleteImportantLink,
   deleteMemberPermanently,
@@ -28,6 +30,7 @@ import {
   updateAttendanceExtraCounts,
   updateAttendanceReason,
   updateAdminFeedbackMessage,
+  updateCalendarEvent,
   updateGroup,
   updateMember,
   updateMemberRole,
@@ -41,6 +44,7 @@ import type {
   AttendanceExtraCount,
   AttendanceEvent,
   AuditLog,
+  CalendarEvent,
   DeletedAuthUser,
   Group,
   ImportantLink,
@@ -78,6 +82,7 @@ type AppDataProps = {
   members: Member[];
   groups: Group[];
   attendanceEvents?: AttendanceEvent[];
+  calendarEvents?: CalendarEvent[];
   attendanceExtraCounts?: AttendanceExtraCount[];
   memberLinkRequests?: MemberLinkRequest[];
   deletedAuthUsers?: DeletedAuthUser[];
@@ -838,20 +843,31 @@ type CalendarDay = {
 type CalendarEventItem = {
   id: string;
   dateKey: string;
-  type: "birthday" | "worship";
+  type: "birthday" | "worship" | "custom";
   title: string;
   meta: string;
   href?: string;
   isPlanned?: boolean;
+  sourceEvent?: CalendarEvent;
 };
 
-export function CalendarPageContent({ user, members, groups, attendanceEvents = [], globalStats }: AppDataProps) {
+const calendarEventTypeLabels: Record<CalendarEvent["eventType"], string> = {
+  event: "일정",
+  meeting: "모임",
+  notice: "공지",
+};
+
+export function CalendarPageContent({ user, members, groups, attendanceEvents = [], calendarEvents = [], globalStats }: AppDataProps) {
   const todayKey = useMemo(() => formatCalendarDateKey(new Date()), []);
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
   const canManageCalendar = hasPermission(user.role, "roles:manage");
+  const [editingCalendarEvent, setEditingCalendarEvent] = useState<CalendarEvent | null>(null);
+  const [createCalendarEventState, createCalendarEventAction, isCreatingCalendarEvent] = useActionState(createCalendarEvent, initialActionState);
+  const [updateCalendarEventState, updateCalendarEventAction, isUpdatingCalendarEvent] = useActionState(updateCalendarEvent, initialActionState);
+  const [deleteCalendarEventState, deleteCalendarEventAction, isDeletingCalendarEvent] = useActionState(deleteCalendarEvent, initialActionState);
   const monthYear = visibleMonth.getFullYear();
   const monthIndex = visibleMonth.getMonth();
   const monthNumber = monthIndex + 1;
@@ -915,10 +931,21 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
           isPlanned: !worshipEvent,
         });
       }
+
+      for (const event of calendarEvents.filter((calendarEvent) => calendarEvent.eventDate === day.dateKey)) {
+        addCalendarEvent(nextMap, {
+          id: `calendar-${event.id}`,
+          dateKey: event.eventDate,
+          type: "custom",
+          title: event.title,
+          meta: calendarEventTypeLabels[event.eventType],
+          sourceEvent: event,
+        });
+      }
     }
 
     return nextMap;
-  }, [birthdaysByDay, calendarDays, canManageCalendar, worshipEventsByDate]);
+  }, [birthdaysByDay, calendarDays, calendarEvents, canManageCalendar, worshipEventsByDate]);
   const monthEvents = useMemo(
     () =>
       [...eventsByDate.values()]
@@ -928,6 +955,7 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
   );
   const birthdayEventCount = monthEvents.filter((event) => event.type === "birthday").length;
   const worshipEventCount = monthEvents.filter((event) => event.type === "worship").length;
+  const customEventCount = monthEvents.filter((event) => event.type === "custom").length;
 
   function moveMonth(offset: number) {
     setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
@@ -1019,8 +1047,57 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
                 <span>주일 예배</span>
                 <strong>{worshipEventCount}</strong>
               </div>
+              <div>
+                <span>직접 일정</span>
+                <strong>{customEventCount}</strong>
+              </div>
             </div>
           </article>
+
+          {canManageCalendar ? (
+            <article className="panel calendar-mini-panel calendar-event-editor">
+              <div className="panel-heading">
+                <div>
+                  <h2>{editingCalendarEvent ? "일정 수정" : "일정 추가"}</h2>
+                  <span>관리자 전용</span>
+                </div>
+              </div>
+              <form action={editingCalendarEvent ? updateCalendarEventAction : createCalendarEventAction} className="calendar-event-form">
+                {editingCalendarEvent ? <input name="id" type="hidden" value={editingCalendarEvent.id} /> : null}
+                <label>
+                  날짜
+                  <input name="eventDate" type="date" defaultValue={editingCalendarEvent?.eventDate ?? todayKey} required />
+                </label>
+                <label>
+                  종류
+                  <select name="eventType" defaultValue={editingCalendarEvent?.eventType ?? "event"}>
+                    <option value="event">일정</option>
+                    <option value="meeting">모임</option>
+                    <option value="notice">공지</option>
+                  </select>
+                </label>
+                <label className="full-width">
+                  이름
+                  <input name="title" placeholder="예: 여름 수련회" defaultValue={editingCalendarEvent?.title ?? ""} required />
+                </label>
+                <label className="full-width">
+                  설명
+                  <textarea name="description" placeholder="필요한 설명을 짧게 남겨주세요." defaultValue={editingCalendarEvent?.description ?? ""} />
+                </label>
+                <div className="calendar-editor-actions full-width">
+                  {editingCalendarEvent ? (
+                    <button className="secondary-button" type="button" onClick={() => setEditingCalendarEvent(null)}>
+                      취소
+                    </button>
+                  ) : null}
+                  <button className="primary-button" type="submit" disabled={isCreatingCalendarEvent || isUpdatingCalendarEvent}>
+                    {editingCalendarEvent ? "수정 저장" : "일정 추가"}
+                  </button>
+                </div>
+                <ActionMessage state={editingCalendarEvent ? updateCalendarEventState : createCalendarEventState} />
+              </form>
+            </article>
+          ) : null}
 
           <article className="panel calendar-mini-panel" id="calendar-list">
             <div className="panel-heading">
@@ -1036,6 +1113,19 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
                     <div>
                       <strong>{formatCalendarListDate(event.dateKey)}</strong>
                       <CalendarEventBadge canManage={canManageCalendar} event={event} />
+                      {canManageCalendar && event.sourceEvent ? (
+                        <div className="calendar-list-actions">
+                          <button className="secondary-button compact-button" type="button" onClick={() => setEditingCalendarEvent(event.sourceEvent ?? null)}>
+                            수정
+                          </button>
+                          <form action={deleteCalendarEventAction}>
+                            <input name="id" type="hidden" value={event.sourceEvent.id} />
+                            <button className="danger-text-button compact-button" type="submit" disabled={isDeletingCalendarEvent}>
+                              삭제
+                            </button>
+                          </form>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ))
@@ -1043,6 +1133,7 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
                 <div className="empty-state compact-empty-state">이번 달에 표시할 일정이 없습니다.</div>
               )}
             </div>
+            <ActionMessage state={deleteCalendarEventState} />
           </article>
         </aside>
       </section>
@@ -1097,7 +1188,9 @@ function addCalendarEvent(eventsByDate: Map<string, CalendarEventItem[]>, event:
 }
 
 function calendarEventSortOrder(event: CalendarEventItem) {
-  return event.type === "worship" ? 0 : 1;
+  if (event.type === "worship") return 0;
+  if (event.type === "custom") return 1;
+  return 2;
 }
 
 function formatCalendarDateKey(date: Date) {

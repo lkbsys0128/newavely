@@ -4,6 +4,7 @@ import type {
   AttendanceExtraCount,
   AttendanceEvent,
   AuditLog,
+  CalendarEvent,
   CustomFieldDefinition,
   DeletedAuthUser,
   Group,
@@ -24,6 +25,7 @@ import {
   ensureAttendanceEvent,
   formatSupabaseError,
   getAuditLogs,
+  getCalendarEvents,
   getAdminFeedbackMessages,
   getAttendanceExtraCounts,
   getCustomFieldDefinitions,
@@ -52,6 +54,7 @@ export type ReadyAppPageData = {
   attendanceEventId?: string;
   attendanceEvents: AttendanceEvent[];
   attendanceExtraCounts: AttendanceExtraCount[];
+  calendarEvents: CalendarEvent[];
   members: Member[];
   groups: Group[];
   memberLinkRequests: MemberLinkRequest[];
@@ -866,6 +869,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
     const shouldLoadMemberStatusMessages = page === "dashboard";
     const shouldLoadAdminFeedback = canManageRoles || page === "feedback";
     const shouldLoadNewFamilyApplicants = page === "new-family";
+    const shouldLoadCalendarEvents = page === "calendar";
     const shouldLoadAttendanceExtraCounts = page === "attendance" && hasPermission(currentMember.role, "attendance:read");
     const [
       allCustomFieldDefinitions,
@@ -876,6 +880,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       adminFeedbackMessages,
       memberLinkRequests,
       newFamilyApplicants,
+      calendarEvents,
       attendanceExtraCounts,
     ] = await Promise.all([
       shouldLoadCustomFields && hasPermission(currentMember.role, "members:read")
@@ -888,6 +893,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       shouldLoadAdminFeedback ? getAdminFeedbackMessages(supabase, currentMember.id, canManageRoles) : Promise.resolve([]),
       getMemberLinkRequests(supabase, currentMember.id, canManageRoles),
       shouldLoadNewFamilyApplicants && canReadNewFamily ? getNewFamilyApplicants(supabase) : Promise.resolve([]),
+      shouldLoadCalendarEvents ? getCalendarEvents(supabase) : Promise.resolve([]),
       shouldLoadAttendanceExtraCounts
         ? getServiceRoleAttendanceExtraCounts().then((counts) => counts ?? getAttendanceExtraCounts(supabase).catch(() => []))
         : Promise.resolve([]),
@@ -924,6 +930,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       attendanceEventId: dashboardData.attendanceEventId,
       attendanceEvents: dashboardData.attendanceEvents,
       attendanceExtraCounts,
+      calendarEvents,
       members: scopedMembers,
       groups: publicDashboardData.groups,
       memberLinkRequests,
