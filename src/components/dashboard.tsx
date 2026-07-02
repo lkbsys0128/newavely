@@ -1168,7 +1168,10 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
                 {selectedCalendarDayEvents.map((event) => (
                   <article className={`calendar-day-detail-item ${event.type}`} key={event.id}>
                     <div>
-                      <span className="calendar-day-detail-type">{event.meta}</span>
+                      <span className="calendar-day-detail-type">
+                        <strong>{calendarEventKindLabel(event)}</strong>
+                        <span>{event.meta}</span>
+                      </span>
                       <strong>{event.title}</strong>
                       {event.sourceEvent?.description ? <p>{event.sourceEvent.description}</p> : null}
                       {event.isPlanned ? <p>아직 출석 이벤트가 생성되지 않은 예정 일정입니다.</p> : null}
@@ -1241,6 +1244,12 @@ function calendarEventSortOrder(event: CalendarEventItem) {
   if (event.type === "worship") return 0;
   if (event.type === "custom") return 1;
   return 2;
+}
+
+function calendarEventKindLabel(event: CalendarEventItem) {
+  if (event.type === "birthday") return "생일";
+  if (event.type === "worship") return "주일 예배";
+  return event.meta;
 }
 
 function formatCalendarDateKey(date: Date) {
