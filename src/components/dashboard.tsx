@@ -865,6 +865,7 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
   });
   const canManageCalendar = hasPermission(user.role, "roles:manage");
   const [editingCalendarEvent, setEditingCalendarEvent] = useState<CalendarEvent | null>(null);
+  const [selectedCalendarDateKey, setSelectedCalendarDateKey] = useState<string | null>(null);
   const [createCalendarEventState, createCalendarEventAction, isCreatingCalendarEvent] = useActionState(createCalendarEvent, initialActionState);
   const [updateCalendarEventState, updateCalendarEventAction, isUpdatingCalendarEvent] = useActionState(updateCalendarEvent, initialActionState);
   const [deleteCalendarEventState, deleteCalendarEventAction, isDeletingCalendarEvent] = useActionState(deleteCalendarEvent, initialActionState);
@@ -956,6 +957,7 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
   const birthdayEventCount = monthEvents.filter((event) => event.type === "birthday").length;
   const worshipEventCount = monthEvents.filter((event) => event.type === "worship").length;
   const customEventCount = monthEvents.filter((event) => event.type === "custom").length;
+  const selectedCalendarDayEvents = selectedCalendarDateKey ? (eventsByDate.get(selectedCalendarDateKey) ?? []) : [];
 
   function moveMonth(offset: number) {
     setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
@@ -1009,9 +1011,13 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
               {calendarDays.map((day) => {
                 const events = eventsByDate.get(day.dateKey) ?? [];
                 return (
-                  <article
-                    className={`calendar-day-card${day.isCurrentMonth ? "" : " outside"}${day.isToday ? " today" : ""}`}
+                  <button
+                    aria-label={`${formatCalendarFullDate(day.dateKey)} 일정 ${events.length}개 보기`}
+                    className={`calendar-day-card${day.isCurrentMonth ? "" : " outside"}${day.isToday ? " today" : ""}${events.length ? "" : " no-events"}`}
+                    disabled={!events.length}
                     key={day.dateKey}
+                    onClick={() => setSelectedCalendarDateKey(day.dateKey)}
+                    type="button"
                   >
                     <div className="calendar-day-heading">
                       <strong>{day.day}</strong>
@@ -1019,11 +1025,11 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
                     </div>
                     <div className="calendar-event-stack">
                       {events.slice(0, 3).map((event) => (
-                        <CalendarEventBadge canManage={canManageCalendar} event={event} key={event.id} />
+                        <CalendarEventBadge canManage={false} event={event} key={event.id} />
                       ))}
                       {events.length > 3 ? <span className="calendar-more-event">+{events.length - 3}</span> : null}
                     </div>
-                  </article>
+                  </button>
                 );
               })}
             </div>
@@ -1137,6 +1143,50 @@ export function CalendarPageContent({ user, members, groups, attendanceEvents = 
           </article>
         </aside>
       </section>
+
+      {selectedCalendarDateKey ? (
+        <div className="confirm-modal-backdrop" role="presentation" onClick={() => setSelectedCalendarDateKey(null)}>
+          <div
+            aria-labelledby="calendar-day-modal-title"
+            aria-modal="true"
+            className="panel calendar-day-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <div className="panel-heading">
+              <div>
+                <span>날짜 상세</span>
+                <h2 id="calendar-day-modal-title">{formatCalendarFullDate(selectedCalendarDateKey)}</h2>
+              </div>
+              <button className="secondary-button compact-button" type="button" onClick={() => setSelectedCalendarDateKey(null)}>
+                닫기
+              </button>
+            </div>
+
+            {selectedCalendarDayEvents.length ? (
+              <div className="calendar-day-detail-list">
+                {selectedCalendarDayEvents.map((event) => (
+                  <article className={`calendar-day-detail-item ${event.type}`} key={event.id}>
+                    <div>
+                      <span className="calendar-day-detail-type">{event.meta}</span>
+                      <strong>{event.title}</strong>
+                      {event.sourceEvent?.description ? <p>{event.sourceEvent.description}</p> : null}
+                      {event.isPlanned ? <p>아직 출석 이벤트가 생성되지 않은 예정 일정입니다.</p> : null}
+                    </div>
+                    {event.href && canManageCalendar ? (
+                      <Link className="secondary-button compact-button" href={event.href} onClick={() => setSelectedCalendarDateKey(null)}>
+                        열기
+                      </Link>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state compact-empty-state">이 날짜에는 표시할 일정이 없습니다.</div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
@@ -1204,6 +1254,11 @@ function formatCalendarMonthLabel(date: Date) {
 function formatCalendarListDate(dateKey: string) {
   const [, month, day] = dateKey.split("-");
   return `${Number(month)}월 ${Number(day)}일`;
+}
+
+function formatCalendarFullDate(dateKey: string) {
+  const [year, month, day] = dateKey.split("-");
+  return `${year}년 ${Number(month)}월 ${Number(day)}일`;
 }
 
 export function MembersManager({ user, members, groups }: AppDataProps) {

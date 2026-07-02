@@ -2138,6 +2138,7 @@ h3 {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 8px;
+  width: 100%;
   min-height: 112px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2145,6 +2146,10 @@ h3 {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 254, 255, 0.92)),
     var(--surface);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
   transition:
     border-color var(--motion-medium) var(--motion-ease),
     background var(--motion-medium) var(--motion-ease),
@@ -2155,6 +2160,15 @@ h3 {
 .calendar-day-card:hover {
   border-color: var(--line-strong);
   box-shadow: 0 12px 26px rgba(33, 80, 94, 0.08);
+}
+
+.calendar-day-card:disabled {
+  cursor: default;
+}
+
+.calendar-day-card.no-events:hover {
+  border-color: var(--line);
+  box-shadow: none;
 }
 
 .calendar-day-card.outside {
@@ -2282,6 +2296,72 @@ h3 {
   font-size: 0.66rem;
   font-style: normal;
   color: var(--accent-dark);
+}
+
+.calendar-day-modal {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(720px, calc(100dvh - 48px));
+  overflow: auto;
+}
+
+.calendar-day-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.calendar-day-detail-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(47, 145, 181, 0.15);
+  border-radius: 7px;
+  padding: 13px;
+  background: rgba(247, 252, 253, 0.92);
+}
+
+.calendar-day-detail-item.birthday {
+  border-color: rgba(244, 200, 106, 0.34);
+  background: rgba(255, 248, 230, 0.88);
+}
+
+.calendar-day-detail-item.worship {
+  border-color: rgba(47, 145, 181, 0.24);
+  background: rgba(47, 145, 181, 0.08);
+}
+
+.calendar-day-detail-item.custom {
+  border-color: rgba(37, 166, 138, 0.24);
+  background: rgba(235, 249, 244, 0.92);
+}
+
+.calendar-day-detail-item > div {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.calendar-day-detail-item strong {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 950;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.calendar-day-detail-item p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.calendar-day-detail-type {
+  color: var(--accent-dark);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
 }
 
 .calendar-summary-panel {
@@ -6827,6 +6907,23 @@ tbody tr:hover {
     font-size: 0.54rem;
   }
 
+  .calendar-day-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 32px);
+    padding: 16px;
+  }
+
+  .calendar-day-detail-item {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .calendar-day-detail-item .secondary-button {
+    width: 100%;
+  }
+
   .calendar-summary-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -7246,9 +7343,30 @@ tbody tr:hover {
   background: rgba(102, 210, 164, 0.08);
 }
 
+:root[data-theme="dark"] .calendar-day-detail-item {
+  border-color: rgba(93, 213, 238, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="dark"] .calendar-day-detail-item.birthday {
+  border-color: rgba(245, 212, 131, 0.28);
+  background: rgba(245, 212, 131, 0.08);
+}
+
+:root[data-theme="dark"] .calendar-day-detail-item.worship {
+  border-color: rgba(93, 213, 238, 0.22);
+  background: rgba(93, 213, 238, 0.08);
+}
+
+:root[data-theme="dark"] .calendar-day-detail-item.custom {
+  border-color: rgba(102, 210, 164, 0.22);
+  background: rgba(102, 210, 164, 0.08);
+}
+
 :root[data-theme="dark"] .calendar-weekdays span,
 :root[data-theme="dark"] .calendar-event small,
-:root[data-theme="dark"] .calendar-list-row strong {
+:root[data-theme="dark"] .calendar-list-row strong,
+:root[data-theme="dark"] .calendar-day-detail-item p {
   color: var(--muted);
 }
 
