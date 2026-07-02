@@ -505,10 +505,15 @@ test("calendar page is available to every role with shared birthdays and worship
   assert.match(dashboardSource, /hasPermission\(user\.role, "roles:manage"\)/);
   assert.match(dashboardSource, /calendarEvents = \[\]/);
   assert.match(dashboardSource, /일정 추가/);
+  assert.match(dashboardSource, /selectedCalendarDateKey/);
+  assert.match(dashboardSource, /날짜 상세/);
+  assert.match(dashboardSource, /formatCalendarFullDate/);
   assert.match(schemaSource, /create table calendar_events/);
   assert.match(calendarEventsSource, /alter table calendar_events enable row level security/);
   assert.match(calendarEventsSource, /owners and admins can insert calendar events/);
   assert.match(globalCssSource, /\.calendar-month-grid/);
+  assert.match(globalCssSource, /\.calendar-day-modal/);
+  assert.match(globalCssSource, /\.calendar-day-detail-item/);
   assert.match(globalCssSource, /@media \(max-width: 760px\)[\s\S]*\.calendar-weekdays,[\s\S]*\.calendar-month-grid \{[\s\S]*grid-template-columns: repeat\(7, minmax\(0, 1fr\)\)/);
   assert.match(globalCssSource, /:root\[data-theme="dark"\] \.calendar-day-card/);
 });
