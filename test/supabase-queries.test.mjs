@@ -998,7 +998,12 @@ test("new family applicants sync from Google Sheets into a role-gated roster", (
   assert.match(newFamilySyncSource, /1T-DD9i7lBoFqK6qHXKSKeEgs-FOsq24c8dWzwLWFGrg/);
   assert.match(newFamilySyncSource, /normalizedKey\.includes\(alias\)/);
   assert.match(newFamilySyncSource, /function pickLikelyName/);
+  assert.match(newFamilySyncSource, /등록 일자/);
   assert.match(newFamilySyncSource, /source_key: `\$\{spreadsheetId\}:\$\{sheetName\}:\$\{sourceRowNumber\}`/);
+  assert.match(dashboardSource, /function getNewFamilySubmittedDateLabel/);
+  assert.match(dashboardSource, /신청일 미입력/);
+  assert.doesNotMatch(dashboardSource, /Sheet \$\{applicant\.sourceRowNumber\}행/);
+  assert.doesNotMatch(dashboardSource, /Sheet \$\{selectedApplicant\.sourceRowNumber\}행/);
   assert.match(actionsSource, /export async function syncNewFamilyApplicants/);
   assert.match(actionsSource, /getAuthorizedCurrentMember\("new-family:write"\)/);
   assert.match(actionsSource, /행을 읽었지만 등록 가능한 새가족 이름을 찾지 못했습니다/);
