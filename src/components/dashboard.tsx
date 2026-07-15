@@ -2309,6 +2309,11 @@ function getNewFamilyTimestamp(applicant: NewFamilyApplicant) {
   return new Date(applicant.submittedAt ?? applicant.createdAt ?? applicant.updatedAt).getTime() || 0;
 }
 
+function getNewFamilySubmittedDateLabel(applicant: NewFamilyApplicant) {
+  if (applicant.submittedAt) return formatShortDateTime(applicant.submittedAt);
+  return getNewFamilySourceValue(applicant, ["등록 일자", "등록일", "신청일", "신청일자", "방문일", "첫 방문일"]) || "신청일 미입력";
+}
+
 function getNewFamilySourceValue(applicant: NewFamilyApplicant, keys: string[]) {
   for (const key of keys) {
     const value = applicant.sourceData[key];
@@ -2620,7 +2625,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                     <td>
                       <span className={`status-pill new-family-status ${applicant.status}`}>{newFamilyStatusLabels[applicant.status]}</span>
                     </td>
-                    <td>{applicant.submittedAt ? formatShortDateTime(applicant.submittedAt) : `Sheet ${applicant.sourceRowNumber}행`}</td>
+                    <td>{getNewFamilySubmittedDateLabel(applicant)}</td>
                     <td>{getNewFamilyExpectedGroup(applicant) || "미입력"}</td>
                     <td>{getNewFamilySourceValue(applicant, ["담당자", "assignee", "owner"]) || "미배정"}</td>
                     <td>{getNewFamilySourceValue(applicant, ["세례 유무", "baptismStatus"]) || "미입력"}</td>
@@ -2672,7 +2677,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
                 <p className="eyebrow">새가족 관리</p>
                 <h2 id="new-family-modal-title">{selectedApplicant.name}</h2>
                 <p className="meta">
-                  {selectedApplicant.submittedAt ? formatShortDateTime(selectedApplicant.submittedAt) : `Sheet ${selectedApplicant.sourceRowNumber}행`}
+                  {getNewFamilySubmittedDateLabel(selectedApplicant)}
                 </p>
               </div>
               <button className="secondary-button table-action" type="button" onClick={() => setSelectedApplicantId(null)}>
