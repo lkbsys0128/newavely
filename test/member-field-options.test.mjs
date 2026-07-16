@@ -25,6 +25,7 @@ test("member profile choices are fixed to operator-friendly labels", () => {
 test("legacy imported labels normalize to current choices", () => {
   assert.equal(normalizeJobValue("사회인"), "직장인");
   assert.equal(normalizeBaptismStatus("X"), "교회 처음");
+  assert.equal(normalizeBaptismStatus("세례받지않음"), "교회 처음");
   assert.equal(normalizeMinistryValue("예배 진행팀"), "예배운영팀");
 });
 

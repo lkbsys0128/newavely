@@ -2305,13 +2305,24 @@ const newFamilySortLabels: Record<NewFamilySort, string> = {
   status: "상태순",
 };
 
+const newFamilySubmittedDateKeys = ["신청일", "신청 일", "신청일자", "신청 일자", "등록 일자", "등록일", "방문일", "첫 방문일"];
+const newFamilyResidenceKeys = ["거주 지역", "거주지역", "주소", "address", "location"];
+const newFamilyBaptismKeys = ["세례 유무", "교회 경험", "교회경험", "세례/등록", "baptismStatus"];
+const newFamilyFirstVisitKeys = ["첫 방문일", "첫방문일", "방문일자", "방문 일자", "방문일"];
+const newFamilyVisitPurposeKeys = ["방문 목적", "방문목적", "목적"];
+const newFamilyVisitPathKeys = ["방문 경위", "방문경위", "경위"];
+const newFamilyReferrerKeys = ["지인 이름", "지인이름", "소개자", "추천인"];
+const newFamilyLanguageKeys = ["사용 언어", "사용언어", "언어"];
+const newFamilyPrivacyConsentKeys = ["개인정보 수집동의", "개인정보 수집 동의", "개인정보동의"];
+const newFamilyRideNeededKeys = ["라이드 필요여부", "라이드 필요 여부", "라이드"];
+
 function getNewFamilyTimestamp(applicant: NewFamilyApplicant) {
   return new Date(applicant.submittedAt ?? applicant.createdAt ?? applicant.updatedAt).getTime() || 0;
 }
 
 function getNewFamilySubmittedDateLabel(applicant: NewFamilyApplicant) {
   if (applicant.submittedAt) return formatShortDateTime(applicant.submittedAt);
-  return getNewFamilySourceValue(applicant, ["등록 일자", "등록일", "신청일", "신청일자", "방문일", "첫 방문일"]) || "신청일 미입력";
+  return getNewFamilySourceValue(applicant, newFamilySubmittedDateKeys) || "신청일 미입력";
 }
 
 function getNewFamilySourceValue(applicant: NewFamilyApplicant, keys: string[]) {
@@ -2417,7 +2428,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
   const ageBreakdown = buildNewFamilyBreakdown(newFamilyApplicants, getNewFamilyAgeBand, ["10대", "20대", "30대", "40대+", "미입력"]);
   const baptismBreakdown = buildNewFamilyBreakdown(
     newFamilyApplicants,
-    (applicant) => getNewFamilySourceValue(applicant, ["세례 유무", "baptismStatus"]) || "미입력",
+    (applicant) => getNewFamilySourceValue(applicant, newFamilyBaptismKeys) || "미입력",
     ["세례/입교", "유아세례", "교회 처음", "세례 X", "미입력"],
   );
   const assigneeBreakdown = buildNewFamilyBreakdown(
@@ -2724,11 +2735,39 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
               </div>
               <div>
                 <dt>거주 지역</dt>
-                <dd>{getNewFamilySourceValue(selectedApplicant, ["거주 지역", "address", "location"]) || "미입력"}</dd>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyResidenceKeys) || "미입력"}</dd>
               </div>
               <div>
                 <dt>세례/등록</dt>
-                <dd>{getNewFamilySourceValue(selectedApplicant, ["세례 유무", "baptismStatus"]) || "미입력"}</dd>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyBaptismKeys) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>첫 방문일</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyFirstVisitKeys) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>방문 목적</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyVisitPurposeKeys) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>방문 경위</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyVisitPathKeys) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>지인 이름</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyReferrerKeys) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>사용 언어</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyLanguageKeys) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>개인정보 동의</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyPrivacyConsentKeys) || "미입력"}</dd>
+              </div>
+              <div>
+                <dt>라이드 필요</dt>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyRideNeededKeys) || "미입력"}</dd>
               </div>
               <div>
                 <dt>2주차 출석일</dt>

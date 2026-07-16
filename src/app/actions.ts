@@ -952,8 +952,10 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
     if (applicant.converted_member_id) throw new Error("이미 멤버로 등록된 새가족입니다.");
 
     const sourceData = applicant.source_data ?? {};
-    const address = pickNewFamilySourceValue(sourceData, ["거주 지역", "주소", "address", "location"]);
-    const baptismStatus = normalizeBaptismStatus(pickNewFamilySourceValue(sourceData, ["세례 유무", "세례/등록", "baptismStatus"]));
+    const address = pickNewFamilySourceValue(sourceData, ["거주 지역", "거주지역", "주소", "address", "location"]);
+    const baptismStatus = normalizeBaptismStatus(
+      pickNewFamilySourceValue(sourceData, ["세례 유무", "교회 경험", "교회경험", "세례/등록", "baptismStatus"]),
+    );
     const gender = pickNewFamilySourceValue(sourceData, ["성별", "gender"]);
     const birthdate = pickNewFamilySourceValue(sourceData, ["생년월일", "birthdate"]);
     const age = pickNewFamilySourceValue(sourceData, ["만 나이", "age"]);
@@ -962,6 +964,13 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
     const week3AttendanceDate = pickNewFamilySourceValue(sourceData, ["3주차 출석일"]);
     const completionDueDate = pickNewFamilySourceValue(sourceData, ["수료 예정일"]);
     const expectedGroup = applicant.expected_group || applicant.group_interest || pickNewFamilySourceValue(sourceData, ["예정 순", "희망순", "관심 순", "관심순", "순"]);
+    const firstVisitDate = pickNewFamilySourceValue(sourceData, ["첫 방문일", "첫방문일", "방문일자", "방문 일자", "방문일"]);
+    const visitPurpose = pickNewFamilySourceValue(sourceData, ["방문 목적", "방문목적", "목적"]);
+    const visitPath = pickNewFamilySourceValue(sourceData, ["방문 경위", "방문경위", "경위"]);
+    const referrerName = pickNewFamilySourceValue(sourceData, ["지인 이름", "지인이름", "소개자", "추천인"]);
+    const preferredLanguage = pickNewFamilySourceValue(sourceData, ["사용 언어", "사용언어", "언어"]);
+    const privacyConsent = pickNewFamilySourceValue(sourceData, ["개인정보 수집동의", "개인정보 수집 동의", "개인정보동의"]);
+    const rideNeeded = pickNewFamilySourceValue(sourceData, ["라이드 필요여부", "라이드 필요 여부", "라이드"]);
     const placeholderEmail = `new-family-${applicant.id}@placeholder.local`;
     const { data: insertedMember, error: insertError } = await supabase
       .from("members")
@@ -987,6 +996,13 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
           new_family_week_2_attendance_date: week2AttendanceDate,
           new_family_week_3_attendance_date: week3AttendanceDate,
           new_family_completion_due_date: completionDueDate,
+          new_family_first_visit_date: firstVisitDate,
+          new_family_visit_purpose: visitPurpose,
+          new_family_visit_path: visitPath,
+          new_family_referrer_name: referrerName,
+          new_family_preferred_language: preferredLanguage,
+          new_family_privacy_consent: privacyConsent,
+          new_family_ride_needed: rideNeeded,
         },
       })
       .select("*")

@@ -9,6 +9,8 @@ const legacyJobLabels: Record<string, string> = {
 
 const legacyBaptismLabels: Record<string, string> = {
   X: "교회 처음",
+  "세례 X": "교회 처음",
+  세례받지않음: "교회 처음",
 };
 
 const legacyMinistryLabels: Record<string, string> = {
