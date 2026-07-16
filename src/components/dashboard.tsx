@@ -2351,6 +2351,21 @@ function getNewFamilyAgeBand(applicant: NewFamilyApplicant) {
   return "40대+";
 }
 
+function normalizeNewFamilyBaptismLabel(value: string) {
+  const normalized = value.replace(/\([^)]*\)/g, "").trim();
+  if (!normalized) return "미입력";
+  if (normalized.includes("유아")) return "유아세례";
+  if (normalized.includes("입교") || normalized === "세례") return "세례/입교";
+  if (normalized.includes("받지") || normalized.includes("X")) return "세례받지 않음";
+  if (normalized.includes("처음")) return "교회 처음";
+  return normalized;
+}
+
+function formatNewFamilyBreakdownLabel(value: string) {
+  const normalized = value.replace(/\([^)]*\)/g, "").trim();
+  return normalized || "미입력";
+}
+
 function buildNewFamilyBreakdown<T extends string>(
   applicants: NewFamilyApplicant[],
   getLabel: (applicant: NewFamilyApplicant) => T,
@@ -2428,8 +2443,8 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
   const ageBreakdown = buildNewFamilyBreakdown(newFamilyApplicants, getNewFamilyAgeBand, ["10대", "20대", "30대", "40대+", "미입력"]);
   const baptismBreakdown = buildNewFamilyBreakdown(
     newFamilyApplicants,
-    (applicant) => getNewFamilySourceValue(applicant, newFamilyBaptismKeys) || "미입력",
-    ["세례/입교", "유아세례", "교회 처음", "세례 X", "미입력"],
+    (applicant) => normalizeNewFamilyBaptismLabel(getNewFamilySourceValue(applicant, newFamilyBaptismKeys)),
+    ["세례/입교", "유아세례", "교회 처음", "세례받지 않음", "미입력"],
   );
   const assigneeBreakdown = buildNewFamilyBreakdown(
     newFamilyApplicants,
@@ -2895,21 +2910,36 @@ function NewFamilyBreakdownCard({
   items: { label: string; count: number }[];
   total: number;
 }) {
+  const topItem = items[0];
+  const topPercentage = topItem && total > 0 ? Math.round((topItem.count / total) * 100) : 0;
+
   return (
     <article className="panel new-family-breakdown-card">
       <div className="mini-roster-heading">
         <strong>{title}</strong>
         <span>{items.reduce((sum, item) => sum + item.count, 0)}명</span>
       </div>
+      {topItem ? (
+        <div className="new-family-breakdown-feature">
+          <span>{formatNewFamilyBreakdownLabel(topItem.label)}</span>
+          <strong>{topItem.count}명</strong>
+          <small>{topPercentage}%</small>
+        </div>
+      ) : null}
       <div className="new-family-breakdown-list">
         {items.length > 0 ? (
           items.map((item) => {
             const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
             return (
               <div className="new-family-breakdown-row" key={item.label}>
-                <span>{item.label}</span>
+                <div className="new-family-breakdown-label">
+                  <span>{formatNewFamilyBreakdownLabel(item.label)}</span>
+                  <small>{percentage}%</small>
+                </div>
+                <div className="new-family-breakdown-bar" aria-hidden="true">
+                  <span style={{ width: `${percentage}%` }} />
+                </div>
                 <strong>{item.count}</strong>
-                <small>{percentage}%</small>
               </div>
             );
           })

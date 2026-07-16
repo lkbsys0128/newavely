@@ -3122,47 +3122,105 @@ tbody tr:hover {
 
 .new-family-breakdown-card {
   display: grid;
-  gap: 10px;
+  align-content: start;
+  gap: 12px;
   min-width: 0;
-  padding: 14px;
+  padding: 16px;
 }
 
 .new-family-breakdown-list {
   display: grid;
-  gap: 6px;
+  gap: 9px;
+}
+
+.new-family-breakdown-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: end;
+  border: 1px solid rgba(47, 145, 181, 0.16);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(135deg, rgba(47, 145, 181, 0.08), transparent 58%),
+    rgba(255, 255, 255, 0.58);
+  padding: 10px 12px;
+}
+
+.new-family-breakdown-feature span {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.new-family-breakdown-feature strong {
+  color: var(--brand-deep);
+  font-size: 1.18rem;
+  line-height: 1;
+}
+
+.new-family-breakdown-feature small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  grid-column: 1 / -1;
 }
 
 .new-family-breakdown-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) 42px;
   align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid var(--line-soft);
-  padding-bottom: 6px;
+  gap: 7px 10px;
   min-width: 0;
 }
 
-.new-family-breakdown-row:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
+.new-family-breakdown-label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.new-family-breakdown-row span {
+.new-family-breakdown-label span {
   overflow: hidden;
   color: var(--ink);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 850;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.new-family-breakdown-row strong {
-  color: var(--brand-deep);
+.new-family-breakdown-label small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+  white-space: nowrap;
 }
 
-.new-family-breakdown-row small {
-  color: var(--muted);
+.new-family-breakdown-bar {
+  overflow: hidden;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(47, 145, 181, 0.12);
+}
+
+.new-family-breakdown-bar span {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--brand), var(--brand-soft));
+}
+
+.new-family-breakdown-row strong {
+  color: var(--brand-deep);
+  font-size: 0.88rem;
   font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .new-family-sync-panel {
@@ -7262,6 +7320,17 @@ tbody tr:hover {
   border-color: rgba(93, 213, 238, 0.25);
   background: linear-gradient(135deg, rgba(19, 56, 65, 0.96), rgba(10, 31, 36, 0.94));
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme="dark"] .new-family-breakdown-feature {
+  border-color: rgba(105, 211, 236, 0.2);
+  background:
+    linear-gradient(135deg, rgba(105, 211, 236, 0.12), transparent 62%),
+    rgba(13, 43, 50, 0.82);
+}
+
+:root[data-theme="dark"] .new-family-breakdown-bar {
+  background: rgba(105, 211, 236, 0.14);
 }
 
 :root[data-theme="dark"] .attendance-total-result,
