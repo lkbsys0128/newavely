@@ -1049,6 +1049,10 @@ test("new family applicants sync from Google Sheets into a role-gated roster", (
   assert.match(dashboardSource, /수료예정/);
   assert.match(dashboardSource, /sortBy/);
   assert.match(dashboardSource, /NewFamilyBreakdownCard/);
+  assert.match(dashboardSource, /normalizeNewFamilyBaptismLabel/);
+  assert.match(dashboardSource, /formatNewFamilyBreakdownLabel/);
+  assert.match(dashboardSource, /new-family-breakdown-feature/);
+  assert.match(dashboardSource, /new-family-breakdown-bar/);
   assert.match(dashboardSource, /getNewFamilySourceValue/);
   assert.match(dashboardSource, /getNewFamilyExpectedGroup/);
   assert.match(dashboardSource, /applicant\.expectedGroup \|\| applicant\.groupInterest/);
