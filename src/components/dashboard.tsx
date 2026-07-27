@@ -2306,6 +2306,8 @@ const newFamilySortLabels: Record<NewFamilySort, string> = {
 };
 
 const newFamilySubmittedDateKeys = ["신청일", "신청 일", "신청일자", "신청 일자", "등록 일자", "등록일", "방문일", "첫 방문일"];
+const newFamilyBirthdateKeys = ["생년월일", "생년 월일", "생일", "birthdate", "birthday"];
+const newFamilyGenderKeys = ["성별", "gender"];
 const newFamilyResidenceKeys = ["거주 지역", "거주지역", "주소", "address", "location"];
 const newFamilyBaptismKeys = ["세례 유무", "교회 경험", "교회경험", "세례/등록", "baptismStatus"];
 const newFamilyFirstVisitKeys = ["첫 방문일", "첫방문일", "방문일자", "방문 일자", "방문일"];
@@ -2335,7 +2337,7 @@ function getNewFamilySourceValue(applicant: NewFamilyApplicant, keys: string[]) 
 }
 
 function getNewFamilyGender(applicant: NewFamilyApplicant) {
-  const gender = getNewFamilySourceValue(applicant, ["성별", "gender"]).toLowerCase();
+  const gender = getNewFamilySourceValue(applicant, newFamilyGenderKeys).toLowerCase();
   if (gender.includes("남") || gender.includes("male")) return "남";
   if (gender.includes("여") || gender.includes("female")) return "여";
   return "미입력";
@@ -2742,7 +2744,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
               </div>
               <div>
                 <dt>생년월일</dt>
-                <dd>{getNewFamilySourceValue(selectedApplicant, ["생년월일", "birthdate"]) || "미입력"}</dd>
+                <dd>{getNewFamilySourceValue(selectedApplicant, newFamilyBirthdateKeys) || "미입력"}</dd>
               </div>
               <div>
                 <dt>만 나이</dt>
