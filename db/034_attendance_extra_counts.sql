@@ -4,6 +4,7 @@ create table if not exists attendance_extra_counts (
   team_leader_count integer not null default 0 check (team_leader_count >= 0),
   visitor_count integer not null default 0 check (visitor_count >= 0),
   new_family_count integer not null default 0 check (new_family_count >= 0),
+  note text,
   updated_by_member_id uuid references members(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

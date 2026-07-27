@@ -3334,6 +3334,7 @@ export function AttendanceManager({
   const attendanceExtraValues = {
     visitorCount: selectedExtraCounts?.visitorCount ?? 0,
     newFamilyCount: selectedExtraCounts?.newFamilyCount ?? 0,
+    note: selectedExtraCounts?.note ?? "",
   };
   const worshipEventForDate = sameDateEvents.find((event) => event.title === "주일 예배") ?? null;
   const communityLeaderMembers = localMembers
@@ -4101,6 +4102,16 @@ export function AttendanceManager({
                       min={0}
                       inputMode="numeric"
                       defaultValue={attendanceExtraValues.newFamilyCount}
+                    />
+                  </label>
+                  <label className="attendance-extra-note-field">
+                    메모
+                    <textarea
+                      name="note"
+                      rows={3}
+                      maxLength={500}
+                      placeholder="예: 방문자 특이사항, 새가족 안내 메모"
+                      defaultValue={attendanceExtraValues.note}
                     />
                   </label>
                   <button className="primary-button" type="submit" disabled={isSavingExtraCounts}>

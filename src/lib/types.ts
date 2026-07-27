@@ -60,6 +60,7 @@ export type AttendanceExtraCount = {
   teamLeaderCount: number;
   visitorCount: number;
   newFamilyCount: number;
+  note: string;
   updatedByMemberId: string | null;
   updatedAt: string;
 };

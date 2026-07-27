@@ -117,6 +117,7 @@ const attendanceExtraCountSchema = z.object({
   eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "출석 날짜를 확인해주세요."),
   visitorCount: z.coerce.number().int().min(0).max(9999),
   newFamilyCount: z.coerce.number().int().min(0).max(9999),
+  note: z.string().trim().max(500, "메모는 500자 이내로 적어주세요.").nullable(),
 });
 
 const leaderExtraAttendanceSchema = z.object({
@@ -1834,6 +1835,7 @@ export async function updateAttendanceExtraCounts(_previousState: ActionState, f
       eventDate: formData.get("eventDate"),
       visitorCount: formData.get("visitorCount"),
       newFamilyCount: formData.get("newFamilyCount"),
+      note: formData.get("note"),
     });
 
     const { data: beforeData, error: beforeError } = await supabase
@@ -1853,6 +1855,7 @@ export async function updateAttendanceExtraCounts(_previousState: ActionState, f
           team_leader_count: 0,
           visitor_count: parsed.visitorCount,
           new_family_count: parsed.newFamilyCount,
+          note: parsed.note || null,
           updated_by_member_id: currentMember.id,
           updated_at: new Date().toISOString(),
         },
