@@ -527,7 +527,7 @@ export async function getDashboardData(supabase: SupabaseClient, selectedEventId
 export async function getAttendanceExtraCounts(supabase: SupabaseClient): Promise<AttendanceExtraCount[]> {
   const { data, error } = await supabase
     .from("attendance_extra_counts")
-    .select("event_date, clergy_count, team_leader_count, visitor_count, new_family_count, updated_by_member_id, updated_at")
+    .select("event_date, clergy_count, team_leader_count, visitor_count, new_family_count, note, updated_by_member_id, updated_at")
     .order("event_date", { ascending: false });
 
   if (error) throw error;
@@ -538,6 +538,7 @@ export async function getAttendanceExtraCounts(supabase: SupabaseClient): Promis
     teamLeaderCount: Number(row.team_leader_count ?? 0),
     visitorCount: Number(row.visitor_count ?? 0),
     newFamilyCount: Number(row.new_family_count ?? 0),
+    note: String(row.note ?? ""),
     updatedByMemberId: row.updated_by_member_id ? String(row.updated_by_member_id) : null,
     updatedAt: String(row.updated_at ?? ""),
   }));

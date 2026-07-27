@@ -50,6 +50,7 @@ const publicDashboardCommunityLeaderRoleSource = readFileSync(
 );
 const assistantRoleSource = readFileSync(new URL("../db/037_assistant_role.sql", import.meta.url), "utf8");
 const calendarEventsSource = readFileSync(new URL("../db/038_calendar_events.sql", import.meta.url), "utf8");
+const attendanceExtraNotesSource = readFileSync(new URL("../db/039_attendance_extra_notes.sql", import.meta.url), "utf8");
 const actionsSource = readFileSync(new URL("../src/app/actions.ts", import.meta.url), "utf8");
 const appPageDataSource = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
 const rbacSource = readFileSync(new URL("../src/lib/rbac.ts", import.meta.url), "utf8");
@@ -429,9 +430,12 @@ test("attendance extra counts are stored with restricted welcome team access", (
   assert.match(schemaSource, /team_leader_count integer not null default 0/);
   assert.match(schemaSource, /visitor_count integer not null default 0/);
   assert.match(schemaSource, /new_family_count integer not null default 0/);
+  assert.match(schemaSource, /note text/);
   assert.match(schemaSource, /alter table attendance_extra_counts enable row level security/);
   assert.match(schemaSource, /current_member_role\(\) in \('owner', 'admin', 'welcome'\)/);
   assert.match(attendanceExtraCountsSource, /create table if not exists attendance_extra_counts/);
+  assert.match(attendanceExtraCountsSource, /note text/);
+  assert.match(attendanceExtraNotesSource, /add column if not exists note text/);
   assert.match(attendanceExtraCountsSource, /public\.current_member_role\(\) in \('owner', 'admin', 'welcome'\)/);
 });
 
@@ -444,12 +448,19 @@ test("attendance extra counts load through page data and save through a separate
   assert.match(appPageDataSource, /getServiceRoleAttendanceExtraCounts\(\)\.then/);
   assert.match(appPageDataSource, /getAttendanceExtraCounts\(supabase\)/);
   assert.match(actionsSource, /attendanceExtraCountSchema/);
+  assert.match(actionsSource, /note: z\.string\(\)\.trim\(\)\.max\(500/);
   assert.match(actionsSource, /getAuthorizedCurrentMember\("attendance:extras:write"\)/);
   assert.match(actionsSource, /\.from\("attendance_extra_counts"\)/);
+  assert.match(actionsSource, /note: parsed\.note \|\| null/);
   assert.match(actionsSource, /attendance_extra_counts\.update/);
   assert.match(actionsSource, /metadata: \{ eventDate: parsed\.eventDate \}/);
   assert.doesNotMatch(actionsSource, /attendance_extra_counts\.update[\s\S]{0,240}targetId: parsed\.eventDate/);
+  assert.match(dataSource, /new_family_count, note, updated_by_member_id/);
+  assert.match(dataSource, /note: String\(row\.note \?\? ""\)/);
   assert.match(dashboardSource, /canManageAttendanceExtraCounts/);
+  assert.match(dashboardSource, /attendanceExtraValues = \{[\s\S]*note:/);
+  assert.match(dashboardSource, /name="note"/);
+  assert.match(dashboardSource, /attendance-extra-note-field/);
   assert.match(dashboardSource, /canReadAttendanceTotals/);
   assert.match(dashboardSource, /\{canReadAttendanceTotals \? \(/);
   assert.match(dashboardSource, /attendance-total-panel/);
