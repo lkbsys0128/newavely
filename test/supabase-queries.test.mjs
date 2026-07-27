@@ -1012,6 +1012,8 @@ test("new family applicants sync from Google Sheets into a role-gated roster", (
   assert.match(newFamilySyncSource, /등록 일자/);
   assert.match(newFamilySyncSource, /newFamilySheetColumnIndexes/);
   assert.match(newFamilySyncSource, /submittedAt: 0/);
+  assert.match(newFamilySyncSource, /birthdate: 2/);
+  assert.match(newFamilySyncSource, /gender: 3/);
   assert.match(newFamilySyncSource, /firstVisitDate: 4/);
   assert.match(newFamilySyncSource, /residenceArea: 6/);
   assert.match(newFamilySyncSource, /churchExperience: 7/);
@@ -1022,8 +1024,12 @@ test("new family applicants sync from Google Sheets into a role-gated roster", (
   assert.match(newFamilySyncSource, /privacyConsent: 13/);
   assert.match(newFamilySyncSource, /rideNeeded: 14/);
   assert.match(newFamilySyncSource, /applyCanonicalSheetFields/);
+  assert.match(newFamilySyncSource, /생년월일: pickCell/);
+  assert.match(newFamilySyncSource, /성별: pickCell/);
   assert.match(newFamilySyncSource, /source_key: `\$\{spreadsheetId\}:\$\{sheetName\}:\$\{sourceRowNumber\}`/);
   assert.match(dashboardSource, /function getNewFamilySubmittedDateLabel/);
+  assert.match(dashboardSource, /newFamilyBirthdateKeys/);
+  assert.match(dashboardSource, /newFamilyGenderKeys/);
   assert.match(dashboardSource, /신청일 미입력/);
   assert.match(dashboardSource, /방문 목적/);
   assert.match(dashboardSource, /방문 경위/);
