@@ -27,6 +27,8 @@ type SupabaseLike = {
 
 const newFamilySheetColumnIndexes = {
   submittedAt: 0,
+  birthdate: 2,
+  gender: 3,
   firstVisitDate: 4,
   residenceArea: 6,
   churchExperience: 7,
@@ -97,6 +99,8 @@ function pickCell(cells: string[], index: number) {
 function applyCanonicalSheetFields(sourceData: Record<string, string>, cells: string[]) {
   const canonicalFields = {
     신청일: pickCell(cells, newFamilySheetColumnIndexes.submittedAt),
+    생년월일: pickCell(cells, newFamilySheetColumnIndexes.birthdate),
+    성별: pickCell(cells, newFamilySheetColumnIndexes.gender),
     "첫 방문일": pickCell(cells, newFamilySheetColumnIndexes.firstVisitDate),
     "거주 지역": pickCell(cells, newFamilySheetColumnIndexes.residenceArea),
     "세례 유무": pickCell(cells, newFamilySheetColumnIndexes.churchExperience),
