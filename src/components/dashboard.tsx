@@ -60,6 +60,7 @@ import {
   filterMembers,
   findPotentialDuplicateMembers,
   isMergedPlaceholderMember,
+  isAttendanceRosterMember,
   isStatsExcludedMember,
   type MemberFilters,
 } from "@/lib/member-filters";
@@ -4823,10 +4824,6 @@ function buildAggregateAttendanceStat(
     excusedCount,
     rate: possibleCount ? Math.round((presentCount / possibleCount) * 100) : 0,
   };
-}
-
-function isAttendanceRosterMember(member: Member) {
-  return (member.status === "active" || member.status === "care") && !isStatsExcludedMember(member);
 }
 
 function updateLocalAttendanceHistory({

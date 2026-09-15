@@ -2,10 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { loadTsModule } from "./load-ts-module.mjs";
 
-const { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers, isMergedPlaceholderMember, isStatsExcludedMember, isTestAccountMember } =
+const { defaultMemberFilters, filterMembers, findPotentialDuplicateMembers, isMergedPlaceholderMember, isStatsExcludedMember, isTestAccountMember, isAttendanceRosterMember } =
   loadTsModule("../src/lib/member-filters.ts");
 const { getAttendanceVisibleGroups, isAttendanceVisibleGroup } = loadTsModule("../src/lib/group-filters.ts");
 const { isActionableLinkRequest } = loadTsModule("../src/lib/member-link-requests.ts");
+
+test("assigned new members enter attendance without any existing attendance records", () => {
+  const newcomer = member({ status: "new", groupId: "group-a", attendanceHistory: [] });
+  assert.equal(isAttendanceRosterMember(newcomer), true);
+  assert.equal(isAttendanceRosterMember({ ...newcomer, groupId: "group-b" }), true);
+  assert.equal(isAttendanceRosterMember({ ...newcomer, groupId: null }), false);
+  assert.equal(isAttendanceRosterMember({ ...newcomer, status: "inactive" }), false);
+  assert.equal(isAttendanceRosterMember({ ...newcomer, customFields: { test_account: true } }), false);
+  assert.equal(isAttendanceRosterMember({ ...newcomer, email: "duplicate@merged.local" }), false);
+  for (const status of ["active", "care"]) {
+    assert.equal(isAttendanceRosterMember(member({ status, groupId: null })), true);
+  }
+});
 
 function member(overrides) {
   return {
