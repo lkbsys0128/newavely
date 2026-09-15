@@ -16,7 +16,7 @@ import type {
 } from "@/lib/types";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { scopeMembersForRole } from "@/lib/member-visibility";
-import { isStatsExcludedMember } from "@/lib/member-filters";
+import { isAttendanceRosterMember, isStatsExcludedMember } from "@/lib/member-filters";
 import { getAttendanceVisibleGroups } from "@/lib/group-filters";
 import { calculateKoreanAge, getMemberMinistryValues, ministryOptions, normalizeJobValue } from "@/lib/member-field-options";
 import { createClient } from "@/lib/supabase/server";
@@ -274,7 +274,7 @@ export function buildGlobalAppStats(
   const attendanceGroups = getAttendanceVisibleGroups(groups);
   const attendanceGroupIds = new Set(attendanceGroups.map((group) => group.id));
   const attendanceMembers = visibleMembers
-    .filter((member) => isAttendanceStatsMember(member))
+    .filter(isAttendanceRosterMember)
     .filter((member) => !member.groupId || attendanceGroupIds.has(member.groupId));
   const roleCounts =
     permissionRoleCounts ??
@@ -708,10 +708,6 @@ function buildAggregateAttendanceStat(
     excusedCount,
     rate: possibleCount ? Math.round((presentCount / possibleCount) * 100) : 0,
   };
-}
-
-function isAttendanceStatsMember(member: Member) {
-  return (member.status === "active" || member.status === "care") && !isStatsExcludedMember(member);
 }
 
 function isPresentForEvent(member: Member, eventId?: string) {

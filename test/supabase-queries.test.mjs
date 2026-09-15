@@ -567,7 +567,8 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(dashboardSource, /attendanceVisibleGroups/);
   assert.match(appPageDataSource, /getAttendanceVisibleGroups/);
   assert.match(appPageDataSource, /attendanceGroupIds/);
-  assert.match(dashboardSource, /member\.status === "active" \|\| member\.status === "care"/);
+  assert.match(dashboardSource, /\.filter\(isAttendanceRosterMember\)/);
+  assert.match(appPageDataSource, /\.filter\(isAttendanceRosterMember\)/);
   assert.match(dashboardSource, /!isMergedPlaceholderMember\(member\)/);
   assert.match(dashboardSource, /attendanceSearchQuery/);
   assert.match(dashboardSource, /attendanceGroupId/);

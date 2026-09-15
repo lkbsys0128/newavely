@@ -35,6 +35,12 @@ export function isStatsExcludedMember(member: Pick<Member, "email" | "customFiel
   return isMergedPlaceholderMember(member) || isTestAccountMember(member);
 }
 
+export function isAttendanceRosterMember(member: Pick<Member, "status" | "groupId" | "email" | "customFields">) {
+  const eligibleStatus = member.status === "active" || member.status === "care" ||
+    (member.status === "new" && Boolean(member.groupId));
+  return eligibleStatus && !isStatsExcludedMember(member);
+}
+
 export function filterMembers(members: Member[], filters: MemberFilters) {
   const normalizedQuery = filters.query.trim().toLowerCase();
 
