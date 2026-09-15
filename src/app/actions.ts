@@ -2757,6 +2757,49 @@ export async function deleteGroup(_previousState: ActionState, formData: FormDat
   });
 }
 
+export async function toggleBothAttendance(memberId: string, eventIds: string[], nextPresent: boolean) {
+  const parsedIds = z.array(z.string().uuid()).length(2).parse(eventIds);
+  z.string().uuid().parse(memberId);
+  z.boolean().parse(nextPresent);
+  if (new Set(parsedIds).size !== 2) throw new Error("서로 다른 예배와 순모임 이벤트를 선택해주세요.");
+  const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
+  await assertCanManageAttendanceForMember({ supabase, currentMember, targetMemberId: memberId });
+  const { data: events, error: eventError } = await supabase.from("attendance_events")
+    .select("id, title, event_date").in("id", parsedIds);
+  if (eventError) throw eventError;
+  if (events?.length !== 2 || events[0].event_date !== events[1].event_date ||
+    !events.some((event) => event.title === "주일 예배") || !events.some((event) => event.title === "순모임")) {
+    throw new Error("같은 날짜의 주일 예배와 순모임만 함께 변경할 수 있습니다.");
+  }
+  const { data: before, error: readError } = await supabase.from("attendance_records")
+    .select("*").eq("member_id", memberId).in("event_id", parsedIds);
+  if (readError) throw readError;
+  const rows = parsedIds.map((eventId) => {
+    const record = before?.find((item) => item.event_id === eventId);
+    const hasReason = Boolean(record?.note || record?.excuse_start_date || record?.excuse_end_date);
+    return {
+      event_id: eventId, member_id: memberId,
+      status: nextPresent ? "present" : hasReason ? "excused" : "absent",
+      note: record?.note ?? null,
+      excuse_start_date: record?.excuse_start_date ?? null,
+      excuse_end_date: record?.excuse_end_date ?? null,
+      checked_by_member_id: currentMember.id, checked_at: new Date().toISOString(),
+    };
+  });
+  // One statement keeps the two attendance updates atomic under RLS.
+  const { data: after, error } = await supabase.from("attendance_records")
+    .upsert(rows, { onConflict: "event_id,member_id" }).select("*");
+  if (error) throw error;
+  for (const record of after ?? []) {
+    await writeAuditLog({ supabase, action: "attendance.toggle", targetTable: "attendance_records",
+      targetId: record.id as string,
+      beforeData: before?.find((item) => item.event_id === record.event_id) ?? null,
+      afterData: record, metadata: { eventId: record.event_id, memberId, nextPresent, combined: true },
+    });
+  }
+  revalidateAppData();
+}
+
 export async function toggleAttendance(memberId: string, eventId: string, nextPresent: boolean) {
   const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:write");
   await assertCanManageAttendanceForMember({ supabase, currentMember, targetMemberId: memberId });
