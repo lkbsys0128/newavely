@@ -5611,8 +5611,15 @@ tbody tr:hover {
 }
 
 .attendance-roster-refresh {
-  align-self: end;
+  margin-left: auto;
+  flex: 0 0 auto;
+  gap: 6px;
   min-height: 42px;
+}
+
+.attendance-refresh-icon {
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .attendance-action-error {
@@ -6585,16 +6592,32 @@ tbody tr:hover {
   }
 
   .attendance-check-controls {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
 
   .attendance-check-controls > .segmented {
     display: flex;
-    width: 100%;
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .attendance-check-controls > .segmented .segment {
     flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 5px;
+    font-size: 0.72rem;
+  }
+
+  .attendance-roster-refresh {
+    width: 42px;
+    padding: 0;
+  }
+
+  .attendance-refresh-label {
+    display: none;
   }
 
   .attendance-total-heading {

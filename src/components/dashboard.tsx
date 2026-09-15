@@ -3990,14 +3990,6 @@ export function AttendanceManager({
           </div>
         </div>
         <div className="attendance-check-toolbar">
-          {hasExplicitAttendanceSelection ? (
-            <button className="secondary-button attendance-roster-refresh" type="button"
-              disabled={isRefreshingRoster || isPending}
-              title="현재 순 배정과 멤버 명단 다시 불러오기"
-              onClick={() => startRosterRefresh(() => router.refresh())}>
-              {isRefreshingRoster ? "불러오는 중" : "명단 새로고침"}
-            </button>
-          ) : null}
           <label>
             날짜
             <select
@@ -4164,9 +4156,9 @@ export function AttendanceManager({
             )}
           </section>
         ) : null}
-        {!isWelcomeAttendanceOnly ? (
+        {!isWelcomeAttendanceOnly || hasExplicitAttendanceSelection ? (
           <div className="attendance-check-controls">
-            <div className="segmented">
+            {!isWelcomeAttendanceOnly ? <div className="segmented">
               {(["all", "present", "absent", "excused"] as const).map((filter) => (
                 <button
                   className={`segment ${attendanceFilter === filter ? "active" : ""}`}
@@ -4177,7 +4169,18 @@ export function AttendanceManager({
                   {attendanceFilterLabels[filter]}
                 </button>
               ))}
-            </div>
+            </div> : null}
+            {hasExplicitAttendanceSelection ? (
+              <button className="secondary-button attendance-roster-refresh" type="button"
+                disabled={isRefreshingRoster || isPending}
+                aria-label={isRefreshingRoster ? "명단 불러오는 중" : "명단 새로고침"}
+                aria-busy={isRefreshingRoster}
+                title="현재 순 배정과 멤버 명단 다시 불러오기"
+                onClick={() => startRosterRefresh(() => router.refresh())}>
+                <span aria-hidden="true" className="attendance-refresh-icon">↻</span>
+                <span className="attendance-refresh-label">{isRefreshingRoster ? "불러오는 중" : "명단 새로고침"}</span>
+              </button>
+            ) : null}
           </div>
         ) : null}
         {!isWelcomeAttendanceOnly ? (
