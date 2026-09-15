@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   createAttendanceEvent,
@@ -26,6 +26,7 @@ import {
   restoreDeletedAuthUser,
   syncNewFamilyApplicants,
   toggleAttendance,
+  toggleBothAttendance,
   toggleLeaderExtraAttendance,
   updateAttendanceExtraCounts,
   updateAttendanceReason,
@@ -3113,6 +3114,9 @@ export function AttendanceManager({
 }) {
   const searchParams = useSearchParams();
   const explicitAttendanceEventId = searchParams.get("eventId");
+  const router = useRouter();
+  const [attendanceActionError, setAttendanceActionError] = useState("");
+  const [isRefreshingRoster, startRosterRefresh] = useTransition();
   const requestedAttendanceGroupId = searchParams.get("groupId");
   const attendanceVisibleGroups = getAttendanceVisibleGroups(groups);
   const attendanceVisibleGroupIds = new Set(attendanceVisibleGroups.map((group) => group.id));
@@ -3553,6 +3557,21 @@ export function AttendanceManager({
       : [{ id: "unassigned", name: "미배정" }]),
   ];
   const attendanceOverviewEvents = getAttendanceOverviewEvents(sameDateEvents, selectedAttendanceEvent?.id);
+  const hasCombinedAttendance = attendanceOverviewEvents.length === 2 &&
+    attendanceOverviewEvents.some((event) => event.title === "주일 예배") &&
+    attendanceOverviewEvents.some((event) => event.title === "순모임");
+  const handleToggleBothAttendance = (member: Member, nextPresent: boolean) => {
+    setAttendanceActionError("");
+    startTransition(async () => {
+      try {
+        await toggleBothAttendance(member.id, attendanceOverviewEvents.map((event) => event.id), nextPresent);
+        router.refresh();
+      } catch (error) {
+        setAttendanceActionError(error instanceof Error ? error.message : "출석 저장에 실패했습니다. 다시 시도해주세요.");
+        router.refresh();
+      }
+    });
+  };
   const attendanceOverviewStats = attendanceOverviewEvents.map((event) => {
     const presentCount = attendanceOverviewMembers.filter((member) => getMemberAttendanceStatus(member, event.id) === "present").length;
     const excusedCount = attendanceOverviewMembers.filter((member) => getMemberAttendanceStatus(member, event.id) === "excused").length;
@@ -3594,8 +3613,15 @@ export function AttendanceManager({
           : item,
       ),
     );
-    startTransition(() => {
-      void toggleAttendance(member.id, event.id, nextPresent);
+    setAttendanceActionError("");
+    startTransition(async () => {
+      try {
+        await toggleAttendance(member.id, event.id, nextPresent);
+      } catch (error) {
+        setLocalMembers(members);
+        setAttendanceActionError(error instanceof Error ? error.message : "출석 저장에 실패했습니다.");
+        router.refresh();
+      }
     });
   };
   const handleToggleLeaderExtraAttendance = (member: Member, nextPresent: boolean) => {
@@ -3964,6 +3990,14 @@ export function AttendanceManager({
           </div>
         </div>
         <div className="attendance-check-toolbar">
+          {hasExplicitAttendanceSelection ? (
+            <button className="secondary-button attendance-roster-refresh" type="button"
+              disabled={isRefreshingRoster || isPending}
+              title="현재 순 배정과 멤버 명단 다시 불러오기"
+              onClick={() => startRosterRefresh(() => router.refresh())}>
+              {isRefreshingRoster ? "불러오는 중" : "명단 새로고침"}
+            </button>
+          ) : null}
           <label>
             날짜
             <select
@@ -4210,10 +4244,11 @@ export function AttendanceManager({
               </div>
             </div>
             <div
-              className={`group-attendance-snapshot-grid ${attendanceOverviewEvents.length > 1 ? "two-events" : "single-event"}`}
+              className={`group-attendance-snapshot-grid ${attendanceOverviewEvents.length > 1 ? "two-events" : "single-event"} ${hasCombinedAttendance ? "combined-events" : ""}`}
             >
               <div className="snapshot-grid-row snapshot-grid-header">
                 <div className="snapshot-grid-head member-name">이름</div>
+                {hasCombinedAttendance ? <div className="snapshot-grid-head">모두</div> : null}
                 {attendanceOverviewEvents.map((event) => (
                   <div className="snapshot-grid-head" key={event.id}>
                     {event.title}
@@ -4233,6 +4268,17 @@ export function AttendanceManager({
                   >
                     {member.displayName}
                   </button>
+                  {hasCombinedAttendance ? (
+                    <button type="button"
+                      className={`snapshot-status snapshot-status-button ${presentCount === statuses.length ? "present" : "absent"}`}
+                      aria-label={`${member.displayName} 예배와 순모임 모두 ${presentCount === statuses.length ? "출석 해제" : "출석"}`}
+                      aria-pressed={presentCount === statuses.length}
+                      title="예배와 순모임 함께 변경"
+                      disabled={!canManageAttendance || isPending || isRefreshingRoster}
+                      onClick={() => handleToggleBothAttendance(member, presentCount !== statuses.length)}>
+                      {presentCount === statuses.length ? "해제" : "출석"}
+                    </button>
+                  ) : null}
                   {statuses.map(({ event, status }) => {
                     return (
                       <button
@@ -4255,6 +4301,7 @@ export function AttendanceManager({
                 </div>
               ) : null}
             </div>
+            {attendanceActionError ? <p role="alert" className="attendance-action-error">{attendanceActionError}</p> : null}
           </section>
         ) : null}
         {!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection && attendanceOverviewEvents.length === 0 ? (
