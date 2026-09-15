@@ -2594,6 +2594,28 @@ export async function createGroup(_previousState: ActionState, formData: FormDat
   });
 }
 
+export async function bulkAssignGroupMembers(_previousState: ActionState, formData: FormData) {
+  return runAction(async () => {
+    const { supabase } = await getAuthorizedCurrentMember("groups:write");
+    const parsed = z.object({
+      sourceGroupId: z.string().uuid(),
+      targetGroupId: z.union([z.string().uuid(), z.literal("")]).transform((value) => value || null),
+      memberIds: z.array(z.string().uuid()).min(1).max(500),
+    }).parse({ sourceGroupId: formData.get("sourceGroupId"), targetGroupId: formData.get("targetGroupId"), memberIds: formData.getAll("memberIds") });
+    const { data, error } = await supabase.rpc("bulk_assign_group_members", {
+      source_group_id: parsed.sourceGroupId, target_group_id: parsed.targetGroupId, selected_member_ids: parsed.memberIds,
+    });
+    if (error) throw error;
+    await writeAuditLog({ supabase, action: "group.members.bulk_assign", targetTable: "groups",
+      targetId: parsed.sourceGroupId, beforeData: data as Record<string, unknown>,
+      afterData: { memberIds: parsed.memberIds, groupId: parsed.targetGroupId },
+      metadata: { sourceGroupId: parsed.sourceGroupId, targetGroupId: parsed.targetGroupId, memberIds: parsed.memberIds },
+    });
+    revalidateAppData();
+    return `${data.count}명의 배정 순을 변경했습니다.`;
+  });
+}
+
 export async function updateGroup(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
     const { supabase } = await getAuthorizedCurrentMember("groups:write");
