@@ -5622,6 +5622,55 @@ tbody tr:hover {
   line-height: 1;
 }
 
+.group-bulk-assignment {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.group-bulk-assignment summary {
+  cursor: pointer;
+  font-weight: 800;
+  padding-block: 8px;
+}
+
+.group-bulk-assignment .management-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.group-bulk-members {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.group-bulk-options {
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.management-form label.group-bulk-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.management-form .group-bulk-choice input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  flex: 0 0 18px;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
 .attendance-action-error {
   color: var(--danger);
   margin: 12px 0 0;

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { GroupBulkAssignment } from "@/components/group-bulk-assignment";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
@@ -2108,10 +2109,13 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
 
       {groupMembersModal ? (
         <GroupMembersModal
+          key={groupMembersModal.id}
+          groups={groups}
+          bulkMembers={members.filter((member) => !isMergedPlaceholderMember(member) && (member.groupId === groupMembersModal.id || member.id === groups.find((item) => item.id === groupMembersModal.id)?.leaderMemberId))}
           canDeleteGroups={canDeleteGroups}
           canManageGroups={canManageGroups}
           deleteGroupState={deleteGroupState}
-          group={groupMembersModal}
+          group={groups.find((item) => item.id === groupMembersModal.id) ?? groupMembersModal}
           groupLeaderOptions={groupLeaderOptions}
           isDeletingGroup={isDeletingGroup}
           isRenamingGroup={isRenamingGroup}
@@ -4501,6 +4505,8 @@ function AttendanceReasonModal({
 }
 
 function GroupMembersModal({
+  groups,
+  bulkMembers,
   canDeleteGroups,
   canManageGroups,
   deleteGroupState,
@@ -4522,6 +4528,8 @@ function GroupMembersModal({
   updateGroupAction,
   updateGroupState,
 }: {
+  groups: Group[];
+  bulkMembers: Member[];
   canDeleteGroups: boolean;
   canManageGroups: boolean;
   deleteGroupState: ActionState;
@@ -4586,6 +4594,7 @@ function GroupMembersModal({
         </div>
         {canManageGroups ? (
           <div className="group-modal-admin-tools">
+            <GroupBulkAssignment group={group} groups={groups} members={bulkMembers} />
             <form
               action={renameGroupAction}
               className="management-form group-rename-form"
