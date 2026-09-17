@@ -29,7 +29,7 @@ test("anonymous prayer query is parameterless and history remains authenticated"
 
 test("only the prayer section is available in unauthenticated navigation", () => {
   const nav = read("../src/lib/navigation.ts");
-  assert.match(nav, /href: "\/prayer", label: "함께 기도", public: true/);
+  assert.match(nav, /href: "\/calendar", label: "캘린더" \},\s*\{ href: "\/prayer", label: "오늘의 기도회", public: true/);
   assert.match(nav, /if \(!role\) return navItems.filter\(\(item\) => item.public\)/);
   assert.equal((nav.match(/public: true/g) ?? []).length, 1);
 });
