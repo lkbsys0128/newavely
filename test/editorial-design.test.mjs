@@ -66,3 +66,15 @@ test("navigation and filter selections expose accessible state", () => {
     assert.ok(ui.includes(`aria-pressed={${condition}}`));
   }
 });
+
+test("brand palette preserves the four requested colors in both themes", () => {
+  const css = readFileSync(new URL("../src/app/autumn-theme.css", import.meta.url), "utf8");
+  for (const [name, color] of Object.entries({ vanilla: "#EDE4D5", jade: "#163C32", garnet: "#4A0B19", lavender: "#B19DC5" })) {
+    assert.ok(css.includes(`--palette-${name}: ${color};`));
+  }
+  const dark = css.slice(css.indexOf(':root[data-theme="dark"]'), css.indexOf("body {"));
+  assert.match(dark, /--surface: var\(--palette-jade\)/);
+  assert.match(dark, /--ink: var\(--palette-vanilla\)/);
+  assert.match(dark, /--interaction-hover-ink: var\(--palette-vanilla\)/);
+  assert.match(dark, /--interaction-solid: var\(--palette-lavender\)/);
+});

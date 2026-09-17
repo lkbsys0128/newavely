@@ -1,75 +1,81 @@
-/* Shared typography and seasonal color system. Status colors retain their meaning. */
+/* Vanilla Cream, Dark Jade, Garnet Red and Lavender Haze. */
 :root {
   --font-weight-ui: 650;
-  --bg: #f5f5f2;
-  --surface: #ffffff;
-  --surface-strong: #f1f2ed;
-  --ink: #292d27;
-  --text: #292d27;
-  --muted: #676c62;
-  --line: #d9ddd2;
-  --line-strong: #a6ad9c;
-  --accent: #6b7746;
-  --accent-dark: #4c5c32;
-  --accent-strong: #85945e;
-  --accent-2: #9a505d;
-  --accent-3: #537651;
-  --danger: #ad4348;
-  --season-accent: #a87530;
-  --season-soft: #f3e8e7;
-  --season-berry: #854652;
-  --season-evergreen: #526543;
-  --soft: #edf0e6;
-  --soft-strong: #dce3ce;
-  --chart-total: #9a5363;
-  --chart-youth: #687d45;
-  --button-ink: #ffffff;
-  --shadow: 0 8px 24px rgba(40, 45, 35, 0.05);
-  --shadow-soft: 0 3px 12px rgba(40, 45, 35, 0.04);
+  --palette-vanilla: #EDE4D5;
+  --palette-jade: #163C32;
+  --palette-garnet: #4A0B19;
+  --palette-lavender: #B19DC5;
+  --bg: var(--palette-vanilla);
+  --surface: #f8f3eb;
+  --surface-strong: #e5dbc9;
+  --ink: var(--palette-jade);
+  --text: var(--palette-jade);
+  --muted: #58645b;
+  --line: #d1c8b9;
+  --line-strong: #938d80;
+  --accent: #315e50;
+  --accent-dark: var(--palette-jade);
+  --accent-strong: #567969;
+  --accent-2: var(--palette-garnet);
+  --accent-3: #3c7057;
+  --danger: #992c40;
+  --season-accent: var(--palette-garnet);
+  --season-soft: #e7ddea;
+  --season-berry: var(--palette-garnet);
+  --season-evergreen: var(--palette-jade);
+  --soft: #e0e5da;
+  --soft-strong: #c9d4c7;
+  --chart-total: var(--palette-garnet);
+  --chart-youth: #4f796b;
+  --button-ink: var(--palette-vanilla);
+  --shadow: 0 8px 24px rgba(22, 60, 50, 0.05);
+  --shadow-soft: 0 3px 12px rgba(22, 60, 50, 0.04);
   --logo-filter: none;
-  --interaction-hover: #f5edef;
-  --interaction-selected: #f0dde2;
-  --interaction-ink: #793c4b;
-  --interaction-border: #b47a88;
-  --interaction-solid: #854652;
-  --interaction-solid-hover: #713744;
-  --interaction-solid-ink: #ffffff;
+  --interaction-hover: #e5dbe5;
+  --interaction-hover-ink: var(--palette-garnet);
+  --interaction-selected: var(--palette-lavender);
+  --interaction-ink: var(--palette-garnet);
+  --interaction-border: #80638e;
+  --interaction-solid: var(--palette-garnet);
+  --interaction-solid-hover: #66162a;
+  --interaction-solid-ink: var(--palette-vanilla);
 }
 
 :root[data-theme="dark"] {
-  --bg: #1a1c19;
-  --surface: #242722;
-  --surface-strong: #2c3028;
-  --ink: #f0f1eb;
-  --text: #f0f1eb;
-  --muted: #b2b8aa;
-  --line: #444b3c;
-  --line-strong: #717c63;
-  --accent: #b9c58f;
-  --accent-dark: #c9d6a5;
-  --accent-strong: #dae3ba;
-  --accent-2: #d49ca6;
-  --accent-3: #a4bf94;
-  --danger: #f0a0a3;
-  --season-accent: #d8b071;
-  --season-soft: #3d2d31;
-  --season-berry: #e0adb6;
-  --season-evergreen: #b0c19a;
-  --soft: #343c2b;
-  --soft-strong: #424e33;
-  --chart-total: #df9aaa;
-  --chart-youth: #b5c785;
-  --button-ink: #242c1b;
+  --bg: #102a24;
+  --surface: var(--palette-jade);
+  --surface-strong: #1d473c;
+  --ink: var(--palette-vanilla);
+  --text: var(--palette-vanilla);
+  --muted: #bbc5b8;
+  --line: #36584b;
+  --line-strong: #73917e;
+  --accent: #b8cdbb;
+  --accent-dark: var(--palette-vanilla);
+  --accent-strong: #d1dfcf;
+  --accent-2: var(--palette-lavender);
+  --accent-3: #a0c6ab;
+  --danger: #f0a5b0;
+  --season-accent: var(--palette-lavender);
+  --season-soft: #382b40;
+  --season-berry: #d3c0e1;
+  --season-evergreen: #b6cdbc;
+  --soft: #244e40;
+  --soft-strong: #315e4d;
+  --chart-total: var(--palette-lavender);
+  --chart-youth: #b8cdbb;
+  --button-ink: var(--palette-jade);
   --shadow: none;
   --shadow-soft: none;
   --logo-filter: brightness(1.5);
-  --interaction-hover: #352a2e;
-  --interaction-selected: #4a3039;
-  --interaction-ink: #efb9c7;
-  --interaction-border: #ad7584;
-  --interaction-solid: #daa5b2;
-  --interaction-solid-hover: #edbec9;
-  --interaction-solid-ink: #302027;
+  --interaction-hover: #382b40;
+  --interaction-hover-ink: var(--palette-vanilla);
+  --interaction-selected: var(--palette-lavender);
+  --interaction-ink: var(--palette-garnet);
+  --interaction-border: #c6b2d8;
+  --interaction-solid: var(--palette-lavender);
+  --interaction-solid-hover: #c7b5d8;
+  --interaction-solid-ink: var(--palette-garnet);
 }
 
 body { font-weight: 450; letter-spacing: 0; }
@@ -165,12 +171,17 @@ h1, h2, h3, h4, h5, h6, strong, b, th { font-weight: var(--font-weight-ui); lett
 :root .editorial-dashboard .section-nav a:hover { background: var(--soft); color: var(--ink); }
 
 /* Navigation, selections and actions share one interaction palette. */
-:root .editorial-shell .section-nav a { background: transparent; color: var(--muted); }
+:root .editorial-shell .section-nav a:not([aria-current]) { background: transparent; color: var(--muted); }
 :root .editorial-shell :is(.segment, .attendance-group-chip, .new-family-stage-chip) {
   background: var(--surface);
   color: var(--muted);
   border-color: var(--line);
   box-shadow: none;
+}
+:root .editorial-shell .new-family-stage-chip:not(.is-active) {
+  background: var(--surface);
+  color: var(--muted);
+  border-color: var(--line);
 }
 :root .editorial-shell :is(.nav-list a, .section-nav a, .segment,
   .attendance-group-chip, .new-family-stage-chip, .event-chip,
@@ -179,7 +190,7 @@ h1, h2, h3, h4, h5, h6, strong, b, th { font-weight: var(--font-weight-ui); lett
   .prayer-icon-button, .prayer-drag-handle, .status-quick-list button,
   .attendance-compare-row):hover:not(:disabled) {
   background: var(--interaction-hover);
-  color: var(--interaction-ink);
+  color: var(--interaction-hover-ink);
   border-color: var(--interaction-border);
   box-shadow: none;
 }
@@ -213,12 +224,13 @@ h1, h2, h3, h4, h5, h6, strong, b, th { font-weight: var(--font-weight-ui); lett
   border-color: var(--interaction-border);
   box-shadow: none;
 }
-:root .editorial-shell .ministry-label-chip:hover span { background: var(--interaction-hover); border-color: var(--interaction-border); }
+:root .editorial-shell .ministry-label-chip:hover span { background: var(--interaction-hover); color: var(--interaction-hover-ink); border-color: var(--interaction-border); }
+:root .editorial-shell .ministry-label-chip:hover input:checked + span { background: var(--interaction-selected); color: var(--interaction-ink); }
 :root .editorial-shell input:is([type="checkbox"], [type="radio"]) { accent-color: var(--interaction-solid); }
 :root .editorial-shell .theme-toggle-switch { border-color: var(--interaction-border); background: var(--interaction-hover); }
 :root .editorial-shell .theme-toggle-switch span { background: var(--interaction-solid); }
 :root .editorial-shell :is(input, select, textarea):focus { border-color: var(--interaction-border); box-shadow: none; }
-:root .editorial-shell .group-network-node:is(:hover, :focus-visible) { background: var(--interaction-hover); color: var(--interaction-ink); border-color: var(--interaction-border); }
+:root .editorial-shell .group-network-node:is(:hover, :focus-visible) { background: var(--interaction-hover); color: var(--interaction-hover-ink); border-color: var(--interaction-border); }
 :root .editorial-shell .calendar-day-card:hover { background: var(--interaction-hover); border-color: var(--interaction-border); }
 :root .editorial-shell .calendar-day-card.no-events:hover { background: var(--surface); border-color: var(--line); }
 :root .editorial-shell :is(.calendar-event, .calendar-day-detail-item):focus-visible { outline-color: var(--interaction-border); }
