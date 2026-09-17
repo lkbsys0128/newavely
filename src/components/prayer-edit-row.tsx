@@ -3,7 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2 } from "lucide-react";
-import { changePrayerItemType, prayerItemTypes, type PrayerEditEntry } from "@/lib/prayer-editor";
+import { changePrayerItemType, prayerItemTypes, selectPrayerSource, type PrayerEditEntry } from "@/lib/prayer-editor";
 import { PrayerSourcePicker } from "@/components/prayer-source-picker";
 
 type Props = { entry: PrayerEditEntry; index: number; pending: boolean; onlyRow: boolean;
@@ -28,7 +28,7 @@ export function PrayerEditRow({ entry, index, pending, onlyRow, onChange, onDele
     </div>
     <div className="prayer-item-content"><label><span className="prayer-mobile-label">찬양 제목 · 내용</span><textarea aria-label={`${index + 1}번 내용`} rows={2} value={entry.detail} maxLength={500} disabled={pending}
       onChange={(event) => onChange({ ...entry, detail: event.target.value })} /></label>
-      {entry.kind === "찬양" || entry.sourceUrl ? <PrayerSourcePicker sourceUrl={entry.sourceUrl} disabled={pending} label={`${index + 1}번`} onSelect={(sourceUrl) => onChange({ ...entry, sourceUrl })} /> : null}
+      {entry.kind === "찬양" || entry.sourceUrl ? <PrayerSourcePicker sourceUrl={entry.sourceUrl} disabled={pending} label={`${index + 1}번`} onSelect={(sourceUrl, songTitle) => onChange(selectPrayerSource(entry, sourceUrl, songTitle))} /> : null}
     </div>
     <div className="prayer-row-tools"><button className="prayer-icon-button" type="button" title="행 삭제" aria-label={`${index + 1}번 행 삭제`}
       disabled={pending || onlyRow} onClick={onDelete}><Trash2 size={17} /></button></div>
