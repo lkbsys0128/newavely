@@ -1,4 +1,5 @@
 import { hasPermission, roles, type Role } from "@/lib/rbac";
+import { buildDailyGroupAttendance, type DailyGroupAttendancePoint } from "@/lib/attendance-trend";
 import type {
   AdminFeedbackMessage,
   AttendanceExtraCount,
@@ -180,6 +181,7 @@ export type AttendanceEventGroupTrendStat = {
 };
 
 export type AttendancePageStats = {
+  dailyGroupTrend: DailyGroupAttendancePoint[];
   activeMemberCount: number;
   currentPresentCount: number;
   currentExcusedCount: number;
@@ -301,6 +303,7 @@ export function buildGlobalAppStats(
         (roleCounts.find((row) => row.role === "leader")?.count ?? 0) + (roleCounts.find((row) => row.role === "staff")?.count ?? 0),
     },
     attendance: {
+      dailyGroupTrend: buildDailyGroupAttendance(attendanceMembers, attendanceEvents),
       activeMemberCount: attendanceMembers.length,
       currentPresentCount,
       currentExcusedCount,

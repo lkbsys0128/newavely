@@ -4053,7 +4053,11 @@ tbody tr:hover {
   font-weight: 850;
 }
 
-.attendance-stats-toolbar select {
+.attendance-stats-toolbar select,
+.attendance-stats-toolbar input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 40px;
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -4063,6 +4067,22 @@ tbody tr:hover {
   font: inherit;
   font-weight: 800;
 }
+
+.attendance-line-chart { min-width: 0; display: grid; gap: 14px; }
+.attendance-line-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.attendance-line-chart svg text { fill: var(--muted); font-size: 13px; }
+.attendance-line-legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.8rem; }
+.attendance-line-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.attendance-line-legend i { width: 16px; height: 3px; }
+.attendance-line-detail { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.attendance-line-detail label { display: grid; gap: 5px; min-width: 0; color: var(--muted); font-size: 0.8rem; }
+.attendance-line-detail select { min-height: 38px; max-width: 100%; padding: 6px 10px; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 4px; font: inherit; }
+.attendance-line-detail > span { display: grid; gap: 5px; color: var(--muted); font-size: 0.8rem; }
+.attendance-line-detail strong { color: var(--ink); font-size: 1rem; font-variant-numeric: tabular-nums; }
+.attendance-stats-toolbar input:focus-visible,
+.attendance-line-detail select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:root[data-theme="dark"] .attendance-stats-toolbar input { background: #102d34; color: var(--ink); border-color: var(--line); color-scheme: dark; }
+:root[data-theme="dark"] .attendance-line-detail select { color-scheme: dark; background: #102d34; }
 
 .attendance-total-panel {
   display: grid;
