@@ -1,8 +1,30 @@
-import type { AttendanceEvent, Member } from "./types";
+import type { AttendanceEvent, AttendanceExtraCount, Member } from "./types";
+import { isAttendanceRosterMember } from "./member-filters";
 
 export type AttendanceRange = { start: string; end: string };
 export type DailyAttendancePoint = { date: string; combined: number; worship: number | null; meeting: number | null };
 export type DailyGroupAttendancePoint = DailyAttendancePoint & { groupId: string };
+export type DailyAttendanceTotal = { date: string; youth: number; total: number; clergy: number; teamLeaders: number; visitors: number; newFamily: number };
+
+export function buildDailyAttendanceTotals(youthMembers: Member[], allMembers: Member[], events: AttendanceEvent[], extras: AttendanceExtraCount[]): DailyAttendanceTotal[] {
+  const dates = [...new Set(events.filter((event) => event.title === "주일 예배" || event.title === "순모임").map((event) => event.eventDate))].sort();
+  const eligibleYouth = youthMembers.filter(isAttendanceRosterMember);
+  const leaders = allMembers.filter(isAttendanceRosterMember).filter((member) => ["clergy", "team_leader", "elder", "deaconess"].includes(String(member.customFields.community_leader_role)));
+  const extraByDate = new Map(extras.map((row) => [row.eventDate, row]));
+  const presentIds = (members: Member[], ids: Set<string>) => new Set(members.filter((member) => member.attendanceHistory.some((record) => ids.has(record.eventId) && record.status === "present")).map((member) => member.id));
+  return dates.map((date) => {
+    const dayEvents = events.filter((event) => event.eventDate === date && (event.title === "주일 예배" || event.title === "순모임"));
+    const worshipIds = new Set(dayEvents.filter((event) => event.title === "주일 예배").map((event) => event.id));
+    const youth = presentIds(eligibleYouth, new Set(dayEvents.map((event) => event.id)));
+    const leaderIds = presentIds(leaders, worshipIds);
+    const clergy = leaders.filter((member) => member.customFields.community_leader_role === "clergy" && leaderIds.has(member.id)).length;
+    const teamLeaders = leaderIds.size - clergy;
+    const extra = extraByDate.get(date);
+    const visitors = worshipIds.size ? extra?.visitorCount ?? 0 : 0;
+    const newFamily = worshipIds.size ? extra?.newFamilyCount ?? 0 : 0;
+    return { date, youth: youth.size, total: new Set([...youth, ...leaderIds]).size + visitors + newFamily, clergy, teamLeaders, visitors, newFamily };
+  });
+}
 
 export function inAttendanceRange(date: string, range: AttendanceRange): boolean {
   return (!range.start || date >= range.start) && (!range.end || date <= range.end);

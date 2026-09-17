@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { loadTsModule } from "./load-ts-module.mjs";
-const { buildDailyGroupAttendance, filterDailyAttendance, inAttendanceRange, attendancePresetRange } = loadTsModule("../src/lib/attendance-trend.ts");
+const { buildDailyAttendanceTotals, buildDailyGroupAttendance, filterDailyAttendance, inAttendanceRange, attendancePresetRange } = loadTsModule("../src/lib/attendance-trend.ts");
 const events = [
   { id: "w", title: "주일 예배", eventDate: "2026-09-13" },
   { id: "duplicate", title: "주일 예배", eventDate: "2026-09-13" },
@@ -52,4 +52,62 @@ test("chart uses server aggregate for restricted roles without expanding raw vis
   assert.match(loader, /\.filter\(isAttendanceRosterMember\)/);
   assert.match(ui, /attendanceStats\?\.dailyGroupTrend \?\? buildDailyGroupAttendance/);
   assert.doesNotMatch(ui, /filteredTrendRows|statsDateFilter/);
+});
+
+test("attendance detail defaults to all dates while keeping range controls", () => {
+  const ui = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+  assert.match(ui, /useState<AttendanceRange>\(\{ start: "", end: "" \}\)/);
+  assert.match(ui, /const \[statsPeriod, setStatsPeriod\] = useState\("all"\)/);
+  assert.match(ui, /attendancePresetRange\(Number\(period\) \|\| 0, \[\.\.\.eventDateOptions\].sort\(\).at\(-1\)/);
+  assert.equal(inAttendanceRange("2020-01-01", { start: "", end: "" }), true);
+  const range = attendancePresetRange(4, "2026-09-20");
+  for (const date of ["2026-08-30", "2026-09-06", "2026-09-13", "2026-09-20"]) assert.equal(inAttendanceRange(date, range), true);
+  assert.equal(inAttendanceRange("2026-08-23", range), false);
+  assert.match(ui, /<option value="all">전체 기간<\/option>/);
+});
+
+test("line chart compares total and youth without separate worship/meeting lines", () => {
+  const chart = readFileSync(new URL("../src/components/attendance-line-chart.tsx", import.meta.url), "utf8");
+  const ui = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+  assert.equal((chart.match(/<path /g) ?? []).length, 1);
+  assert.match(chart, /point.combined/);
+  assert.doesNotMatch(chart, /point.worship|point.meeting|eventType/);
+  assert.match(chart, /key: "total", label: "총 출석"/);
+  assert.match(chart, /key: "youth", label: "청년 출석"/);
+  assert.match(ui, /totals=\{dailyTotalPoints\}/);
+});
+
+const fullMember = (id, ids, leaderRole = "", changes = {}) => ({ ...member("a", ids), id, email: "", status: "active", customFields: { community_leader_role: leaderRole }, ...changes });
+
+test("total adds worship leaders and manual counts to deduplicated youth attendance", () => {
+  const youth = [fullMember("a", ["w", "m"]), fullMember("b", ["m"])];
+  const leaders = [fullMember("c", ["w", "duplicate"], "clergy"), fullMember("t", ["w"], "team_leader"), fullMember("e", ["m"], "elder")];
+  const totals = buildDailyAttendanceTotals(youth, [...youth, ...leaders], events, [{ eventDate: "2026-09-13", visitorCount: 3, newFamilyCount: 5, clergyCount: 99, teamLeaderCount: 99 }]);
+  assert.equal(totals[0].youth, 2);
+  assert.equal(totals[0].clergy, 1);
+  assert.equal(totals[0].teamLeaders, 1);
+  assert.equal(totals[0].total, 12);
+  assert.equal(totals[1].total, 0);
+  assert.equal(JSON.stringify(totals).includes("memberId"), false);
+});
+
+test("total excludes test/inactive members and prevents roster/leader double counting", () => {
+  const overlap = fullMember("c", ["w", "m"], "clergy");
+  const testMember = fullMember("test", ["w"], "clergy", { customFields: { community_leader_role: "clergy", test_account: true } });
+  const inactive = fullMember("inactive", ["w"], "elder", { status: "inactive" });
+  const totals = buildDailyAttendanceTotals([overlap, testMember, inactive], [overlap, testMember, inactive], events, []);
+  assert.equal(totals[0].youth, 1);
+  assert.equal(totals[0].clergy, 1);
+  assert.equal(totals[0].total, 1);
+});
+
+test("manual worship counts are date-specific and never added to meeting-only dates", () => {
+  const onlyMeeting = events.filter((event) => event.title === "순모임");
+  const youth = [fullMember("y", ["m"])];
+  const totals = buildDailyAttendanceTotals(youth, youth, onlyMeeting, [{ eventDate: "2026-09-13", visitorCount: 3, newFamilyCount: 5 }]);
+  assert.equal(totals[0].total, 1);
+  assert.equal(totals[0].visitors, 0);
+  const loader = readFileSync(new URL("../src/lib/app-page-data.ts", import.meta.url), "utf8");
+  assert.match(loader, /options.page === "attendance" \|\| !hasPermission/);
+  assert.match(loader, /dailyTotals: buildDailyAttendanceTotals\(attendanceMembers, visibleMembers, attendanceEvents, attendanceExtraCounts\)/);
 });
