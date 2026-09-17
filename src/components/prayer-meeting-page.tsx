@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2, Pencil, Save, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Save, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { PrayerEditRow } from "@/components/prayer-edit-row";
+import { toPrayerEditEntry } from "@/lib/prayer-editor";
 import { savePrayerMeeting } from "@/app/prayer/actions";
 import { formatPrayerDate, type PrayerMeeting, type PrayerSummary } from "@/lib/prayer-meetings";
 
@@ -14,8 +18,10 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
   const router = useRouter();
   const [editing, setEditing] = useState(creating && canEdit);
   const [date, setDate] = useState(meeting?.event_date ?? today);
-  const [entries, setEntries] = useState(() => (meeting?.entries ?? [{ title: "오프닝 기도", detail: "" }, { title: "찬양", detail: "" }, { title: "마무리 기도", detail: "" }])
-    .map((entry, index) => ({ ...entry, key: `row-${index}` })));
+  const [entries, setEntries] = useState(() => (meeting?.entries ?? [{ title: "기도", detail: "" }, { title: "찬양", detail: "" }, { title: "묵상/나눔", detail: "" }])
+    .map((entry, index) => toPrayerEditEntry(entry, `row-${index}`)));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const [message, setMessage] = useState("");
   const [dirty, setDirty] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -31,20 +37,12 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
     document.addEventListener("click", warnNavigation, true);
     return () => { window.removeEventListener("beforeunload", warn); document.removeEventListener("click", warnNavigation, true); };
   }, [editing, dirty]);
-  function move(index: number, direction: number) {
-    setEntries((current) => {
-      const next = [...current];
-      [next[index], next[index + direction]] = [next[index + direction], next[index]];
-      return next;
-    });
-    setDirty(true);
-  }
   function cancel() {
     if (dirty && !window.confirm("저장하지 않은 변경사항을 취소할까요?")) return;
     setDirty(false);
     if (creating) router.push("/prayer");
     else {
-      setEntries((meeting?.entries ?? []).map((entry, index) => ({ ...entry, key: `row-${index}` })));
+      setEntries((meeting?.entries ?? []).map((entry, index) => toPrayerEditEntry(entry, `row-${index}`)));
       setDate(meeting?.event_date ?? today);
       setEditing(false);
       setMessage("");
@@ -70,20 +68,23 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
     }}>
       <div className="prayer-editor-top"><label>기도회 날짜<input type="date" required value={date} disabled={pending} onChange={(event) => { setDate(event.target.value); setDirty(true); }} /></label>
         <p className="meta">저장한 날짜 중 가장 최신 기도회는 누구나 볼 수 있습니다. 개인 연락처나 민감한 기도 제목은 입력하지 마세요.</p></div>
-      <div className="prayer-editor-head" aria-hidden="true"><span>순서</span><span>항목</span><span>찬양 제목 · 내용</span><span>정렬</span></div>
-      <div className="prayer-edit-rows">{entries.map((entry, index) => <div className="prayer-edit-row" key={entry.key}>
-        <span className="prayer-number">{String(index + 1).padStart(2, "0")}</span>
-        <label><span className="prayer-mobile-label">항목</span><input autoFocus={entry.key.startsWith("new-")} aria-label={`${index + 1}번 항목`} value={entry.title} maxLength={120} required disabled={pending}
-          onChange={(event) => { setEntries(entries.map((item) => item.key === entry.key ? { ...item, title: event.target.value } : item)); setDirty(true); }} /></label>
-        <label><span className="prayer-mobile-label">찬양 제목 · 내용</span><textarea aria-label={`${index + 1}번 내용`} rows={2} value={entry.detail} maxLength={500} disabled={pending}
-          onChange={(event) => { setEntries(entries.map((item) => item.key === entry.key ? { ...item, detail: event.target.value } : item)); setDirty(true); }} /></label>
-        <div className="prayer-row-tools">
-          <button className="prayer-icon-button" type="button" title="위로 이동" aria-label={`${index + 1}번 위로 이동`} disabled={pending || index === 0} onClick={() => move(index, -1)}><ArrowUp size={17} /></button>
-          <button className="prayer-icon-button" type="button" title="아래로 이동" aria-label={`${index + 1}번 아래로 이동`} disabled={pending || index === entries.length - 1} onClick={() => move(index, 1)}><ArrowDown size={17} /></button>
-          <button className="prayer-icon-button" type="button" title="행 삭제" aria-label={`${index + 1}번 행 삭제`} disabled={pending || entries.length === 1} onClick={() => { setEntries(entries.filter((item) => item.key !== entry.key)); setDirty(true); }}><Trash2 size={17} /></button>
-        </div>
-      </div>)}</div>
-      <button className="secondary-button prayer-add-row" type="button" disabled={pending || entries.length >= 100} onClick={() => { setEntries([...entries, { key: `new-${crypto.randomUUID()}`, title: "", detail: "" }]); setDirty(true); }}><Plus size={17} />행 추가</button>
+      <div className="prayer-editor-head" aria-hidden="true"><span>순서</span><span>항목</span><span>찬양 제목 · 내용</span><span>삭제</span></div>
+      <DndContext id="prayer-order-editor" sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
+        if (pending || !over || active.id === over.id) return;
+        setEntries((current) => {
+          const from = current.findIndex((entry) => entry.key === active.id);
+          const to = current.findIndex((entry) => entry.key === over.id);
+          return from < 0 || to < 0 ? current : arrayMove(current, from, to);
+        });
+        setDirty(true);
+      }} accessibility={{ screenReaderInstructions: { draggable: "스페이스 키로 순서를 잡고 위아래 방향키로 이동하세요. 스페이스 키로 놓거나 Escape 키로 취소할 수 있습니다." } }}>
+        <SortableContext items={entries.map((entry) => entry.key)} strategy={verticalListSortingStrategy}>
+          <div className="prayer-edit-rows">{entries.map((entry, index) => <PrayerEditRow key={entry.key} entry={entry} index={index} pending={pending} onlyRow={entries.length === 1}
+            onChange={(changed) => { setEntries((current) => current.map((item) => item.key === changed.key ? changed : item)); setDirty(true); }}
+            onDelete={() => { setEntries((current) => current.filter((item) => item.key !== entry.key)); setDirty(true); }} />)}</div>
+        </SortableContext>
+      </DndContext>
+      <button className="secondary-button prayer-add-row" type="button" disabled={pending || entries.length >= 100} onClick={() => { setEntries([...entries, toPrayerEditEntry({ title: "기도", detail: "" }, `new-${crypto.randomUUID()}`)]); setDirty(true); }}><Plus size={17} />행 추가</button>
       {message ? <p className="prayer-message" role="alert">{message}</p> : null}
       <div className="prayer-save-bar"><button className="secondary-button" type="button" disabled={pending} onClick={cancel}><X size={16} />취소</button>
         <button className="primary-button" disabled={pending} type="submit"><Save size={16} />{pending ? "저장 중" : "저장 · 공개"}</button></div>
