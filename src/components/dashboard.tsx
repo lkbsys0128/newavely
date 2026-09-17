@@ -3162,8 +3162,11 @@ export function AttendanceManager({
   const [attendanceGroupId, setAttendanceGroupId] = useState(initialAttendanceGroupId);
   const [eventSearchQuery, setEventSearchQuery] = useState("");
   const [statsEventTypeFilter, setStatsEventTypeFilter] = useState("all");
-  const [statsRange, setStatsRange] = useState<AttendanceRange>({ start: "", end: "" });
-  const [statsPeriod, setStatsPeriod] = useState("all");
+  const [statsRange, setStatsRange] = useState<AttendanceRange>(() => attendancePresetRange(
+    4,
+    attendanceEvents.map((event) => event.eventDate).sort().at(-1) ?? attendanceDate,
+  ));
+  const [statsPeriod, setStatsPeriod] = useState("4");
   const [statsGroupId, setStatsGroupId] = useState("all");
   const [absenceMinimumStreak, setAbsenceMinimumStreak] = useState(3);
   const [eventPendingDelete, setEventPendingDelete] = useState<AttendanceEvent | null>(null);

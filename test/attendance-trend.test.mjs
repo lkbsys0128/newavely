@@ -53,3 +53,14 @@ test("chart uses server aggregate for restricted roles without expanding raw vis
   assert.match(ui, /attendanceStats\?\.dailyGroupTrend \?\? buildDailyGroupAttendance/);
   assert.doesNotMatch(ui, /filteredTrendRows|statsDateFilter/);
 });
+
+test("attendance detail defaults to the latest four weeks while keeping range controls", () => {
+  const ui = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+  assert.match(ui, /useState<AttendanceRange>\(\(\) => attendancePresetRange\(\s*4,/);
+  assert.match(ui, /const \[statsPeriod, setStatsPeriod\] = useState\("4"\)/);
+  assert.match(ui, /attendanceEvents.map\(\(event\) => event.eventDate\).sort\(\).at\(-1\) \?\? attendanceDate/);
+  const range = attendancePresetRange(4, "2026-09-20");
+  for (const date of ["2026-08-30", "2026-09-06", "2026-09-13", "2026-09-20"]) assert.equal(inAttendanceRange(date, range), true);
+  assert.equal(inAttendanceRange("2026-08-23", range), false);
+  assert.match(ui, /<option value="all">전체 기간<\/option>/);
+});
