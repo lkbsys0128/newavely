@@ -3758,7 +3758,7 @@ export function AttendanceManager({
       <DisclosurePanel
         id="attendance-stats"
         title="상세 출석 통계"
-        meta={`${hasExplicitAttendanceSelection ? attendanceTitle : "최근 이벤트 기준"} · 펼쳐서 보기`}
+        meta={statsRange.start || statsRange.end ? `${statsRange.start || "처음"} ~ ${statsRange.end || "최근"}` : "전체 기간"}
       >
         <section className="attendance-insight-panel" aria-label="상호작용 출석 통계">
           <div className="attendance-stats-toolbar">
