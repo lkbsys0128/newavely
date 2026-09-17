@@ -1,5 +1,5 @@
 import { hasPermission, roles, type Role } from "@/lib/rbac";
-import { buildDailyGroupAttendance, type DailyGroupAttendancePoint } from "@/lib/attendance-trend";
+import { buildDailyAttendanceTotals, buildDailyGroupAttendance, type DailyAttendanceTotal, type DailyGroupAttendancePoint } from "@/lib/attendance-trend";
 import type {
   AdminFeedbackMessage,
   AttendanceExtraCount,
@@ -181,6 +181,7 @@ export type AttendanceEventGroupTrendStat = {
 };
 
 export type AttendancePageStats = {
+  dailyTotals: DailyAttendanceTotal[];
   dailyGroupTrend: DailyGroupAttendancePoint[];
   activeMemberCount: number;
   currentPresentCount: number;
@@ -270,6 +271,7 @@ export function buildGlobalAppStats(
   attendanceEvents: AttendanceEvent[],
   selectedEventId?: string,
   permissionRoleCounts?: PermissionRoleCount[],
+  attendanceExtraCounts: AttendanceExtraCount[] = [],
 ): GlobalAppStats {
   const visibleMembers = members.filter((member) => !isStatsExcludedMember(member));
   const activeMembers = visibleMembers.filter((member) => member.status !== "inactive");
@@ -303,6 +305,7 @@ export function buildGlobalAppStats(
         (roleCounts.find((row) => row.role === "leader")?.count ?? 0) + (roleCounts.find((row) => row.role === "staff")?.count ?? 0),
     },
     attendance: {
+      dailyTotals: buildDailyAttendanceTotals(attendanceMembers, visibleMembers, attendanceEvents, attendanceExtraCounts),
       dailyGroupTrend: buildDailyGroupAttendance(attendanceMembers, attendanceEvents),
       activeMemberCount: attendanceMembers.length,
       currentPresentCount,
@@ -851,7 +854,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
     }
 
     let publicDashboardData = dashboardData;
-    if (!hasPermission(currentMember.role, "members:write")) {
+    if (options.page === "attendance" || !hasPermission(currentMember.role, "members:write")) {
       try {
         publicDashboardData = await getPublicDashboardData(supabase, options?.attendanceEventId);
       } catch (error) {
@@ -919,6 +922,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       publicDashboardData.attendanceEvents,
       publicDashboardData.attendanceEventId,
       permissionRoleCounts,
+      attendanceExtraCounts,
     );
 
     return {

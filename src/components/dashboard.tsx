@@ -3476,6 +3476,9 @@ export function AttendanceManager({
     statsRange,
     statsGroupId,
   );
+  const dailyTotalPoints = statsGroupId === "all"
+    ? attendanceStats?.dailyTotals.filter((point) => inAttendanceRange(point.date, statsRange))
+    : undefined;
   const comparisonRows = [...displayAggregateGroupStats].sort((a, b) => b.rate - a.rate).slice(0, 8);
   const absenceUnits = buildAttendanceAbsenceUnits(attendanceEvents.filter((event) => inAttendanceRange(event.eventDate, statsRange)), statsEventTypeFilter, "all").slice(0, 10);
   const absenceWatchList = activeMembers
@@ -3844,11 +3847,11 @@ export function AttendanceManager({
               <div className="panel-heading compact-heading">
                 <div>
                   <h2>날짜별 출석 추이</h2>
-                  <p className="meta">순 인원 기준 · 전체 출석은 예배 또는 순모임 출석자 중복 제외</p>
+                  <p className="meta">{statsGroupId === "all" ? "청년 출석 + 교역자·팀장 이상·방문자·새가족 = 총 출석" : "선택 순 · 예배 또는 순모임 출석자 중복 제외"}</p>
                 </div>
-                <span>{dailyTrendPoints.length}일</span>
+                <span>{dailyTotalPoints?.length ?? dailyTrendPoints.length}일</span>
               </div>
-              <AttendanceLineChart points={dailyTrendPoints} />
+              <AttendanceLineChart points={dailyTrendPoints} totals={dailyTotalPoints} youthLabel={statsGroupId === "all" ? "청년 출석" : "선택 순 출석"} />
             </article>
 
             <article className="attendance-compare-card">
