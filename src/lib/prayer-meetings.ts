@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { safeSourceUrl } from "./prayer-source-search";
 
 export const prayerEntrySchema = z.object({
   title: z.string().trim().min(1, "항목 이름을 입력해주세요.").max(120),
   detail: z.string().trim().max(500).default(""),
+  sourceUrl: z.string().refine((value) => value === "" || safeSourceUrl(value), "HTTPS 원문 링크를 확인해주세요.").optional(),
 });
 export const prayerMeetingSchema = z.object({
   id: z.string().uuid().nullable(),

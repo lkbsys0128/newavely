@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import vm from "node:vm";
 import ts from "typescript";
@@ -6,7 +6,8 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 
 export function loadTsModule(path) {
-  const source = readFileSync(new URL(path, import.meta.url), "utf8");
+  const sourceUrl = new URL(path, import.meta.url);
+  const source = readFileSync(sourceUrl, "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
@@ -17,7 +18,14 @@ export function loadTsModule(path) {
   const context = vm.createContext({
     exports: module.exports,
     module,
-    require,
+    require: (specifier) => {
+      if (specifier.startsWith(".")) {
+        const dependency = new URL(`${specifier}.ts`, sourceUrl);
+        if (existsSync(dependency)) return loadTsModule(dependency.href);
+      }
+      return require(specifier);
+    },
+    URL, URLSearchParams, AbortSignal, fetch,
   });
 
   new vm.Script(compiled, { filename: path }).runInContext(context);
