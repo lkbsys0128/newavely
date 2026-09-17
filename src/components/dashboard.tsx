@@ -81,6 +81,7 @@ import { getMemberEnglishName } from "@/lib/member-names";
 import { getPageEmoji } from "@/lib/ui-emojis";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
+import type { PublicLink } from "@/lib/public-links";
 
 type AppDataProps = {
   user: AppUser;
@@ -2193,9 +2194,9 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
   );
 }
 
-export function LinksPageContent({ user, importantLinks = [] }: AppDataProps) {
-  const canCreateLinks = hasPermission(user.role, "links:write");
-  const canDeleteLinks = user.role === "owner" || user.role === "admin";
+export function LinksPageContent({ user, importantLinks = [] }: { user: AppUser | null; importantLinks?: PublicLink[] }) {
+  const canCreateLinks = Boolean(user && hasPermission(user.role, "links:write"));
+  const canDeleteLinks = user?.role === "owner" || user?.role === "admin";
   const [createLinkState, createLinkAction, isCreatingLink] = useActionState(createImportantLink, initialActionState);
   const [deleteLinkState, deleteLinkAction, isDeletingLink] = useActionState(deleteImportantLink, initialActionState);
 
@@ -2208,7 +2209,7 @@ export function LinksPageContent({ user, importantLinks = [] }: AppDataProps) {
       <SectionNav
         items={[
           { href: "#link-list", label: "링크 목록" },
-          { href: "#link-create", label: "새 링크" },
+          ...(canCreateLinks ? [{ href: "#link-create", label: "새 링크" }] : []),
         ]}
       />
 
@@ -2245,7 +2246,7 @@ export function LinksPageContent({ user, importantLinks = [] }: AppDataProps) {
         {importantLinks.length === 0 ? (
           <article className="empty-state">
             <strong>등록된 링크가 없습니다</strong>
-            <span>순장 이상 권한으로 첫 링크를 추가할 수 있습니다.</span>
+                {canCreateLinks ? <span>첫 링크를 추가해주세요.</span> : null}
           </article>
         ) : null}
       </section>
@@ -5433,7 +5434,7 @@ function PageHeader({
 }: {
   eyebrow: string;
   title: string;
-  user: AppUser;
+  user: AppUser | null;
   children?: ReactNode;
 }) {
   return (
@@ -5445,9 +5446,9 @@ function PageHeader({
         <div>
           <p className="eyebrow">{eyebrow}</p>
           <h1>{title}</h1>
-          <p className="meta">
+          {user ? <p className="meta">
             {user.name} · {roleLabels[user.role]} 권한
-          </p>
+          </p> : null}
         </div>
       </div>
       {children ? <div className="topbar-actions">{children}</div> : null}

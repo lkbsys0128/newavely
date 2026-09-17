@@ -50,7 +50,7 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 - `/new-family`: 새가족 신청 roster
 - `/groups`: 순 관리
 - `/attendance`: 출석 체크/통계
-- `/links`: 중요 링크
+- `/links`: 공개 중요 링크. 익명은 읽기 전용이며 `get_public_important_links()` RPC로 표시 필드만 조회합니다. 멤버 roster/작성자 정보는 보내지 않습니다. 추가/삭제는 기존 로그인 권한 및 감사 로그를 유지합니다 (`db/043_public_important_links.sql`).
 - `/feedback`: 관리자 피드백 창구
 - `/permissions`: 권한/계정 연결 요청/복구
 - `/audit`: 감사 로그
