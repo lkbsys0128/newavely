@@ -27,9 +27,10 @@ test("anonymous prayer query is parameterless and history remains authenticated"
   assert.ok(read("../db/schema.sql").includes(sql.trim()));
 });
 
-test("only the prayer section is available in unauthenticated navigation", () => {
+test("prayer and links are available in unauthenticated navigation", () => {
   const nav = read("../src/lib/navigation.ts");
   assert.match(nav, /href: "\/calendar", label: "캘린더" \},\s*\{ href: "\/prayer", label: "오늘의 기도회", public: true/);
   assert.match(nav, /if \(!role\) return navItems.filter\(\(item\) => item.public\)/);
-  assert.equal((nav.match(/public: true/g) ?? []).length, 1);
+  assert.match(nav, /href: "\/links", label: "링크", requiredPermission: "links:read", public: true/);
+  assert.equal((nav.match(/public: true/g) ?? []).length, 2);
 });

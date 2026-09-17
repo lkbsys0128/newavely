@@ -17,7 +17,7 @@ export const navItems: NavItem[] = [
   { href: "/attendance", label: "출석", requiredPermission: "attendance:read" },
   { href: "/calendar", label: "캘린더" },
   { href: "/prayer", label: "오늘의 기도회", public: true },
-  { href: "/links", label: "링크", requiredPermission: "links:read" },
+  { href: "/links", label: "링크", requiredPermission: "links:read", public: true },
   { href: "/feedback", label: "피드백" },
   { href: "/permissions", label: "권한" },
   { href: "/audit", label: "감사 로그", requiredPermission: "roles:manage" },
