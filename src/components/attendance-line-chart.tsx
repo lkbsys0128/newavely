@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import type { DailyAttendancePoint, DailyAttendanceTotal } from "@/lib/attendance-trend";
 
 const series = [
-  { key: "total", label: "총 출석", color: "#3289cf" },
-  { key: "youth", label: "청년 출석", color: "#158475" },
+  { key: "total", label: "총 출석", color: "var(--chart-total)" },
+  { key: "youth", label: "청년 출석", color: "var(--chart-youth)" },
 ] as const;
 
 export function AttendanceLineChart({ points, totals, youthLabel = "청년 출석" }: { points: DailyAttendancePoint[]; totals?: DailyAttendanceTotal[]; youthLabel?: string }) {

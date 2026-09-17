@@ -1,0 +1,152 @@
+/* Shared typography and seasonal color system. Status colors retain their meaning. */
+:root {
+  --font-weight-ui: 650;
+  --bg: #f5f5f2;
+  --surface: #ffffff;
+  --surface-strong: #f1f2ed;
+  --ink: #292d27;
+  --text: #292d27;
+  --muted: #676c62;
+  --line: #d9ddd2;
+  --line-strong: #a6ad9c;
+  --accent: #6b7746;
+  --accent-dark: #4c5c32;
+  --accent-strong: #85945e;
+  --accent-2: #9a505d;
+  --accent-3: #537651;
+  --danger: #ad4348;
+  --season-accent: #a87530;
+  --season-soft: #f3e8e7;
+  --season-berry: #854652;
+  --season-evergreen: #526543;
+  --soft: #edf0e6;
+  --soft-strong: #dce3ce;
+  --chart-total: #9a5363;
+  --chart-youth: #687d45;
+  --button-ink: #ffffff;
+  --shadow: 0 8px 24px rgba(40, 45, 35, 0.05);
+  --shadow-soft: 0 3px 12px rgba(40, 45, 35, 0.04);
+  --logo-filter: hue-rotate(160deg) saturate(0.65) brightness(0.85);
+}
+
+:root[data-theme="dark"] {
+  --bg: #1a1c19;
+  --surface: #242722;
+  --surface-strong: #2c3028;
+  --ink: #f0f1eb;
+  --text: #f0f1eb;
+  --muted: #b2b8aa;
+  --line: #444b3c;
+  --line-strong: #717c63;
+  --accent: #b9c58f;
+  --accent-dark: #c9d6a5;
+  --accent-strong: #dae3ba;
+  --accent-2: #d49ca6;
+  --accent-3: #a4bf94;
+  --danger: #f0a0a3;
+  --season-accent: #d8b071;
+  --season-soft: #3d2d31;
+  --season-berry: #e0adb6;
+  --season-evergreen: #b0c19a;
+  --soft: #343c2b;
+  --soft-strong: #424e33;
+  --chart-total: #df9aaa;
+  --chart-youth: #b5c785;
+  --button-ink: #242c1b;
+  --shadow: none;
+  --shadow-soft: none;
+  --logo-filter: hue-rotate(160deg) saturate(0.5) brightness(1.8);
+}
+
+body { font-weight: 450; letter-spacing: 0; }
+button, input, select, textarea { font-family: inherit; letter-spacing: 0; }
+h1, h2, h3, h4, h5, h6, strong, b, th { font-weight: var(--font-weight-ui); letter-spacing: 0; }
+:root .editorial-shell :is(input, select, textarea) { font-weight: 450; }
+:root .editorial-shell :is(button, summary, .primary-button, .secondary-button, .table-action) { font-weight: var(--font-weight-ui); }
+:root .seasonal-logo { filter: var(--logo-filter); }
+:root .editorial-shell .brand-mark { background: transparent; box-shadow: none; }
+:root .editorial-shell :is(thead, .statistics-table-heading) { background: var(--surface-strong); }
+:root .editorial-shell :is(.role-pill, .account-pill) { background: var(--soft); color: var(--accent-dark); }
+:root .editorial-shell .status-pill.active { background: var(--soft); color: var(--accent-dark); }
+
+:root .editorial-shell :is(.primary-button, .segment.active) {
+  background: var(--accent-dark);
+  color: var(--button-ink);
+  box-shadow: none;
+}
+:root .editorial-shell .primary-button:hover:not(:disabled) { background: var(--accent); }
+:root .editorial-shell :is(.secondary-button, .table-action, .google-button, .event-chip) {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+  box-shadow: none;
+}
+:root .editorial-shell :is(.metric-card, .panel, .section-nav, .login-card,
+  .new-family-sheet-panel, .new-family-breakdown-card, .calendar-layout,
+  .prayer-sheet, .prayer-editor, .prayer-history, .status-composer-panel,
+  .attendance-trend-card, .attendance-compare-card, .event-selector-panel) {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: none;
+}
+:root .editorial-shell :is(.section-nav a, .section-nav-emoji, .page-title-emoji,
+  .disclosure-indicator, .event-chip.active, .permission-chip) {
+  background: var(--soft);
+  color: var(--accent-dark);
+  border-color: var(--line);
+  box-shadow: none;
+}
+:root .editorial-shell :is(.attendance-total-panel, .attendance-total-result,
+  .attendance-total-hero-card, .attendance-total-chip,
+  .attendance-total-breakdown article, .welcome-attendance-input-panel,
+  .attendance-extra-form input, .attendance-extra-form textarea,
+  .attendance-kpi-strip article, .leader-extra-summary span) {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:root .editorial-shell :is(.attendance-total-hero-card.primary, .attendance-total-substats span) {
+  background: var(--soft);
+  border-color: var(--line-strong);
+  color: var(--accent-dark);
+}
+:root .editorial-shell :is(.leader-extra-toggle.present, .attendance-toggle.present, .attendance-cell.present) {
+  background: var(--soft);
+  color: var(--accent-dark);
+  border-color: var(--line-strong);
+}
+:root .editorial-shell :is(.calendar-day-card, .calendar-list-row, .calendar-summary-grid div) {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:root .editorial-shell .calendar-day-card.outside { background: var(--surface-strong); }
+:root .editorial-shell .calendar-day-card.today { border-color: var(--season-accent); box-shadow: inset 0 0 0 1px var(--season-accent); }
+:root .editorial-shell :is(.calendar-event.worship, .calendar-day-detail-item.worship) {
+  background: var(--soft);
+  color: var(--accent-dark);
+  border-color: var(--line);
+}
+:root .editorial-shell :is(.calendar-event.birthday, .calendar-day-detail-item.birthday) {
+  background: var(--season-soft);
+  color: var(--season-berry);
+  border-color: var(--line);
+}
+:root .editorial-shell .group-network-map { background: var(--surface-strong); border-color: var(--line); box-shadow: none; }
+:root .editorial-shell :is(.group-network-center, .group-network-node) { background: var(--surface); border-color: var(--line-strong); box-shadow: var(--shadow); }
+:root .editorial-shell .group-network-node.community-leader { background: var(--season-soft); border-color: var(--season-berry); }
+:root .editorial-shell .group-network-node:hover { background: var(--soft); border-color: var(--accent); }
+:root .editorial-shell .group-network-lines line { stroke: var(--line-strong); }
+:root .editorial-shell .group-network-node small { background: var(--soft); color: var(--accent-dark); }
+:root .editorial-shell :is(.member-status-card, .status-quick-list button, .status-input-shell textarea) { background: var(--surface); color: var(--ink); border-color: var(--line); }
+:root .editorial-shell .member-status-card :is(p, strong) { color: var(--ink); }
+:root .editorial-shell .member-status-card :is(span, time) { color: var(--muted); }
+:root .editorial-shell :is(.progress, .statistics-bar-track, .new-family-breakdown-bar) { background: var(--soft); }
+:root .editorial-shell :is(.progress span, .statistics-bar-track span, .new-family-breakdown-bar span) { background: var(--chart-youth); }
+:root .editorial-shell .statistics-chart-card:nth-child(2) .statistics-bar-track span { background: var(--chart-total); }
+:root .editorial-shell :is(input, select, textarea):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: none; }
+:root .editorial-shell :is(a, button, summary):focus-visible { outline: 2px solid var(--season-accent); outline-offset: 3px; }
+
+/* Keep the approved dashboard layout unframed. */
+:root .editorial-dashboard :is(.panel, .metric-card, .section-nav) { background: transparent; box-shadow: none; }
+:root .editorial-dashboard .section-nav a { background: transparent; color: var(--muted); }
+:root .editorial-dashboard .section-nav a:hover { background: var(--soft); color: var(--ink); }
+:root .editorial-shell .nav-list a[aria-current="page"] { background: var(--season-soft); color: var(--season-berry); }
