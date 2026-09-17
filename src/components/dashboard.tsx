@@ -3758,6 +3758,18 @@ export function AttendanceManager({
         </section>
       ) : null}
 
+      <section className="panel attendance-trend-card" aria-label="날짜별 출석 추이">
+        <div className="panel-heading compact-heading">
+          <div>
+            <h2>날짜별 출석 추이</h2>
+            <p className="meta">{statsGroupId === "all" ? "청년 출석 + 교역자·팀장 이상·방문자·새가족 = 총 출석" : "선택 순 · 예배 또는 순모임 출석자 중복 제외"}</p>
+            <p className="meta">{statsRange.start || statsRange.end ? `${statsRange.start || "처음"} ~ ${statsRange.end || "최근"}` : "전체 기간"}</p>
+          </div>
+          <span>{dailyTotalPoints?.length ?? dailyTrendPoints.length}일</span>
+        </div>
+        <AttendanceLineChart points={dailyTrendPoints} totals={dailyTotalPoints} youthLabel={statsGroupId === "all" ? "청년 출석" : "선택 순 출석"} />
+      </section>
+
       <DisclosurePanel
         id="attendance-stats"
         title="상세 출석 통계"
@@ -3839,18 +3851,6 @@ export function AttendanceManager({
             </article>
           </div>
 
-          <div className="attendance-insight-grid">
-            <article className="attendance-trend-card">
-              <div className="panel-heading compact-heading">
-                <div>
-                  <h2>날짜별 출석 추이</h2>
-                  <p className="meta">{statsGroupId === "all" ? "청년 출석 + 교역자·팀장 이상·방문자·새가족 = 총 출석" : "선택 순 · 예배 또는 순모임 출석자 중복 제외"}</p>
-                </div>
-                <span>{dailyTotalPoints?.length ?? dailyTrendPoints.length}일</span>
-              </div>
-              <AttendanceLineChart points={dailyTrendPoints} totals={dailyTotalPoints} youthLabel={statsGroupId === "all" ? "청년 출석" : "선택 순 출석"} />
-            </article>
-
             <article className="attendance-compare-card">
               <div className="panel-heading compact-heading">
                 <h2>순별 비교</h2>
@@ -3874,8 +3874,6 @@ export function AttendanceManager({
                 ) : null}
               </div>
             </article>
-          </div>
-
           <div className="attendance-bottom-grid single">
           <article className="panel stats-card compact-stat-card">
             <div className="panel-heading">

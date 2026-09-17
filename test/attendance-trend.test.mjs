@@ -66,6 +66,16 @@ test("attendance detail defaults to all dates while keeping range controls", () 
   assert.match(ui, /<option value="all">전체 기간<\/option>/);
 });
 
+test("attendance chart stays outside the collapsed detail panel", () => {
+  const ui = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+  const chart = ui.indexOf("<AttendanceLineChart ");
+  const details = ui.lastIndexOf("<DisclosurePanel", ui.indexOf('id="attendance-stats"'));
+  assert.ok(chart > 0 && chart < details);
+  assert.match(ui.slice(chart, details), /<\/section>/);
+  assert.equal((ui.match(/<AttendanceLineChart /g) ?? []).length, 1);
+  assert.ok(ui.indexOf('className="attendance-stats-toolbar"', details) > details);
+});
+
 test("line chart compares total and youth without separate worship/meeting lines", () => {
   const chart = readFileSync(new URL("../src/components/attendance-line-chart.tsx", import.meta.url), "utf8");
   const ui = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
