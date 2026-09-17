@@ -11,3 +11,8 @@ export function toPrayerEditEntry(entry: PrayerEntry, key: string): PrayerEditEn
 export function changePrayerItemType(entry: PrayerEditEntry, kind: string): PrayerEditEntry {
   return { ...entry, kind, title: kind === "custom" ? entry.customTitle : kind };
 }
+
+export function selectPrayerSource(entry: PrayerEditEntry, sourceUrl: string, songTitle?: string): PrayerEditEntry {
+  const title = songTitle?.trim();
+  return { ...entry, sourceUrl, detail: sourceUrl && entry.kind === "찬양" && title ? title : entry.detail };
+}
