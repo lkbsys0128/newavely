@@ -205,6 +205,8 @@ npm run build
 
 ## UI/UX 기준
 
+- 디자인은 새 레이아웃/정렬/폰트를 유지하고 색상은 `globals.css`의 기존 라이트/다크 팔레트를 사용합니다. 바닐라/제이드/라벤더/가넷 실험 팔레트를 다시 적용하지 않습니다. `autumn-theme.css`의 선택/hover 토큰은 기존 `--accent`, `--soft` 계열을 상속합니다.
+- 폰트 굵기는 `--font-weight-ui`(650), 색상은 기존 공통 토큰을 사용합니다. 새 화면에 800~950 굵기나 색상 하드코딩을 추가하지 않습니다. 완료/경고/미출석 같은 의미 있는 상태 색상은 유지합니다. 뉴웨이브 로고는 기존 파란 `/newave-icon.png`를 색상 필터 없이 사용합니다.
 - Newavely는 내부 운영 도구입니다. 예쁘지만 과장된 랜딩 페이지가 아니라 빠르고 명확한 업무 화면이어야 합니다.
 - 모바일에서 메뉴는 접히고, 페이지 선택 후 닫혀야 합니다.
 - modal은 모바일에서 내부 스크롤이 가능해야 합니다.
@@ -215,6 +217,7 @@ npm run build
 
 ## UI 정렬/폼 품질 기준
 
+- 메뉴/탭/필터 선택은 `--interaction-selected/ink/border`, hover는 `--interaction-hover`, 주요 버튼은 `--interaction-solid/solid-ink` 토큰을 공통 사용합니다. 선택 상태에는 `aria-current` 또는 `aria-pressed`를 노출하고, 출석/완료/경고의 의미 색상과 혼동하지 않습니다.
 새 기능이나 새 UI를 만들 때 아래 기준을 반드시 먼저 확인합니다. 사용자가 반복해서 정렬 문제를 지적하지 않도록, 구현 단계에서 기본 품질로 처리합니다.
 
 - label과 input/select/textarea가 inline으로 붙어 보이면 안 됩니다. 폼 필드는 기본적으로 label 텍스트 위, control 아래의 grid 레이아웃을 사용합니다.

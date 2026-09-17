@@ -11,6 +11,8 @@ import { roles, type Role } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import "./globals.css";
+import "./editorial.css";
+import "./autumn-theme.css";
 
 export const metadata: Metadata = {
   title: "Newavely 공동체 관리",
@@ -58,10 +60,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang="ko" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <div className="app-shell">
+        <div className="app-shell editorial-shell">
           <aside className="sidebar" aria-label="주요 메뉴">
             <Link className="brand" href="/" aria-label="대시보드로 이동">
-              <Image alt="" className="brand-mark" height={44} src="/newave-icon.png" width={34} />
+              <Image alt="" className="brand-mark seasonal-logo" height={44} src="/newave-icon.png" width={34} />
               <div>
                 <strong>Newavely</strong>
                 <span>Newave 공동체</span>

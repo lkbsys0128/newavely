@@ -1,0 +1,169 @@
+/* Dashboard layout and shared navigation; theme tokens live in autumn-theme.css. */
+.editorial-shell .sidebar,
+.editorial-dashboard {
+  --shadow: none;
+  --shadow-soft: none;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+
+body:has(.editorial-dashboard) { background: var(--bg); }
+:root[data-theme="dark"] body:has(.editorial-dashboard) { background: var(--bg); }
+
+.editorial-shell .sidebar {
+  border-top: 0;
+  background: var(--surface-strong);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 30px 18px;
+}
+.editorial-shell .brand { gap: 10px; transform: none; }
+.editorial-shell .brand strong { font-size: 22px; font-weight: var(--font-weight-ui); }
+.editorial-shell .brand span { font-size: 11px; margin-top: 3px; }
+.editorial-shell .brand-mark { border: 0; background: transparent; box-shadow: none; padding: 3px; }
+.editorial-shell .nav-list { gap: 4px; }
+.editorial-shell .nav-list a {
+  min-height: 44px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: var(--font-weight-ui);
+  color: var(--muted);
+  box-shadow: none;
+  transform: none;
+}
+.editorial-shell .nav-list a:hover { background: var(--soft); color: var(--ink); }
+.editorial-shell .nav-list a[aria-current="page"] {
+  background: var(--season-soft);
+  color: var(--season-berry);
+  box-shadow: none;
+}
+.editorial-shell .nav-list .nav-emoji {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  font-size: 15px;
+}
+.editorial-shell .auth-card { border-top: 1px solid var(--line); padding-top: 18px; }
+.editorial-shell .theme-toggle,
+.editorial-shell .sign-out-button,
+.editorial-shell .mobile-menu-toggle {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+  box-shadow: none;
+  border-radius: 4px;
+  transform: none;
+}
+.editorial-dashboard { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; min-width: 0; }
+.editorial-dashboard > * { min-width: 0; }
+.editorial-dashboard .topbar {
+  margin: 0;
+  padding: 10px 0 24px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.editorial-dashboard .page-title-emoji { display: none; }
+.editorial-dashboard .topbar h1 { font-size: 40px; line-height: 1.2; font-weight: var(--font-weight-ui); letter-spacing: 0; margin: 12px 0; }
+.editorial-dashboard .eyebrow { color: var(--muted); font-size: 11px; font-weight: var(--font-weight-ui); letter-spacing: 0; }
+.editorial-dashboard .section-nav {
+  position: static;
+  margin: -12px 0 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.editorial-dashboard .section-nav a { background: transparent; border: 0; border-radius: 0; color: var(--muted); padding: 14px 16px; font-size: 13px; }
+.editorial-dashboard .section-nav a:hover { color: var(--ink); background: var(--soft); transform: none; }
+.editorial-dashboard .section-nav-emoji { display: none; }
+.editorial-dashboard .metric-grid { margin: 0; gap: 0; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid var(--line); padding-bottom: 28px; }
+.editorial-dashboard .metric-card {
+  min-width: 0;
+  min-height: 140px;
+  padding: 12px 20px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.editorial-dashboard .metric-card:first-child { padding-left: 0; }
+.editorial-dashboard .metric-card:last-child { border-right: 0; }
+.editorial-dashboard .metric-card strong { color: var(--ink); font-size: 42px; font-weight: var(--font-weight-ui); line-height: 1.2; margin: 16px 0 8px; }
+.editorial-dashboard .metric-card span { font-size: 13px; color: var(--muted); }
+.editorial-dashboard .metric-card small { font-size: 11px; color: var(--muted); }
+.editorial-dashboard .metric-card:nth-child(4) strong { color: var(--accent-dark); }
+.editorial-dashboard .panel,
+.editorial-dashboard .member-status-board {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 0 28px;
+  border-bottom: 1px solid var(--line);
+}
+.editorial-dashboard .member-status-board { padding: 22px; background: var(--soft); border: 0; }
+.editorial-dashboard h2 { font-size: 19px; letter-spacing: 0; }
+.editorial-dashboard .panel-heading { margin-bottom: 20px; }
+.editorial-dashboard .statistics-layout { align-items: start; }
+.editorial-dashboard .statistics-chart-grid,
+.editorial-dashboard .statistics-chart-card,
+.editorial-dashboard .statistics-bars { align-content: start; }
+.editorial-dashboard .statistics-table-card,
+.editorial-dashboard .statistics-chart-card,
+.editorial-dashboard .mini-roster-card,
+.editorial-dashboard .upcoming-birthday-card,
+.editorial-dashboard .member-status-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: none;
+}
+.editorial-dashboard .statistics-bar-track { background: var(--soft); border-radius: 2px; }
+.editorial-dashboard .statistics-bar-track span { background: var(--chart-youth); border-radius: 2px; }
+.editorial-dashboard .statistics-chart-card:nth-child(2) .statistics-bar-track span { background: var(--chart-total); }
+.editorial-dashboard .secondary-button { color: var(--ink); border: 1px solid var(--line-strong); background: transparent; box-shadow: none; border-radius: 4px; }
+.editorial-dashboard .secondary-button:hover { background: var(--surface); transform: none; }
+.editorial-dashboard .dashboard-insights { gap: 32px; }
+
+:root[data-theme="dark"] .editorial-shell .sidebar { background: var(--surface-strong); box-shadow: none; }
+:root[data-theme="dark"] .editorial-dashboard .panel,
+:root[data-theme="dark"] .editorial-dashboard .metric-card,
+:root[data-theme="dark"] .editorial-dashboard .section-nav { background: transparent; box-shadow: none; }
+:root[data-theme="dark"] .editorial-dashboard .statistics-table-card,
+:root[data-theme="dark"] .editorial-dashboard .statistics-chart-card,
+:root[data-theme="dark"] .editorial-dashboard .mini-roster-card,
+:root[data-theme="dark"] .editorial-dashboard .upcoming-birthday-card { background: var(--surface); }
+:root[data-theme="dark"] .editorial-dashboard .statistics-table-heading,
+:root[data-theme="dark"] .editorial-dashboard .statistics-table-row { background: transparent; }
+:root[data-theme="dark"] .editorial-dashboard .statistics-bar-track { background: var(--soft); }
+:root[data-theme="dark"] .editorial-dashboard .statistics-bar-track span { background: var(--chart-youth); }
+:root[data-theme="dark"] .editorial-dashboard .statistics-chart-card:nth-child(2) .statistics-bar-track span { background: var(--chart-total); }
+
+@media (max-width: 1100px) {
+  .editorial-shell .sidebar { padding: 18px 24px; }
+  .editorial-dashboard .metric-card { padding: 8px 14px; }
+}
+@media (max-width: 700px) {
+  .editorial-shell .sidebar { padding: 14px 18px; gap: 12px; border-bottom: 1px solid var(--line); }
+  .editorial-shell .brand strong { font-size: 20px; }
+  .editorial-shell .mobile-menu-toggle { min-height: 40px; font-size: 13px; }
+  .editorial-shell .sidebar-menu { min-width: 0; }
+  .editorial-dashboard { gap: 24px; }
+  .editorial-dashboard .topbar h1 { font-size: 30px; }
+  .editorial-dashboard .topbar { padding-top: 0; padding-bottom: 20px; }
+  .editorial-dashboard .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-bottom: 0; }
+  .editorial-dashboard .metric-card { padding: 16px; min-height: 136px; border-bottom: 1px solid var(--line); }
+  .editorial-dashboard .metric-card:first-child { padding-left: 16px; }
+  .editorial-dashboard .metric-card:nth-child(even) { border-right: 0; }
+  .editorial-dashboard .metric-card:last-child { grid-column: 1 / -1; min-height: auto; padding: 16px; display: flex; align-items: center; gap: 16px; }
+  .editorial-dashboard .metric-card:last-child strong { margin: 0; font-size: 28px; }
+  .editorial-dashboard .metric-card strong { font-size: 36px; }
+  .editorial-dashboard .member-status-board { padding: 18px; gap: 16px; }
+  .editorial-dashboard .member-status-board h2 { font-size: 16px; }
+}

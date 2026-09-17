@@ -171,7 +171,8 @@ export function DashboardOverview({
 
   return (
     <>
-      <PageHeader eyebrow="2026 공동체 관리 MVP" title="대시보드" user={user} />
+      <div className="editorial-dashboard">
+      <PageHeader eyebrow="NEWAVE COMMUNITY · SEATTLE" title="대시보드" user={user} />
       <SectionNav
         items={[
           { href: "#overview-metrics", label: "요약" },
@@ -204,8 +205,6 @@ export function DashboardOverview({
         </section>
       ) : null}
 
-      <MemberStatusBoard messages={memberStatusMessages} />
-
       <div className="metric-grid" id="overview-metrics">
         <article className="metric-card">
           <span>전체 멤버</span>
@@ -236,6 +235,7 @@ export function DashboardOverview({
         </article>
       </div>
 
+      <MemberStatusBoard messages={memberStatusMessages} />
       <DashboardStatisticsSummary summary={statisticsSummary} />
       <DashboardRosterInsights insights={dashboardInsights} />
 
@@ -247,6 +247,7 @@ export function DashboardOverview({
           members={activeMembers}
           groups={groups}
         />
+      </div>
       </div>
     </>
   );
@@ -2089,7 +2090,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
             ))}
           </svg>
           <div className="group-network-center" aria-hidden="true">
-            <img alt="" src="/newave-icon.png" />
+            <img alt="" className="seasonal-logo" src="/newave-icon.png" />
             <strong>뉴웨이브</strong>
           </div>
           {allNetworkNodes.map((node) => (
@@ -2547,6 +2548,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
       <section className="panel new-family-stage-panel" aria-label="새가족 상태 흐름">
         <button
           className={`new-family-stage-chip ${statusFilter === "all" ? "is-active" : ""}`}
+          aria-pressed={statusFilter === "all"}
           type="button"
           onClick={() => setStatusFilter("all")}
         >
@@ -2556,6 +2558,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
         {newFamilyStatusOrder.map((status) => (
           <button
             className={`new-family-stage-chip ${statusFilter === status ? "is-active" : ""} ${status}`}
+            aria-pressed={statusFilter === status}
             type="button"
             key={status}
             onClick={() => setStatusFilter(status)}
@@ -4120,6 +4123,7 @@ export function AttendanceManager({
               {(["all", "present", "absent", "excused"] as const).map((filter) => (
                 <button
                   className={`segment ${attendanceFilter === filter ? "active" : ""}`}
+                  aria-pressed={attendanceFilter === filter}
                   key={filter}
                   onClick={() => setAttendanceFilter(filter)}
                   type="button"
@@ -4146,6 +4150,7 @@ export function AttendanceManager({
             {attendanceGroupOptions.map((group) => (
               <button
                 className={`attendance-group-chip ${attendanceGroupId === group.id ? "active" : ""}`}
+                aria-pressed={attendanceGroupId === group.id}
                 key={group.id}
                 onClick={() => setAttendanceGroupId(group.id)}
                 type="button"

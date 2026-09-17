@@ -1,5 +1,10 @@
 # Newavely
 
+- 새 레이아웃과 통일된 폰트는 유지하되 색상은 디자인 변경 전 `globals.css`의 기존 라이트/다크 팔레트를 사용합니다. 바닐라/제이드 등 실험 팔레트는 적용하지 않습니다.
+
+- 대시보드/공통 메뉴 디자인 시안은 `src/app/editorial.css`로 범위를 분리합니다. 개발 서버의 `/design-preview`는 샘플 데이터만 사용하며 production에서는 404입니다. 권한별 메뉴/데이터 접근은 기존 정책을 유지합니다.
+- 전체 폰트 굵기와 선택 상태는 `src/app/autumn-theme.css`의 공통 토큰을 사용하며 색상은 `globals.css`에서 상속합니다. 로고는 기존 파란 `public/newave-icon.png`를 색상 필터 없이 사용합니다. `/design-preview?view=members`에서 멤버 화면을 확인할 수 있으며 `attendance`, `calendar`, `groups`, `new-family`도 지원합니다.
+
 ## 출석 기간 통계
 
 - 상세 출석 통계는 기본으로 전체 기간을 표시하며 시작일/종료일을 포함하는 범위로 조회합니다. 최근 4주/12주는 마지막 출석 이벤트 날짜 기준이며, 기간 직접 지정도 지원합니다.

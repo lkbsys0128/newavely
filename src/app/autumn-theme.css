@@ -1,0 +1,191 @@
+/* Shared typography and interactions inherit the original globals.css palette. */
+:root {
+  --font-weight-ui: 650;
+  --chart-total: var(--accent-dark);
+  --chart-youth: var(--accent-3);
+  --button-ink: #ffffff;
+  --logo-filter: none;
+  --interaction-hover: var(--soft);
+  --interaction-hover-ink: var(--accent-dark);
+  --interaction-selected: var(--soft-strong);
+  --interaction-ink: var(--accent-dark);
+  --interaction-border: var(--accent);
+  --interaction-solid: var(--accent-dark);
+  --interaction-solid-hover: var(--accent);
+  --interaction-solid-ink: #ffffff;
+}
+
+:root[data-theme="dark"] {
+  --button-ink: var(--bg);
+  --interaction-solid: var(--accent);
+  --interaction-solid-hover: var(--accent-dark);
+  --interaction-solid-ink: var(--bg);
+}
+
+body { font-weight: 450; letter-spacing: 0; }
+button, input, select, textarea { font-family: inherit; letter-spacing: 0; }
+h1, h2, h3, h4, h5, h6, strong, b, th { font-weight: var(--font-weight-ui); letter-spacing: 0; }
+:root .editorial-shell :is(input, select, textarea) { font-weight: 450; }
+:root .editorial-shell :is(button, summary, .primary-button, .secondary-button, .table-action) { font-weight: var(--font-weight-ui); }
+:root .seasonal-logo { filter: var(--logo-filter); }
+:root .editorial-shell .brand-mark { background: transparent; box-shadow: none; }
+:root .editorial-shell :is(thead, .statistics-table-heading) { background: var(--surface-strong); }
+:root .editorial-shell :is(.role-pill, .account-pill) { background: var(--soft); color: var(--accent-dark); }
+:root .editorial-shell .status-pill.active { background: var(--soft); color: var(--accent-dark); }
+
+:root .editorial-shell .primary-button {
+  background: var(--interaction-solid);
+  color: var(--interaction-solid-ink);
+  box-shadow: none;
+}
+:root .editorial-shell .primary-button:hover:not(:disabled) { background: var(--interaction-solid-hover); }
+:root .editorial-shell :is(.secondary-button, .table-action, .google-button, .event-chip) {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+  box-shadow: none;
+}
+:root .editorial-shell :is(.metric-card, .panel, .section-nav, .login-card,
+  .new-family-sheet-panel, .new-family-breakdown-card, .calendar-layout,
+  .prayer-sheet, .prayer-editor, .prayer-history, .status-composer-panel,
+  .attendance-trend-card, .attendance-compare-card, .event-selector-panel) {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: none;
+}
+:root .editorial-shell :is(.section-nav a, .section-nav-emoji, .page-title-emoji,
+  .disclosure-indicator, .event-chip.active, .permission-chip) {
+  background: var(--soft);
+  color: var(--accent-dark);
+  border-color: var(--line);
+  box-shadow: none;
+}
+:root .editorial-shell :is(.attendance-total-panel, .attendance-total-result,
+  .attendance-total-hero-card, .attendance-total-chip,
+  .attendance-total-breakdown article, .welcome-attendance-input-panel,
+  .attendance-extra-form input, .attendance-extra-form textarea,
+  .attendance-kpi-strip article, .leader-extra-summary span) {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:root .editorial-shell :is(.attendance-total-hero-card.primary, .attendance-total-substats span) {
+  background: var(--soft);
+  border-color: var(--line-strong);
+  color: var(--accent-dark);
+}
+:root .editorial-shell :is(.leader-extra-toggle.present, .attendance-toggle.present, .attendance-cell.present) {
+  background: var(--soft);
+  color: var(--accent-dark);
+  border-color: var(--line-strong);
+}
+:root .editorial-shell :is(.calendar-day-card, .calendar-list-row, .calendar-summary-grid div) {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:root .editorial-shell .calendar-day-card.outside { background: var(--surface-strong); }
+:root .editorial-shell .calendar-day-card.today { border-color: var(--season-accent); box-shadow: inset 0 0 0 1px var(--season-accent); }
+:root .editorial-shell :is(.calendar-event.worship, .calendar-day-detail-item.worship) {
+  background: var(--soft);
+  color: var(--accent-dark);
+  border-color: var(--line);
+}
+:root .editorial-shell :is(.calendar-event.birthday, .calendar-day-detail-item.birthday) {
+  background: var(--season-soft);
+  color: var(--season-berry);
+  border-color: var(--line);
+}
+:root .editorial-shell .group-network-map { background: var(--surface-strong); border-color: var(--line); box-shadow: none; }
+:root .editorial-shell :is(.group-network-center, .group-network-node) { background: var(--surface); border-color: var(--line-strong); box-shadow: var(--shadow); }
+:root .editorial-shell .group-network-node.community-leader { background: var(--season-soft); border-color: var(--season-berry); }
+:root .editorial-shell .group-network-node:hover { background: var(--soft); border-color: var(--accent); }
+:root .editorial-shell .group-network-lines line { stroke: var(--line-strong); }
+:root .editorial-shell .group-network-node small { background: var(--soft); color: var(--accent-dark); }
+:root .editorial-shell :is(.member-status-card, .status-quick-list button, .status-input-shell textarea) { background: var(--surface); color: var(--ink); border-color: var(--line); }
+:root .editorial-shell .member-status-card :is(p, strong) { color: var(--ink); }
+:root .editorial-shell .member-status-card :is(span, time) { color: var(--muted); }
+:root .editorial-shell :is(.progress, .statistics-bar-track, .new-family-breakdown-bar) { background: var(--soft); }
+:root .editorial-shell :is(.progress span, .statistics-bar-track span, .new-family-breakdown-bar span) { background: var(--chart-youth); }
+:root .editorial-shell .statistics-chart-card:nth-child(2) .statistics-bar-track span { background: var(--chart-total); }
+:root .editorial-shell :is(input, select, textarea):focus-visible { outline: 2px solid var(--interaction-border); outline-offset: 2px; box-shadow: none; }
+:root .editorial-shell :is(a, button, summary):focus-visible { outline: 2px solid var(--interaction-border); outline-offset: 3px; }
+
+/* Keep the approved dashboard layout unframed. */
+:root .editorial-dashboard :is(.panel, .metric-card, .section-nav) { background: transparent; box-shadow: none; }
+:root .editorial-dashboard .section-nav a { background: transparent; color: var(--muted); }
+:root .editorial-dashboard .section-nav a:hover { background: var(--soft); color: var(--ink); }
+
+/* Navigation, selections and actions share one interaction palette. */
+:root .editorial-shell .section-nav a:not([aria-current]) { background: transparent; color: var(--muted); }
+:root .editorial-shell :is(.segment, .attendance-group-chip, .new-family-stage-chip) {
+  background: var(--surface);
+  color: var(--muted);
+  border-color: var(--line);
+  box-shadow: none;
+}
+:root .editorial-shell .new-family-stage-chip:not(.is-active) {
+  background: var(--surface);
+  color: var(--muted);
+  border-color: var(--line);
+}
+:root .editorial-shell :is(.nav-list a, .section-nav a, .segment,
+  .attendance-group-chip, .new-family-stage-chip, .event-chip,
+  .prayer-history a, .secondary-button, .table-action,
+  .theme-toggle, .sign-out-button, .mobile-menu-toggle,
+  .prayer-icon-button, .prayer-drag-handle, .status-quick-list button,
+  .attendance-compare-row):hover:not(:disabled) {
+  background: var(--interaction-hover);
+  color: var(--interaction-hover-ink);
+  border-color: var(--interaction-border);
+  box-shadow: none;
+}
+:root .editorial-shell :is(.nav-list a[aria-current="page"],
+  .section-nav a[aria-current="location"], .segment.active,
+  .attendance-group-chip.active, .new-family-stage-chip.is-active,
+  .event-chip.active, .prayer-history a[aria-current="page"],
+  .member-list-table tbody tr.selected-row) {
+  background: var(--interaction-selected);
+  color: var(--interaction-ink);
+  border-color: var(--interaction-border);
+  box-shadow: inset 0 -2px 0 var(--interaction-border);
+}
+:root .editorial-shell .new-family-stage-chip :is(span, strong),
+:root .editorial-shell .event-chip.active span { color: inherit; }
+:root .editorial-shell :is(.nav-list a[aria-current="page"],
+  .section-nav a[aria-current="location"], .segment.active,
+  .attendance-group-chip.active, .new-family-stage-chip.is-active,
+  .event-chip.active, .prayer-history a[aria-current="page"]):hover:not(:disabled) {
+  background: var(--interaction-selected);
+  color: var(--interaction-ink);
+  border-color: var(--interaction-border);
+  box-shadow: inset 0 -2px 0 var(--interaction-border);
+}
+:root .editorial-shell .segment.active::after { background: var(--interaction-border); }
+:root .editorial-shell :is(.nav-list a, .section-nav a) .ui-emoji { background: transparent; border-color: transparent; box-shadow: none; }
+:root .editorial-shell .ministry-label-chip input:checked + span,
+:root .editorial-shell .mobile-menu-control:checked + .mobile-menu-toggle {
+  background: var(--interaction-selected);
+  color: var(--interaction-ink);
+  border-color: var(--interaction-border);
+  box-shadow: none;
+}
+:root .editorial-shell .ministry-label-chip:hover span { background: var(--interaction-hover); color: var(--interaction-hover-ink); border-color: var(--interaction-border); }
+:root .editorial-shell .ministry-label-chip:hover input:checked + span { background: var(--interaction-selected); color: var(--interaction-ink); }
+:root .editorial-shell input:is([type="checkbox"], [type="radio"]) { accent-color: var(--interaction-solid); }
+:root .editorial-shell .theme-toggle-switch { border-color: var(--interaction-border); background: var(--interaction-hover); }
+:root .editorial-shell .theme-toggle-switch span { background: var(--interaction-solid); }
+:root .editorial-shell :is(input, select, textarea):focus { border-color: var(--interaction-border); box-shadow: none; }
+:root .editorial-shell .group-network-node:is(:hover, :focus-visible) { background: var(--interaction-hover); color: var(--interaction-hover-ink); border-color: var(--interaction-border); }
+:root .editorial-shell .calendar-day-card:hover { background: var(--interaction-hover); border-color: var(--interaction-border); }
+:root .editorial-shell .calendar-day-card.no-events:hover { background: var(--surface); border-color: var(--line); }
+:root .editorial-shell :is(.calendar-event, .calendar-day-detail-item):focus-visible { outline-color: var(--interaction-border); }
+:root .editorial-shell :is(.care-item, .summary-row, .history-row, .permission-row,
+  .detail-row, .member-list-table tbody tr):hover { background: var(--interaction-hover); }
+:root .editorial-shell .member-list-table tbody tr.selected-row:hover { background: var(--interaction-selected); }
+:root .editorial-shell :is(.panel, .metric-card, .group-card, .link-card,
+  .mini-roster-card, .upcoming-birthday-card):hover { border-color: var(--line); box-shadow: none; }
+:root .editorial-shell :is(.primary-button, .secondary-button, .table-action,
+  .segment, .attendance-group-chip, .new-family-stage-chip):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
