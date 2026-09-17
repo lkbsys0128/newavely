@@ -36,7 +36,7 @@ test("all pages share typography weights and autumn color tokens", () => {
 test("all Newave logo instances use the same seasonal treatment", () => {
   for (const file of ["app/layout.tsx", "components/auth-panel.tsx", "components/prayer-meeting-page.tsx", "components/dashboard.tsx"]) {
     const source = readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8");
-    const logos = source.match(/<(?:Image|img)\b[^>]*src="\/newave-icon.png"[^>]*>/g) ?? [];
+    const logos = source.match(/<(?:Image|img)\b[^>]*src="\/newave-icon-autumn.png"[^>]*>/g) ?? [];
     assert.ok(logos.length > 0);
     for (const logo of logos) assert.match(logo, /className="[^"]*seasonal-logo/);
   }

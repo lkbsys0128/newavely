@@ -1,7 +1,7 @@
 # Newavely
 
 - 대시보드/공통 메뉴 디자인 시안은 `src/app/editorial.css`로 범위를 분리합니다. 개발 서버의 `/design-preview`는 샘플 데이터만 사용하며 production에서는 404입니다. 권한별 메뉴/데이터 접근은 기존 정책을 유지합니다.
-- 전체 폰트 굵기와 가을 테마는 `src/app/autumn-theme.css`의 공통 토큰을 사용합니다. `seasonal-logo`는 원본 PNG를 변경하지 않고 로고 표시 색상만 조정합니다. `/design-preview?view=members`에서 멤버 화면을 확인할 수 있으며 `attendance`, `calendar`, `groups`, `new-family`도 지원합니다.
+- 전체 폰트 굵기와 가을 테마는 `src/app/autumn-theme.css`의 공통 토큰을 사용합니다. 가을 로고는 `public/newave-icon-autumn.png`를 직접 사용하며 `seasonal-logo`는 다크모드 밝기만 보정합니다. 기존 파란 로고는 원본으로 보존합니다. `/design-preview?view=members`에서 멤버 화면을 확인할 수 있으며 `attendance`, `calendar`, `groups`, `new-family`도 지원합니다.
 
 ## 출석 기간 통계
 

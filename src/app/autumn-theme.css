@@ -26,7 +26,7 @@
   --button-ink: #ffffff;
   --shadow: 0 8px 24px rgba(40, 45, 35, 0.05);
   --shadow-soft: 0 3px 12px rgba(40, 45, 35, 0.04);
-  --logo-filter: hue-rotate(160deg) saturate(0.65) brightness(0.85);
+  --logo-filter: none;
 }
 
 :root[data-theme="dark"] {
@@ -55,7 +55,7 @@
   --button-ink: #242c1b;
   --shadow: none;
   --shadow-soft: none;
-  --logo-filter: hue-rotate(160deg) saturate(0.5) brightness(1.8);
+  --logo-filter: brightness(1.5);
 }
 
 body { font-weight: 450; letter-spacing: 0; }

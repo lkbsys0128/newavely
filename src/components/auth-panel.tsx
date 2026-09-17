@@ -19,7 +19,7 @@ export function AuthPanel() {
     <section className="login-page">
       <div className="login-card">
         <div className="login-mark">
-          <Image alt="" className="seasonal-logo" height={118} priority src="/newave-icon.png" width={92} />
+          <Image alt="" className="seasonal-logo" height={118} priority src="/newave-icon-autumn.png" width={92} />
         </div>
         <div className="login-title">
           <p className="eyebrow">Community Church of Seattle · Newave</p>
