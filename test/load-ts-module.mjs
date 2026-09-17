@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import vm from "node:vm";
 import ts from "typescript";
+import * as entities from "entities";
 
 const require = createRequire(import.meta.url);
 
@@ -19,6 +20,7 @@ export function loadTsModule(path) {
     exports: module.exports,
     module,
     require: (specifier) => {
+      if (specifier === "entities") return entities;
       if (specifier.startsWith(".")) {
         const dependency = new URL(`${specifier}.ts`, sourceUrl);
         if (existsSync(dependency)) return loadTsModule(dependency.href);

@@ -239,7 +239,7 @@ npm run build
 - 기도회 UI는 번호/항목/내용 순서지와 행 편집을 유지합니다. 지난 목록은 생성 최신순, 공개 이벤트는 기도회 날짜 최신순입니다. 실패한 저장은 입력을 유지하고 동시 수정은 자동 덮어쓰기하지 않습니다.
 - 기도회 행 이동은 dnd-kit 손잡이를 통한 포인터/터치/키보드 정렬입니다. 폼 필드 전체를 드래그 대상으로 만들지 않습니다. 항목 선택은 기도/찬양/묵상·나눔/직접 입력이며 기존 자유 입력과 직접 입력 전환 중 내용을 보존합니다. 외부 가사 자동 수집은 제공처의 API 및 공개 표시/저장 허용 범위 확인 전에는 추가하지 않습니다.
 - `test/sql/prayer-meetings.sql`은 운영 DB가 아닌 빈 임시 PostgreSQL에서만 실행하는 RLS/RPC 통합 테스트입니다.
-- 찬양 원문 링크 검색은 Brave Web Search API와 서버 전용 `BRAVE_SEARCH_API_KEY`를 사용합니다. `042_prayer_source_links.sql`은 선택적 `sourceUrl` 및 멤버별 분당 20회 검색 제한을 추가합니다. 활성 등록 멤버만 검색하며 검색어 외 교적 정보를 제공처에 보내지 않습니다. 가사 본문은 가져오지 않고 후보 선택 후 HTTPS 링크만 저장합니다. 공개 뷰는 URL을 다시 검증하고 새 탭/noopener로 엽니다.
+- 찬양 원문 링크 검색은 네이버 웹문서/블로그 검색 API와 서버 전용 `NAVER_SEARCH_CLIENT_ID`, `NAVER_SEARCH_CLIENT_SECRET`을 사용합니다. 검색 1회당 API 2회, 중복 제거 후 최대 6개 후보를 표시합니다. `042_prayer_source_links.sql`은 선택적 `sourceUrl` 및 멤버별 분당 20회 검색 제한을 추가합니다. 활성 등록 멤버만 검색하며 검색어 외 교적 정보를 제공처에 보내지 않습니다. 가사 본문은 가져오지 않고 후보 선택 후 HTTPS 링크만 저장합니다. 공개 뷰는 URL을 다시 검증하고 새 탭/noopener로 엽니다. 검색 결과 제목은 HTML로 렌더링하지 않습니다.
 
 - 실제 교적 CSV, 출석 CSV, private SQL chunk는 GitHub에 올리지 않습니다.
 - service role key, Google private key, Supabase DB password는 절대 커밋하지 않습니다.

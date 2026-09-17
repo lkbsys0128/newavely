@@ -5,8 +5,9 @@
 ### 찬양 원문 링크 검색
 
 - 찬양 행에서 곡명/가수명을 검색하고 후보를 선택하면 원문 URL이 첨부됩니다. 검색 결과는 관련 페이지 후보이며 곡 일치나 가사 수록을 보증하지 않으므로 미리보기로 확인합니다. 가사 본문은 수집하지 않습니다.
-- Brave Web Search API를 사용합니다. Google 검색 결과 스크래핑이 아닙니다. API 키 발급/요금제 선택은 https://api-dashboard.search.brave.com 에서 진행합니다.
-- Vercel에 서버 전용 `BRAVE_SEARCH_API_KEY`를 설정합니다. Production에 필요하며 Preview에서도 검색 테스트를 하려면 Preview에도 설정합니다. `NEXT_PUBLIC_` 접두사를 붙이지 않습니다. 설정 후 재배포합니다.
+- 네이버 공식 웹문서/블로그 검색 API를 사용합니다. https://developers.naver.com/apps/#/register 에서 애플리케이션을 등록하고 사용 API에 **검색**을 선택합니다. 비로그인 오픈 API 서비스 환경은 WEB, 웹 서비스 URL은 `https://newavely.com`으로 등록합니다.
+- 발급받은 Client ID와 Client Secret을 Vercel의 서버 전용 `NAVER_SEARCH_CLIENT_ID`, `NAVER_SEARCH_CLIENT_SECRET`으로 설정합니다. Production에 필요하며 Preview에서도 검색 테스트를 하려면 Preview에도 설정합니다. `NEXT_PUBLIC_` 접두사를 붙이지 않습니다. 설정 후 재배포합니다. 기존 `BRAVE_SEARCH_API_KEY`는 더 이상 사용하지 않습니다.
+- 검색 버튼 1회당 웹문서/블로그 API를 각각 1회 호출합니다. 두 결과를 중복 제거 후 최대 6개 표시하며, 한쪽 장애 시 다른 쪽 결과를 사용합니다. 네이버 결과의 강조 태그는 제거하고 HTML 엔티티는 텍스트로 변환합니다. 실제 한국 찬양 검색 품질은 발급 키로 검증해야 합니다.
 - `db/041_prayer_meetings.sql` 다음에 `db/042_prayer_source_links.sql`을 실행합니다. 기존 순서는 유지하고 선택적 `sourceUrl`을 허용합니다. 활성 멤버만 검색하며 DB에서 멤버당 분당 20회로 제한합니다. 제공처 계정에서도 사용량 한도를 설정하세요.
 - API 키 미설정 시 안내 메시지를 표시하며 기존 순서 편집은 가능합니다. 공개 방문자는 첨부된 링크만 볼 수 있고 검색 API는 호출할 수 없습니다.
 
