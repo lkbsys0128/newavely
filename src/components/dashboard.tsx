@@ -171,7 +171,8 @@ export function DashboardOverview({
 
   return (
     <>
-      <PageHeader eyebrow="2026 공동체 관리 MVP" title="대시보드" user={user} />
+      <div className="editorial-dashboard">
+      <PageHeader eyebrow="NEWAVE COMMUNITY · SEATTLE" title="대시보드" user={user} />
       <SectionNav
         items={[
           { href: "#overview-metrics", label: "요약" },
@@ -204,8 +205,6 @@ export function DashboardOverview({
         </section>
       ) : null}
 
-      <MemberStatusBoard messages={memberStatusMessages} />
-
       <div className="metric-grid" id="overview-metrics">
         <article className="metric-card">
           <span>전체 멤버</span>
@@ -236,6 +235,7 @@ export function DashboardOverview({
         </article>
       </div>
 
+      <MemberStatusBoard messages={memberStatusMessages} />
       <DashboardStatisticsSummary summary={statisticsSummary} />
       <DashboardRosterInsights insights={dashboardInsights} />
 
@@ -247,6 +247,7 @@ export function DashboardOverview({
           members={activeMembers}
           groups={groups}
         />
+      </div>
       </div>
     </>
   );
