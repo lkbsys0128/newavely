@@ -51,7 +51,7 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
   }
   return <>
     <header className="prayer-heading">
-      <div className="prayer-brand"><Image className="seasonal-logo" src="/newave-icon-autumn.png" width={36} height={46} alt="뉴웨이브" /><h1>오늘의 기도회</h1></div>
+      <div className="prayer-brand"><Image className="seasonal-logo" src="/newave-icon-jade.png" width={36} height={46} alt="뉴웨이브" /><h1>오늘의 기도회</h1></div>
       <div className="prayer-commands">
         {canEdit && !editing ? <><Link className="secondary-button" href="/prayer?new=1"><Plus size={16} />새 기도회</Link>
           {meeting ? <button className="primary-button" onClick={() => setEditing(true)}><Pencil size={16} />순서 수정</button> : null}</> : null}

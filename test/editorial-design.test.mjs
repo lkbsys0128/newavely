@@ -36,7 +36,7 @@ test("all pages share typography weights and autumn color tokens", () => {
 test("all Newave logo instances use the same seasonal treatment", () => {
   for (const file of ["app/layout.tsx", "components/auth-panel.tsx", "components/prayer-meeting-page.tsx", "components/dashboard.tsx"]) {
     const source = readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8");
-    const logos = source.match(/<(?:Image|img)\b[^>]*src="\/newave-icon-autumn.png"[^>]*>/g) ?? [];
+    const logos = source.match(/<(?:Image|img)\b[^>]*src="\/newave-icon-jade.png"[^>]*>/g) ?? [];
     assert.ok(logos.length > 0);
     for (const logo of logos) assert.match(logo, /className="[^"]*seasonal-logo/);
   }
@@ -67,14 +67,20 @@ test("navigation and filter selections expose accessible state", () => {
   }
 });
 
-test("brand palette preserves the four requested colors in both themes", () => {
+test("brand palette uses vanilla and jade with inverse dark selections", () => {
   const css = readFileSync(new URL("../src/app/autumn-theme.css", import.meta.url), "utf8");
-  for (const [name, color] of Object.entries({ vanilla: "#EDE4D5", jade: "#163C32", garnet: "#4A0B19", lavender: "#B19DC5" })) {
+  for (const [name, color] of Object.entries({ vanilla: "#EDE4D5", jade: "#163C32" })) {
     assert.ok(css.includes(`--palette-${name}: ${color};`));
   }
   const dark = css.slice(css.indexOf(':root[data-theme="dark"]'), css.indexOf("body {"));
+  assert.doesNotMatch(css, /palette-lavender|palette-garnet|#B19DC5|#4A0B19/i);
+  const light = css.slice(0, css.indexOf(':root[data-theme="dark"]'));
+  assert.match(light, /--interaction-selected: var\(--palette-jade\)/);
+  assert.match(light, /--interaction-ink: var\(--palette-vanilla\)/);
   assert.match(dark, /--surface: var\(--palette-jade\)/);
   assert.match(dark, /--ink: var\(--palette-vanilla\)/);
   assert.match(dark, /--interaction-hover-ink: var\(--palette-vanilla\)/);
-  assert.match(dark, /--interaction-solid: var\(--palette-lavender\)/);
+  assert.match(dark, /--interaction-solid: var\(--palette-vanilla\)/);
+  assert.match(dark, /--interaction-selected: var\(--palette-vanilla\)/);
+  assert.match(dark, /--interaction-ink: var\(--palette-jade\)/);
 });

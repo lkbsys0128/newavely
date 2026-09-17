@@ -1,10 +1,8 @@
-/* Vanilla Cream, Dark Jade, Garnet Red and Lavender Haze. */
+/* Vanilla Cream and Dark Jade. */
 :root {
   --font-weight-ui: 650;
   --palette-vanilla: #EDE4D5;
   --palette-jade: #163C32;
-  --palette-garnet: #4A0B19;
-  --palette-lavender: #B19DC5;
   --bg: var(--palette-vanilla);
   --surface: #f8f3eb;
   --surface-strong: #e5dbc9;
@@ -16,28 +14,28 @@
   --accent: #315e50;
   --accent-dark: var(--palette-jade);
   --accent-strong: #567969;
-  --accent-2: var(--palette-garnet);
+  --accent-2: var(--palette-jade);
   --accent-3: #3c7057;
   --danger: #992c40;
-  --season-accent: var(--palette-garnet);
-  --season-soft: #e7ddea;
-  --season-berry: var(--palette-garnet);
+  --season-accent: var(--palette-jade);
+  --season-soft: #e0e5da;
+  --season-berry: var(--palette-jade);
   --season-evergreen: var(--palette-jade);
   --soft: #e0e5da;
   --soft-strong: #c9d4c7;
-  --chart-total: var(--palette-garnet);
+  --chart-total: var(--palette-jade);
   --chart-youth: #4f796b;
   --button-ink: var(--palette-vanilla);
   --shadow: 0 8px 24px rgba(22, 60, 50, 0.05);
   --shadow-soft: 0 3px 12px rgba(22, 60, 50, 0.04);
   --logo-filter: none;
-  --interaction-hover: #e5dbe5;
-  --interaction-hover-ink: var(--palette-garnet);
-  --interaction-selected: var(--palette-lavender);
-  --interaction-ink: var(--palette-garnet);
-  --interaction-border: #80638e;
-  --interaction-solid: var(--palette-garnet);
-  --interaction-solid-hover: #66162a;
+  --interaction-hover: #dce3d8;
+  --interaction-hover-ink: var(--palette-jade);
+  --interaction-selected: var(--palette-jade);
+  --interaction-ink: var(--palette-vanilla);
+  --interaction-border: #567969;
+  --interaction-solid: var(--palette-jade);
+  --interaction-solid-hover: #285346;
   --interaction-solid-ink: var(--palette-vanilla);
 }
 
@@ -53,29 +51,29 @@
   --accent: #b8cdbb;
   --accent-dark: var(--palette-vanilla);
   --accent-strong: #d1dfcf;
-  --accent-2: var(--palette-lavender);
+  --accent-2: var(--palette-vanilla);
   --accent-3: #a0c6ab;
   --danger: #f0a5b0;
-  --season-accent: var(--palette-lavender);
-  --season-soft: #382b40;
-  --season-berry: #d3c0e1;
+  --season-accent: var(--palette-vanilla);
+  --season-soft: #244e40;
+  --season-berry: #d1dfcf;
   --season-evergreen: #b6cdbc;
   --soft: #244e40;
   --soft-strong: #315e4d;
-  --chart-total: var(--palette-lavender);
+  --chart-total: var(--palette-vanilla);
   --chart-youth: #b8cdbb;
   --button-ink: var(--palette-jade);
   --shadow: none;
   --shadow-soft: none;
-  --logo-filter: brightness(1.5);
-  --interaction-hover: #382b40;
+  --logo-filter: brightness(0) invert(93%) sepia(14%) saturate(284%) hue-rotate(345deg);
+  --interaction-hover: #315e4d;
   --interaction-hover-ink: var(--palette-vanilla);
-  --interaction-selected: var(--palette-lavender);
-  --interaction-ink: var(--palette-garnet);
-  --interaction-border: #c6b2d8;
-  --interaction-solid: var(--palette-lavender);
-  --interaction-solid-hover: #c7b5d8;
-  --interaction-solid-ink: var(--palette-garnet);
+  --interaction-selected: var(--palette-vanilla);
+  --interaction-ink: var(--palette-jade);
+  --interaction-border: #b8cdbb;
+  --interaction-solid: var(--palette-vanilla);
+  --interaction-solid-hover: #dcd0bc;
+  --interaction-solid-ink: var(--palette-jade);
 }
 
 body { font-weight: 450; letter-spacing: 0; }
