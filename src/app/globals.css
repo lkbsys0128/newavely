@@ -5700,6 +5700,21 @@ tbody tr:hover {
 .prayer-edit-row { padding: 14px 0; border-top: 1px solid var(--line); }
 .prayer-edit-row label { min-width: 0; }
 .prayer-item-fields { display: grid; min-width: 0; gap: 10px; }
+.prayer-item-content { display: grid; min-width: 0; gap: 12px; }
+.prayer-source-picker { display: grid; min-width: 0; gap: 10px; }
+.prayer-source-query { display: grid; grid-template-columns: minmax(0, 1fr) 42px; align-items: end; gap: 8px; }
+.prayer-source-results { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.prayer-source-results li { display: grid; grid-template-columns: minmax(0, 1fr) 42px; border-bottom: 1px solid var(--line); }
+.prayer-source-results li:last-child { border-bottom: 0; }
+.prayer-source-results button { display: flex; gap: 10px; align-items: start; border: 0; border-radius: 0; background: var(--surface); color: var(--ink); padding: 12px; text-align: left; min-width: 0; }
+.prayer-source-results button:hover { background: var(--soft); }
+.prayer-source-results button span { min-width: 0; overflow-wrap: anywhere; }
+.prayer-source-results svg { flex-shrink: 0; }
+.prayer-source-results small { display: block; color: var(--muted); margin-top: 4px; }
+.prayer-source-results a { display: flex; align-items: center; justify-content: center; }
+.prayer-attached-source { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.prayer-attached-source a, .prayer-source-link { display: inline-flex; gap: 6px; align-items: center; color: var(--accent-dark); overflow-wrap: anywhere; min-width: 0; }
+.prayer-source-link { margin-top: 10px; }
 .prayer-row-position { display: flex; align-items: center; gap: 8px; }
 .prayer-edit-row.is-dragging { position: relative; z-index: 2; background: var(--surface); box-shadow: 0 8px 24px #0002; }
 .prayer-drag-handle { touch-action: none; cursor: grab; }
@@ -5742,6 +5757,7 @@ tbody tr:hover {
   .prayer-editor-head { display: none; }
   .prayer-edit-row { grid-template-columns: 42px minmax(0, 1fr); gap: 10px; align-items: start; }
   .prayer-item-fields { grid-column: 2; }
+  .prayer-item-content { grid-column: 2; }
   .prayer-row-position { grid-column: 1; grid-row: 1 / 3; flex-direction: column; padding-top: 24px; }
   .prayer-edit-row > label,
   .prayer-row-tools { grid-column: 2; }

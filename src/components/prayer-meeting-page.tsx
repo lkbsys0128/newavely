@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Plus, Pencil, Save, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Save, X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { safeSourceUrl } from "@/lib/prayer-source-search";
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { PrayerEditRow } from "@/components/prayer-edit-row";
@@ -61,7 +62,7 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
     {editing ? <form className="management-form prayer-editor" onSubmit={(event) => {
       event.preventDefault(); setMessage("");
       startTransition(async () => {
-        const result = await savePrayerMeeting({ id: meeting?.id ?? null, version: meeting?.version ?? 0, eventDate: date, entries: entries.map(({ title, detail }) => ({ title, detail })) });
+        const result = await savePrayerMeeting({ id: meeting?.id ?? null, version: meeting?.version ?? 0, eventDate: date, entries: entries.map(({ title, detail, sourceUrl }) => ({ title, detail, ...(sourceUrl ? { sourceUrl } : {}) })) });
         if (!result.ok) { setMessage(result.message); return; }
         setDirty(false); setEditing(false); router.push(`/prayer?id=${result.id}`); router.refresh();
       });
@@ -90,7 +91,9 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
         <button className="primary-button" disabled={pending} type="submit"><Save size={16} />{pending ? "저장 중" : "저장 · 공개"}</button></div>
     </form> : meeting ? <article className="prayer-program">
       <div className="prayer-program-date"><p className="eyebrow">기도회 순서</p><h2><time dateTime={meeting.event_date}>{formatPrayerDate(meeting.event_date)}</time></h2></div>
-      <ol className="prayer-order">{meeting.entries.map((entry, index) => <li key={index}><span className="prayer-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div><h3>{entry.title}</h3>{entry.detail ? <p>{entry.detail}</p> : null}</div></li>)}</ol>
+      <ol className="prayer-order">{meeting.entries.map((entry, index) => <li key={index}><span className="prayer-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div><h3>{entry.title}</h3>{entry.detail ? <p>{entry.detail}</p> : null}
+        {entry.sourceUrl && safeSourceUrl(entry.sourceUrl) ? <a className="prayer-source-link" href={entry.sourceUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} />가사 원문</a> : null}
+      </div></li>)}</ol>
     </article> : !error ? <div className="prayer-empty"><h2>아직 등록된 기도회가 없습니다</h2>{canEdit ? <Link className="primary-button" href="/prayer?new=1"><Plus size={16} />첫 기도회 만들기</Link> : null}</div> : null}
     {canEdit && !editing ? <section className="prayer-history" aria-labelledby="prayer-history-title"><div className="prayer-history-heading"><h2 id="prayer-history-title">지난 기도회</h2><span className="meta">{count}건 · 생성 최신순</span></div>
       {history.length ? <ul>{history.map((item) => <li key={item.id}><Link href={`/prayer?id=${item.id}&page=${page}`} aria-current={meeting?.id === item.id ? "page" : undefined}>

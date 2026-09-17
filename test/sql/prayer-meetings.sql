@@ -18,15 +18,27 @@ create table test_audit(action text);
 create function record_audit_log(text,text,uuid,jsonb,jsonb,jsonb) returns uuid language plpgsql security definer as $$ begin insert into test_audit values($1); return $3; end $$;
 insert into members values ('11111111-1111-4111-8111-111111111111','11111111-1111-4111-8111-111111111111','active','member');
 \ir ../../db/041_prayer_meetings.sql
+\ir ../../db/042_prayer_source_links.sql
 set local role authenticated;
 select set_config('test.uid','11111111-1111-4111-8111-111111111111',true);
 select save_prayer_meeting(null,0,'2026-09-09','[{"title":"Old prayer","detail":""}]');
 select save_prayer_meeting(null,0,'2026-09-16','[{"title":"Opening prayer","detail":""}]');
+do $$ declare i integer; begin
+  for i in 1..20 loop
+    if not claim_prayer_source_search() then raise exception 'Search blocked too soon'; end if;
+  end loop;
+  if claim_prayer_source_search() then raise exception 'Search limit not enforced'; end if;
+end $$;
 do $$ declare event_id uuid; result jsonb; begin
   if (select count(*) from prayer_meetings) <> 2 then raise exception 'Member history unavailable'; end if;
   select id into event_id from prayer_meetings where event_date='2026-09-16';
-  result := save_prayer_meeting(event_id,1,'2026-09-16','[{"title":"Updated prayer","detail":"song"}]');
+  result := save_prayer_meeting(event_id,1,'2026-09-16','[{"title":"Updated prayer","detail":"song","sourceUrl":"https://example.com/song"}]');
   if result->>'version' <> '2' then raise exception 'Version not incremented'; end if;
+  if result->'entries'->0->>'sourceUrl' <> 'https://example.com/song' then raise exception 'Link not saved'; end if;
+  begin
+    perform save_prayer_meeting(event_id,2,'2026-09-16','[{"title":"Song","detail":"","sourceUrl":"javascript:alert(1)"}]');
+    raise exception 'unsafe link allowed' using errcode='XX000';
+  exception when sqlstate 'P0001' then null; end;
   begin
     perform save_prayer_meeting(event_id,1,'2026-09-16','[{"title":"Stale","detail":""}]');
     raise exception 'stale save allowed' using errcode='XX000';
@@ -66,6 +78,11 @@ select set_config('test.uid','',true);
 do $$ declare latest jsonb; begin
   latest := get_latest_prayer_meeting();
   if latest->>'event_date' <> '2026-09-16' or latest->'entries'->0->>'title' <> 'Updated prayer' then raise exception 'Wrong public event'; end if;
+  if latest->'entries'->0->>'sourceUrl' <> 'https://example.com/song' then raise exception 'Public link missing'; end if;
+  begin
+    perform claim_prayer_source_search();
+    raise exception 'anonymous search allowed' using errcode='XX000';
+  exception when insufficient_privilege then null; end;
   begin
     perform * from prayer_meetings;
     raise exception 'anonymous history leak' using errcode='XX000';
