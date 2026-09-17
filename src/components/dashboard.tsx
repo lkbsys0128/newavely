@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { AttendanceLineChart } from "@/components/attendance-line-chart";
+import { attendancePresetRange, buildDailyGroupAttendance, filterDailyAttendance, inAttendanceRange, type AttendanceRange } from "@/lib/attendance-trend";
 import { GroupBulkAssignment } from "@/components/group-bulk-assignment";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
@@ -3160,7 +3162,8 @@ export function AttendanceManager({
   const [attendanceGroupId, setAttendanceGroupId] = useState(initialAttendanceGroupId);
   const [eventSearchQuery, setEventSearchQuery] = useState("");
   const [statsEventTypeFilter, setStatsEventTypeFilter] = useState("all");
-  const [statsDateFilter, setStatsDateFilter] = useState("all");
+  const [statsRange, setStatsRange] = useState<AttendanceRange>({ start: "", end: "" });
+  const [statsPeriod, setStatsPeriod] = useState("all");
   const [statsGroupId, setStatsGroupId] = useState("all");
   const [absenceMinimumStreak, setAbsenceMinimumStreak] = useState(3);
   const [eventPendingDelete, setEventPendingDelete] = useState<AttendanceEvent | null>(null);
@@ -3291,7 +3294,7 @@ export function AttendanceManager({
   const aggregateStatsEvents = attendanceEvents.filter(
     (event) =>
       (statsEventTypeFilter === "all" || event.title === statsEventTypeFilter) &&
-      (statsDateFilter === "all" || event.eventDate === statsDateFilter),
+      inAttendanceRange(event.eventDate, statsRange),
   );
   const aggregateEventIds = new Set(aggregateStatsEvents.map((event) => event.id));
   const aggregateGroupStats = [
@@ -3423,7 +3426,7 @@ export function AttendanceManager({
       Record<string, { eventType: string; id: string; name: string; memberCount: number; possibleCount: number; presentCount: number; excusedCount: number }>
     >((rows, row) => {
       if (statsEventTypeFilter !== "all" && row.eventType !== statsEventTypeFilter) return rows;
-      if (statsDateFilter !== "all" && row.eventDate !== statsDateFilter) return rows;
+      if (!inAttendanceRange(row.eventDate, statsRange)) return rows;
       const current = rows[row.groupId] ?? {
         eventType: statsEventTypeFilter,
         id: row.groupId,
@@ -3465,44 +3468,13 @@ export function AttendanceManager({
     displayAggregateTotals.possibleCount - displayAggregateTotals.presentCount - displayAggregateTotals.excusedCount,
     0,
   );
-  const trendSource = attendanceStats?.eventGroupTrend ?? [];
-  const filteredTrendRows = trendSource
-    .filter((row) => statsEventTypeFilter === "all" || row.eventType === statsEventTypeFilter)
-    .filter((row) => statsDateFilter === "all" || row.eventDate === statsDateFilter)
-    .filter((row) => statsGroupId === "all" || row.groupId === statsGroupId)
-    .slice(0, 48);
-  const compactTrendRows = Object.values(
-    filteredTrendRows.reduce<Record<string, { eventDate: string; eventType: string; rateSum: number; presentCount: number; totalCount: number; rowCount: number }>>(
-      (rows, row) => {
-        const key = `${row.eventDate}-${row.eventType}`;
-        const current = rows[key] ?? {
-          eventDate: row.eventDate,
-          eventType: row.eventType,
-          rateSum: 0,
-          presentCount: 0,
-          totalCount: 0,
-          rowCount: 0,
-        };
-        rows[key] = {
-          ...current,
-          rateSum: current.rateSum + row.rate,
-          presentCount: current.presentCount + row.presentCount,
-          totalCount: current.totalCount + row.totalCount,
-          rowCount: current.rowCount + 1,
-        };
-        return rows;
-      },
-      {},
-    ),
-  )
-    .map((row) => ({
-      ...row,
-      rate: row.rowCount ? Math.round(row.rateSum / row.rowCount) : 0,
-    }))
-    .sort((a, b) => b.eventDate.localeCompare(a.eventDate))
-    .slice(0, 10);
+  const dailyTrendPoints = filterDailyAttendance(
+    attendanceStats?.dailyGroupTrend ?? buildDailyGroupAttendance(activeMembers, attendanceEvents),
+    statsRange,
+    statsGroupId,
+  );
   const comparisonRows = [...displayAggregateGroupStats].sort((a, b) => b.rate - a.rate).slice(0, 8);
-  const absenceUnits = buildAttendanceAbsenceUnits(attendanceEvents, statsEventTypeFilter, statsDateFilter).slice(0, 10);
+  const absenceUnits = buildAttendanceAbsenceUnits(attendanceEvents.filter((event) => inAttendanceRange(event.eventDate, statsRange)), statsEventTypeFilter, "all").slice(0, 10);
   const absenceWatchList = activeMembers
     .map((member) => {
       let streak = 0;
@@ -3786,7 +3758,7 @@ export function AttendanceManager({
       <DisclosurePanel
         id="attendance-stats"
         title="상세 출석 통계"
-        meta={`${hasExplicitAttendanceSelection ? attendanceTitle : "최근 이벤트 기준"} · 펼쳐서 보기`}
+        meta={statsRange.start || statsRange.end ? `${statsRange.start || "처음"} ~ ${statsRange.end || "최근"}` : "전체 기간"}
       >
         <section className="attendance-insight-panel" aria-label="상호작용 출석 통계">
           <div className="attendance-stats-toolbar">
@@ -3801,17 +3773,23 @@ export function AttendanceManager({
                 ))}
               </select>
             </label>
-            <label>
-              날짜
-              <select value={statsDateFilter} onChange={(event) => setStatsDateFilter(event.target.value)}>
-                <option value="all">전체 날짜</option>
-                {eventDateOptions.map((eventDate) => (
-                  <option key={eventDate} value={eventDate}>
-                    {eventDate}
-                  </option>
-                ))}
+            <label>기간
+              <select value={statsPeriod} onChange={(event) => {
+                const period = event.target.value;
+                setStatsPeriod(period);
+                if (period !== "custom") setStatsRange(attendancePresetRange(Number(period) || 0, [...eventDateOptions].sort().at(-1) ?? ""));
+              }}>
+                <option value="all">전체 기간</option><option value="4">최근 4주</option><option value="12">최근 12주</option><option value="custom">직접 지정</option>
               </select>
             </label>
+            <label>시작일<input type="date" aria-label="통계 시작일" value={statsRange.start} max={statsRange.end || undefined} onChange={(event) => {
+              const start = event.target.value; setStatsPeriod("custom");
+              setStatsRange((range) => ({ start, end: range.end && start > range.end ? start : range.end }));
+            }} /></label>
+            <label>종료일<input type="date" aria-label="통계 종료일" value={statsRange.end} min={statsRange.start || undefined} onChange={(event) => {
+              const end = event.target.value; setStatsPeriod("custom");
+              setStatsRange((range) => ({ end, start: range.start && end && end < range.start ? end : range.start }));
+            }} /></label>
             <label>
               순
               <select value={statsGroupId} onChange={(event) => setStatsGroupId(event.target.value)}>
@@ -3862,38 +3840,12 @@ export function AttendanceManager({
             <article className="attendance-trend-card">
               <div className="panel-heading compact-heading">
                 <div>
-                  <h2>날짜별 출석률</h2>
-                  <p className="meta">필터에 맞는 주일 예배와 순모임 흐름을 한 그래프에서 봅니다.</p>
+                  <h2>날짜별 출석 추이</h2>
+                  <p className="meta">순 인원 기준 · 전체 출석은 예배 또는 순모임 출석자 중복 제외</p>
                 </div>
-                <span>{compactTrendRows.length}개</span>
+                <span>{dailyTrendPoints.length}일</span>
               </div>
-              <div className="attendance-trend-chart">
-                {compactTrendRows.map((event) => (
-                  <div className="attendance-trend-row" key={`${event.eventDate}-${event.eventType}`}>
-                    <div className="attendance-trend-label">
-                      <strong>{event.eventDate}</strong>
-                      <span>{event.eventType}</span>
-                    </div>
-                    <div className="attendance-trend-track">
-                      <span
-                        className={event.eventType === "순모임" ? "group-meeting" : "worship"}
-                        style={{ width: `${event.rate}%` }}
-                      />
-                      <div className="attendance-hover-card">
-                        <strong>{event.rate}%</strong>
-                        <span>{event.presentCount}/{event.totalCount}회 출석</span>
-                      </div>
-                    </div>
-                    <strong>{event.rate}%</strong>
-                  </div>
-                ))}
-                {compactTrendRows.length === 0 ? (
-                  <article className="empty-table-state">
-                    <strong>표시할 추이가 없습니다</strong>
-                    <span>이벤트 종류나 순 필터를 조정해보세요.</span>
-                  </article>
-                ) : null}
-              </div>
+              <AttendanceLineChart points={dailyTrendPoints} eventType={statsEventTypeFilter} />
             </article>
 
             <article className="attendance-compare-card">

@@ -589,9 +589,9 @@ test("attendance checklist uses roster members and exposes search filters", () =
   assert.match(globalCssSource, /\.attendance-page-flow #attendance-stats/);
   assert.match(appPageDataSource, /eventGroupTrend/);
   assert.match(dashboardSource, /absenceMinimumStreak/);
-  assert.match(dashboardSource, /compactTrendRows/);
-  assert.match(dashboardSource, /attendance-trend-chart/);
-  assert.match(dashboardSource, /attendance-hover-card/);
+  assert.match(dashboardSource, /dailyTrendPoints/);
+  assert.match(dashboardSource, /AttendanceLineChart/);
+  assert.match(globalCssSource, /attendance-line-detail/);
   assert.match(dashboardSource, /attendance-compare-row/);
   assert.match(dashboardSource, /onClick=\{\(\) => setStatsGroupId\(group\.id\)\}/);
   assert.match(globalCssSource, /attendance-kpi-strip/);
@@ -669,13 +669,13 @@ test("weekly Sunday attendance auto-create is backed by a protected Vercel Cron 
 
 test("attendance stats can aggregate all events by group and event type", () => {
   assert.match(dashboardSource, /statsEventTypeFilter/);
-  assert.match(dashboardSource, /statsDateFilter/);
+  assert.match(dashboardSource, /statsRange/);
   assert.match(dashboardSource, /statsGroupId/);
-  assert.match(dashboardSource, /<option value="all">전체 날짜<\/option>/);
-  assert.match(dashboardSource, /event\.eventDate === statsDateFilter/);
-  assert.match(dashboardSource, /row\.eventDate !== statsDateFilter/);
+  assert.match(dashboardSource, /<option value="all">전체 기간<\/option>/);
+  assert.match(dashboardSource, /inAttendanceRange\(event.eventDate, statsRange\)/);
+  assert.match(dashboardSource, /inAttendanceRange\(row.eventDate, statsRange\)/);
   assert.match(dashboardSource, /buildAggregateAttendanceStat/);
-  assert.match(dashboardSource, /날짜별 출석률/);
+  assert.match(dashboardSource, /날짜별 출석 추이/);
   assert.match(dashboardSource, /순별 비교/);
   assert.match(dashboardSource, /aggregateGroupStats/);
 });
