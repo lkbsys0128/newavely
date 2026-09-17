@@ -41,3 +41,28 @@ test("all Newave logo instances use the same seasonal treatment", () => {
     for (const logo of logos) assert.match(logo, /className="[^"]*seasonal-logo/);
   }
 });
+
+test("selection controls share interaction tokens without recoloring semantic status badges", () => {
+  const css = readFileSync(new URL("../src/app/autumn-theme.css", import.meta.url), "utf8");
+  const interactions = css.slice(css.indexOf("/* Navigation, selections"));
+  for (const token of ["hover", "selected", "ink", "border", "solid"]) {
+    assert.match(css, new RegExp(`--interaction-${token}:`));
+    assert.match(interactions, new RegExp(`var\\(--interaction-${token}\\)`));
+  }
+  for (const selector of [".segment.active", ".attendance-group-chip.active", ".new-family-stage-chip.is-active", '.nav-list a[aria-current="page"]', '.section-nav a[aria-current="location"]']) {
+    assert.ok(interactions.includes(selector));
+  }
+  assert.doesNotMatch(interactions, /\.status-pill|\.snapshot-status-button|\.leader-extra-toggle/);
+  assert.match(interactions, /:hover:not\(:disabled\)/);
+});
+
+test("navigation and filter selections expose accessible state", () => {
+  const nav = readFileSync(new URL("../src/components/section-nav.tsx", import.meta.url), "utf8");
+  assert.match(nav, /aria-current=\{activeHref === item.href \? "location"/);
+  assert.match(nav, /addEventListener\("hashchange", updateHash\)/);
+  assert.match(nav, /removeEventListener\("hashchange", updateHash\)/);
+  const ui = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+  for (const condition of ['statusFilter === "all"', "statusFilter === status", "attendanceFilter === filter", "attendanceGroupId === group.id"]) {
+    assert.ok(ui.includes(`aria-pressed={${condition}}`));
+  }
+});

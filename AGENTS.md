@@ -216,6 +216,7 @@ npm run build
 
 ## UI 정렬/폼 품질 기준
 
+- 메뉴/탭/필터 선택은 `--interaction-selected/ink/border`, hover는 `--interaction-hover`, 주요 버튼은 `--interaction-solid/solid-ink` 토큰을 공통 사용합니다. 선택 상태에는 `aria-current` 또는 `aria-pressed`를 노출하고, 출석/완료/경고의 의미 색상과 혼동하지 않습니다.
 새 기능이나 새 UI를 만들 때 아래 기준을 반드시 먼저 확인합니다. 사용자가 반복해서 정렬 문제를 지적하지 않도록, 구현 단계에서 기본 품질로 처리합니다.
 
 - label과 input/select/textarea가 inline으로 붙어 보이면 안 됩니다. 폼 필드는 기본적으로 label 텍스트 위, control 아래의 grid 레이아웃을 사용합니다.

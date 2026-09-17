@@ -2548,6 +2548,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
       <section className="panel new-family-stage-panel" aria-label="새가족 상태 흐름">
         <button
           className={`new-family-stage-chip ${statusFilter === "all" ? "is-active" : ""}`}
+          aria-pressed={statusFilter === "all"}
           type="button"
           onClick={() => setStatusFilter("all")}
         >
@@ -2557,6 +2558,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
         {newFamilyStatusOrder.map((status) => (
           <button
             className={`new-family-stage-chip ${statusFilter === status ? "is-active" : ""} ${status}`}
+            aria-pressed={statusFilter === status}
             type="button"
             key={status}
             onClick={() => setStatusFilter(status)}
@@ -4121,6 +4123,7 @@ export function AttendanceManager({
               {(["all", "present", "absent", "excused"] as const).map((filter) => (
                 <button
                   className={`segment ${attendanceFilter === filter ? "active" : ""}`}
+                  aria-pressed={attendanceFilter === filter}
                   key={filter}
                   onClick={() => setAttendanceFilter(filter)}
                   type="button"
@@ -4147,6 +4150,7 @@ export function AttendanceManager({
             {attendanceGroupOptions.map((group) => (
               <button
                 className={`attendance-group-chip ${attendanceGroupId === group.id ? "active" : ""}`}
+                aria-pressed={attendanceGroupId === group.id}
                 key={group.id}
                 onClick={() => setAttendanceGroupId(group.id)}
                 type="button"
