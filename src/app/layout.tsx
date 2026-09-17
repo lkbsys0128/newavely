@@ -78,7 +78,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
               <div className="auth-card" aria-label="계정 메뉴">
                 <ThemeToggle />
-                <SignOutButton enabled={authEnabled} />
+                {navRole ? <SignOutButton enabled={authEnabled} /> : <Link className="sign-out-button" href="/">로그인</Link>}
               </div>
             </div>
           </aside>
