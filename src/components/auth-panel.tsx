@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/browser";
 
 export function AuthPanel() {
@@ -41,6 +42,7 @@ export function AuthPanel() {
           </button>
         </div>
         <p className="login-note">역할에 따라 접근 가능한 메뉴와 관리 권한이 자동으로 적용됩니다.</p>
+        <Link className="secondary-button" href="/prayer">오늘의 기도회 보기</Link>
       </div>
     </section>
   );

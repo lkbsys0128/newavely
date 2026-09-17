@@ -42,6 +42,7 @@ Newavely는 Community Church of Seattle · Newave 공동체 운영을 위한 내
 
 ## 주요 라우트
 
+- `/prayer`: 함께 기도 / 오늘의 기도회. 익명은 최신 날짜 하나만 공개 읽기, 활성 등록 멤버는 모든 역할에서 생성/수정/과거 조회.
 - `/`: 대시보드
 - `/profile`: 내 프로필
 - `/members`: 멤버 관리
@@ -232,6 +233,11 @@ npm run build
 - 큰 client component를 더 키우는 변경은 조심합니다. 가능하면 새 로직은 lib로 분리합니다.
 
 ## 데이터/보안 주의
+
+- 기도회(`db/041_prayer_meetings.sql`)는 공개 데이터입니다. 익명 조회는 인자 없는 `get_latest_prayer_meeting()` RPC만 사용하고, query string의 ID/페이지로 과거 데이터를 노출하지 않습니다. 공통 멤버 데이터 로더를 공개 페이지에 사용하지 않습니다.
+- 기도회 날짜는 unique이며 저장은 버전 검사와 감사 로그를 함께 처리하는 `save_prayer_meeting` RPC만 사용합니다. 모든 활성 등록 역할이 편집 가능하지만 미연결 계정/비활성 멤버는 제외합니다. 직접 테이블 쓰기나 익명 SELECT 권한을 추가하지 않습니다.
+- 기도회 UI는 번호/항목/내용 순서지와 행 편집을 유지합니다. 지난 목록은 생성 최신순, 공개 이벤트는 기도회 날짜 최신순입니다. 실패한 저장은 입력을 유지하고 동시 수정은 자동 덮어쓰기하지 않습니다.
+- `test/sql/prayer-meetings.sql`은 운영 DB가 아닌 빈 임시 PostgreSQL에서만 실행하는 RLS/RPC 통합 테스트입니다.
 
 - 실제 교적 CSV, 출석 CSV, private SQL chunk는 GitHub에 올리지 않습니다.
 - service role key, Google private key, Supabase DB password는 절대 커밋하지 않습니다.
