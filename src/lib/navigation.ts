@@ -9,7 +9,6 @@ export type NavItem = {
 };
 
 export const navItems: NavItem[] = [
-  { href: "/prayer", label: "함께 기도", public: true },
   { href: "/", label: "대시보드" },
   { href: "/profile", label: "내 프로필" },
   { href: "/members", label: "멤버", requiredPermission: "members:read", hiddenForRoles: ["assistant", "welcome", "member"] },
@@ -17,6 +16,7 @@ export const navItems: NavItem[] = [
   { href: "/groups", label: "순", requiredPermission: "groups:read", hiddenForRoles: ["assistant", "welcome", "member"] },
   { href: "/attendance", label: "출석", requiredPermission: "attendance:read" },
   { href: "/calendar", label: "캘린더" },
+  { href: "/prayer", label: "오늘의 기도회", public: true },
   { href: "/links", label: "링크", requiredPermission: "links:read" },
   { href: "/feedback", label: "피드백" },
   { href: "/permissions", label: "권한" },

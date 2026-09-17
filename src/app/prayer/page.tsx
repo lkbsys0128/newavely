@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { seattleDate, type PrayerMeeting, type PrayerSummary } from "@/lib/prayer-meetings";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "오늘의 기도회 · 함께 기도 | Newavely" };
+export const metadata = { title: "오늘의 기도회 | Newavely" };
 
 export default async function PrayerPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
