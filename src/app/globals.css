@@ -5692,13 +5692,19 @@ tbody tr:hover {
 .prayer-editor-head,
 .prayer-edit-row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1.6fr) 116px;
+  grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1.6fr) 42px;
   gap: 12px;
   align-items: center;
 }
 .prayer-editor-head { padding: 8px 0; color: var(--muted); font-size: 0.78rem; }
 .prayer-edit-row { padding: 14px 0; border-top: 1px solid var(--line); }
 .prayer-edit-row label { min-width: 0; }
+.prayer-item-fields { display: grid; min-width: 0; gap: 10px; }
+.prayer-row-position { display: flex; align-items: center; gap: 8px; }
+.prayer-edit-row.is-dragging { position: relative; z-index: 2; background: var(--surface); box-shadow: 0 8px 24px #0002; }
+.prayer-drag-handle { touch-action: none; cursor: grab; }
+.prayer-drag-handle:active { cursor: grabbing; }
+.prayer-drag-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .prayer-edit-row textarea { resize: vertical; min-height: 44px; }
 .prayer-row-tools { display: flex; gap: 4px; }
 .prayer-icon-button {
@@ -5734,10 +5740,11 @@ tbody tr:hover {
   .prayer-program-date h2 { font-size: 1.15rem; }
   .prayer-editor-top { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .prayer-editor-head { display: none; }
-  .prayer-edit-row { grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; }
+  .prayer-edit-row { grid-template-columns: 42px minmax(0, 1fr); gap: 10px; align-items: start; }
+  .prayer-item-fields { grid-column: 2; }
+  .prayer-row-position { grid-column: 1; grid-row: 1 / 3; flex-direction: column; padding-top: 24px; }
   .prayer-edit-row > label,
   .prayer-row-tools { grid-column: 2; }
-  .prayer-edit-row > .prayer-number { grid-column: 1; grid-row: 1; padding-top: 26px; }
   .prayer-mobile-label { display: block; font-size: 0.78rem; }
   .prayer-row-tools { justify-content: flex-end; }
   .prayer-icon-button { width: 42px; height: 42px; }
