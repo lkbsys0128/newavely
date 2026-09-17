@@ -54,11 +54,12 @@ test("chart uses server aggregate for restricted roles without expanding raw vis
   assert.doesNotMatch(ui, /filteredTrendRows|statsDateFilter/);
 });
 
-test("attendance detail defaults to the latest four weeks while keeping range controls", () => {
+test("attendance detail defaults to all dates while keeping range controls", () => {
   const ui = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
-  assert.match(ui, /useState<AttendanceRange>\(\(\) => attendancePresetRange\(\s*4,/);
-  assert.match(ui, /const \[statsPeriod, setStatsPeriod\] = useState\("4"\)/);
-  assert.match(ui, /attendanceEvents.map\(\(event\) => event.eventDate\).sort\(\).at\(-1\) \?\? attendanceDate/);
+  assert.match(ui, /useState<AttendanceRange>\(\{ start: "", end: "" \}\)/);
+  assert.match(ui, /const \[statsPeriod, setStatsPeriod\] = useState\("all"\)/);
+  assert.match(ui, /attendancePresetRange\(Number\(period\) \|\| 0, \[\.\.\.eventDateOptions\].sort\(\).at\(-1\)/);
+  assert.equal(inAttendanceRange("2020-01-01", { start: "", end: "" }), true);
   const range = attendancePresetRange(4, "2026-09-20");
   for (const date of ["2026-08-30", "2026-09-06", "2026-09-13", "2026-09-20"]) assert.equal(inAttendanceRange(date, range), true);
   assert.equal(inAttendanceRange("2026-08-23", range), false);
