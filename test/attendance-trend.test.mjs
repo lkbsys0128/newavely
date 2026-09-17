@@ -64,3 +64,12 @@ test("attendance detail defaults to the latest four weeks while keeping range co
   assert.equal(inAttendanceRange("2026-08-23", range), false);
   assert.match(ui, /<option value="all">전체 기간<\/option>/);
 });
+
+test("line chart displays only combined attendance regardless of event-type filter", () => {
+  const chart = readFileSync(new URL("../src/components/attendance-line-chart.tsx", import.meta.url), "utf8");
+  const ui = readFileSync(new URL("../src/components/dashboard.tsx", import.meta.url), "utf8");
+  assert.equal((chart.match(/<path /g) ?? []).length, 1);
+  assert.match(chart, /point.combined/);
+  assert.doesNotMatch(chart, /point.worship|point.meeting|eventType|visible.map/);
+  assert.match(ui, /<AttendanceLineChart points=\{dailyTrendPoints\} \/>/);
+});

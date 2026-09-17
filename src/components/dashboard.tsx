@@ -3848,7 +3848,7 @@ export function AttendanceManager({
                 </div>
                 <span>{dailyTrendPoints.length}일</span>
               </div>
-              <AttendanceLineChart points={dailyTrendPoints} eventType={statsEventTypeFilter} />
+              <AttendanceLineChart points={dailyTrendPoints} />
             </article>
 
             <article className="attendance-compare-card">
