@@ -63,7 +63,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <div className="app-shell editorial-shell">
           <aside className="sidebar" aria-label="주요 메뉴">
             <Link className="brand" href="/" aria-label="대시보드로 이동">
-              <Image alt="" className="brand-mark seasonal-logo" height={44} src="/newave-icon-jade.png" width={34} />
+              <Image alt="" className="brand-mark seasonal-logo" height={44} src="/newave-icon.png" width={34} />
               <div>
                 <strong>Newavely</strong>
                 <span>Newave 공동체</span>

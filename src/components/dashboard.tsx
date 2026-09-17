@@ -2090,7 +2090,7 @@ export function GroupsPageContent({ user, members, groups, globalStats }: AppDat
             ))}
           </svg>
           <div className="group-network-center" aria-hidden="true">
-            <img alt="" className="seasonal-logo" src="/newave-icon-jade.png" />
+            <img alt="" className="seasonal-logo" src="/newave-icon.png" />
             <strong>뉴웨이브</strong>
           </div>
           {allNetworkNodes.map((node) => (

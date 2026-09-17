@@ -36,7 +36,7 @@ test("all pages share typography weights and autumn color tokens", () => {
 test("all Newave logo instances use the same seasonal treatment", () => {
   for (const file of ["app/layout.tsx", "components/auth-panel.tsx", "components/prayer-meeting-page.tsx", "components/dashboard.tsx"]) {
     const source = readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8");
-    const logos = source.match(/<(?:Image|img)\b[^>]*src="\/newave-icon-jade.png"[^>]*>/g) ?? [];
+    const logos = source.match(/<(?:Image|img)\b[^>]*src="\/newave-icon.png"[^>]*>/g) ?? [];
     assert.ok(logos.length > 0);
     for (const logo of logos) assert.match(logo, /className="[^"]*seasonal-logo/);
   }
@@ -67,20 +67,13 @@ test("navigation and filter selections expose accessible state", () => {
   }
 });
 
-test("brand palette uses vanilla and jade with inverse dark selections", () => {
+test("design keeps the original palette and unfiltered logo", () => {
   const css = readFileSync(new URL("../src/app/autumn-theme.css", import.meta.url), "utf8");
-  for (const [name, color] of Object.entries({ vanilla: "#EDE4D5", jade: "#163C32" })) {
-    assert.ok(css.includes(`--palette-${name}: ${color};`));
-  }
-  const dark = css.slice(css.indexOf(':root[data-theme="dark"]'), css.indexOf("body {"));
-  assert.doesNotMatch(css, /palette-lavender|palette-garnet|#B19DC5|#4A0B19/i);
-  const light = css.slice(0, css.indexOf(':root[data-theme="dark"]'));
-  assert.match(light, /--interaction-selected: var\(--palette-jade\)/);
-  assert.match(light, /--interaction-ink: var\(--palette-vanilla\)/);
-  assert.match(dark, /--surface: var\(--palette-jade\)/);
-  assert.match(dark, /--ink: var\(--palette-vanilla\)/);
-  assert.match(dark, /--interaction-hover-ink: var\(--palette-vanilla\)/);
-  assert.match(dark, /--interaction-solid: var\(--palette-vanilla\)/);
-  assert.match(dark, /--interaction-selected: var\(--palette-vanilla\)/);
-  assert.match(dark, /--interaction-ink: var\(--palette-jade\)/);
+  assert.doesNotMatch(css, /--palette-|--(?:bg|surface|ink|accent|season-accent):/);
+  assert.match(css, /--logo-filter: none/);
+  assert.match(css, /--interaction-selected: var\(--soft-strong\)/);
+  assert.match(css, /--interaction-ink: var\(--accent-dark\)/);
+  const globals = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  assert.match(globals, /--bg: #f6f7f5/);
+  assert.match(globals, /--bg: #121a17/);
 });

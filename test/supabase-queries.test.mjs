@@ -720,7 +720,7 @@ test("group page renders a central Newavely network map", () => {
   assert.match(dashboardSource, /className="panel group-network-panel"/);
   assert.match(dashboardSource, /className="group-network-lines"/);
   assert.match(dashboardSource, /className="group-network-center"/);
-  assert.match(dashboardSource, /src="\/newave-icon-jade\.png"/);
+  assert.match(dashboardSource, /src="\/newave-icon\.png"/);
   assert.match(dashboardSource, /<strong>뉴웨이브<\/strong>/);
   assert.match(dashboardSource, /순장 \{node\.group\.leaderName\}/);
   assert.match(dashboardSource, /className=\{`group-network-node/);

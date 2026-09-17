@@ -1,79 +1,25 @@
-/* Vanilla Cream and Dark Jade. */
+/* Shared typography and interactions inherit the original globals.css palette. */
 :root {
   --font-weight-ui: 650;
-  --palette-vanilla: #EDE4D5;
-  --palette-jade: #163C32;
-  --bg: var(--palette-vanilla);
-  --surface: #f8f3eb;
-  --surface-strong: #e5dbc9;
-  --ink: var(--palette-jade);
-  --text: var(--palette-jade);
-  --muted: #58645b;
-  --line: #d1c8b9;
-  --line-strong: #938d80;
-  --accent: #315e50;
-  --accent-dark: var(--palette-jade);
-  --accent-strong: #567969;
-  --accent-2: var(--palette-jade);
-  --accent-3: #3c7057;
-  --danger: #992c40;
-  --season-accent: var(--palette-jade);
-  --season-soft: #e0e5da;
-  --season-berry: var(--palette-jade);
-  --season-evergreen: var(--palette-jade);
-  --soft: #e0e5da;
-  --soft-strong: #c9d4c7;
-  --chart-total: var(--palette-jade);
-  --chart-youth: #4f796b;
-  --button-ink: var(--palette-vanilla);
-  --shadow: 0 8px 24px rgba(22, 60, 50, 0.05);
-  --shadow-soft: 0 3px 12px rgba(22, 60, 50, 0.04);
+  --chart-total: var(--accent-dark);
+  --chart-youth: var(--accent-3);
+  --button-ink: #ffffff;
   --logo-filter: none;
-  --interaction-hover: #dce3d8;
-  --interaction-hover-ink: var(--palette-jade);
-  --interaction-selected: var(--palette-jade);
-  --interaction-ink: var(--palette-vanilla);
-  --interaction-border: #567969;
-  --interaction-solid: var(--palette-jade);
-  --interaction-solid-hover: #285346;
-  --interaction-solid-ink: var(--palette-vanilla);
+  --interaction-hover: var(--soft);
+  --interaction-hover-ink: var(--accent-dark);
+  --interaction-selected: var(--soft-strong);
+  --interaction-ink: var(--accent-dark);
+  --interaction-border: var(--accent);
+  --interaction-solid: var(--accent-dark);
+  --interaction-solid-hover: var(--accent);
+  --interaction-solid-ink: #ffffff;
 }
 
 :root[data-theme="dark"] {
-  --bg: #102a24;
-  --surface: var(--palette-jade);
-  --surface-strong: #1d473c;
-  --ink: var(--palette-vanilla);
-  --text: var(--palette-vanilla);
-  --muted: #bbc5b8;
-  --line: #36584b;
-  --line-strong: #73917e;
-  --accent: #b8cdbb;
-  --accent-dark: var(--palette-vanilla);
-  --accent-strong: #d1dfcf;
-  --accent-2: var(--palette-vanilla);
-  --accent-3: #a0c6ab;
-  --danger: #f0a5b0;
-  --season-accent: var(--palette-vanilla);
-  --season-soft: #244e40;
-  --season-berry: #d1dfcf;
-  --season-evergreen: #b6cdbc;
-  --soft: #244e40;
-  --soft-strong: #315e4d;
-  --chart-total: var(--palette-vanilla);
-  --chart-youth: #b8cdbb;
-  --button-ink: var(--palette-jade);
-  --shadow: none;
-  --shadow-soft: none;
-  --logo-filter: brightness(0) invert(93%) sepia(14%) saturate(284%) hue-rotate(345deg);
-  --interaction-hover: #315e4d;
-  --interaction-hover-ink: var(--palette-vanilla);
-  --interaction-selected: var(--palette-vanilla);
-  --interaction-ink: var(--palette-jade);
-  --interaction-border: #b8cdbb;
-  --interaction-solid: var(--palette-vanilla);
-  --interaction-solid-hover: #dcd0bc;
-  --interaction-solid-ink: var(--palette-jade);
+  --button-ink: var(--bg);
+  --interaction-solid: var(--accent);
+  --interaction-solid-hover: var(--accent-dark);
+  --interaction-solid-ink: var(--bg);
 }
 
 body { font-weight: 450; letter-spacing: 0; }
