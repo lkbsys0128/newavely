@@ -8,6 +8,7 @@ import { getOrCreateCurrentMember } from "@/lib/supabase/data";
 import { canDeleteMemberRole, canUseDeleteActions, getRoleChangeBlockReason } from "@/lib/role-policy";
 import { replaceGoogleSheetValues } from "@/lib/google-sheets";
 import { syncNewFamilyApplicantsFromSheet } from "@/lib/new-family-sync";
+import { readNewFamilyField, getNewFamilyAge } from "@/lib/new-family-fields";
 import {
   calculateKoreanAge,
   normalizeBaptismStatus,
@@ -152,13 +153,7 @@ const convertNewFamilyApplicantSchema = z.object({
 
 function pickNewFamilySourceValue(sourceData: unknown, keys: string[]) {
   if (!sourceData || typeof sourceData !== "object" || Array.isArray(sourceData)) return null;
-  const record = sourceData as Record<string, unknown>;
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
-    if (typeof value === "number") return String(value);
-  }
-  return null;
+  return readNewFamilyField(sourceData as Record<string, unknown>, keys) || null;
 }
 
 const createMemberLinkRequestSchema = z.object({
@@ -959,7 +954,7 @@ export async function convertNewFamilyApplicantToMember(_previousState: ActionSt
     );
     const gender = pickNewFamilySourceValue(sourceData, ["성별", "gender"]);
     const birthdate = pickNewFamilySourceValue(sourceData, ["생년월일", "birthdate"]);
-    const age = pickNewFamilySourceValue(sourceData, ["만 나이", "age"]);
+    const age = getNewFamilyAge(sourceData);
     const assignee = pickNewFamilySourceValue(sourceData, ["담당자", "assignee", "owner"]);
     const week2AttendanceDate = pickNewFamilySourceValue(sourceData, ["2주차 출석일"]);
     const week3AttendanceDate = pickNewFamilySourceValue(sourceData, ["3주차 출석일"]);

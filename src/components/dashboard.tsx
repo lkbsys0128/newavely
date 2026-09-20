@@ -81,6 +81,7 @@ import { getMemberEnglishName } from "@/lib/member-names";
 import { getPageEmoji } from "@/lib/ui-emojis";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
+import { readNewFamilyField, getNewFamilyAge } from "@/lib/new-family-fields";
 import type { PublicLink } from "@/lib/public-links";
 
 type AppDataProps = {
@@ -2338,23 +2339,18 @@ function getNewFamilySubmittedDateLabel(applicant: NewFamilyApplicant) {
 }
 
 function getNewFamilySourceValue(applicant: NewFamilyApplicant, keys: string[]) {
-  for (const key of keys) {
-    const value = applicant.sourceData[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
-    if (typeof value === "number") return String(value);
-  }
-  return "";
+  return readNewFamilyField(applicant.sourceData, keys);
 }
 
 function getNewFamilyGender(applicant: NewFamilyApplicant) {
   const gender = getNewFamilySourceValue(applicant, newFamilyGenderKeys).toLowerCase();
-  if (gender.includes("남") || gender.includes("male")) return "남";
-  if (gender.includes("여") || gender.includes("female")) return "여";
+  if (gender === "남") return "남";
+  if (gender === "여") return "여";
   return "미입력";
 }
 
 function getNewFamilyAgeBand(applicant: NewFamilyApplicant) {
-  const rawAge = getNewFamilySourceValue(applicant, ["만 나이", "age"]);
+  const rawAge = getNewFamilyAge(applicant.sourceData);
   const age = Number.parseInt(rawAge, 10);
   if (!Number.isFinite(age)) return "미입력";
   if (age < 20) return "10대";
@@ -2760,7 +2756,7 @@ export function NewFamilyPageContent({ user, groups, newFamilyApplicants = [] }:
               </div>
               <div>
                 <dt>만 나이</dt>
-                <dd>{getNewFamilySourceValue(selectedApplicant, ["만 나이", "age"]) || "미입력"}</dd>
+                <dd>{getNewFamilyAge(selectedApplicant.sourceData) || "미입력"}</dd>
               </div>
               <div>
                 <dt>거주 지역</dt>
