@@ -1,4 +1,5 @@
 import { readGoogleSheetValues } from "@/lib/google-sheets";
+import { canonicalizeNewFamilyFields } from "./new-family-fields";
 
 const defaultNewFamilySheetId = "1T-DD9i7lBoFqK6qHXKSKeEgs-FOsq24c8dWzwLWFGrg";
 
@@ -24,21 +25,6 @@ type SupabaseLike = {
     ) => { select: (columns: string, options?: { count?: "exact" }) => unknown };
   };
 };
-
-const newFamilySheetColumnIndexes = {
-  submittedAt: 0,
-  birthdate: 2,
-  gender: 3,
-  firstVisitDate: 4,
-  residenceArea: 6,
-  churchExperience: 7,
-  visitPurpose: 9,
-  visitPath: 10,
-  referrerName: 11,
-  preferredLanguage: 12,
-  privacyConsent: 13,
-  rideNeeded: 14,
-} as const;
 
 function normalizeHeader(value: string) {
   return value
@@ -92,35 +78,6 @@ function parseSubmittedAt(value: string | null) {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
-function pickCell(cells: string[], index: number) {
-  return String(cells[index] ?? "").trim() || null;
-}
-
-function applyCanonicalSheetFields(sourceData: Record<string, string>, cells: string[]) {
-  const canonicalFields = {
-    신청일: pickCell(cells, newFamilySheetColumnIndexes.submittedAt),
-    생년월일: pickCell(cells, newFamilySheetColumnIndexes.birthdate),
-    성별: pickCell(cells, newFamilySheetColumnIndexes.gender),
-    "첫 방문일": pickCell(cells, newFamilySheetColumnIndexes.firstVisitDate),
-    "거주 지역": pickCell(cells, newFamilySheetColumnIndexes.residenceArea),
-    "세례 유무": pickCell(cells, newFamilySheetColumnIndexes.churchExperience),
-    "방문 목적": pickCell(cells, newFamilySheetColumnIndexes.visitPurpose),
-    "방문 경위": pickCell(cells, newFamilySheetColumnIndexes.visitPath),
-    "지인 이름": pickCell(cells, newFamilySheetColumnIndexes.referrerName),
-    "사용 언어": pickCell(cells, newFamilySheetColumnIndexes.preferredLanguage),
-    "개인정보 수집동의": pickCell(cells, newFamilySheetColumnIndexes.privacyConsent),
-    "라이드 필요여부": pickCell(cells, newFamilySheetColumnIndexes.rideNeeded),
-  };
-
-  return Object.entries(canonicalFields).reduce(
-    (nextSourceData, [key, value]) => {
-      if (value && !nextSourceData[key]) nextSourceData[key] = value;
-      return nextSourceData;
-    },
-    { ...sourceData },
-  );
-}
-
 function buildRows(values: string[][], spreadsheetId: string, sheetName: string) {
   const [headerRow, ...dataRows] = values;
   if (!headerRow || dataRows.length === 0) return [];
@@ -131,9 +88,8 @@ function buildRows(values: string[][], spreadsheetId: string, sheetName: string)
   return dataRows
     .map((cells, index) => {
       const sourceRowNumber = index + 2;
-      const sourceData = applyCanonicalSheetFields(
+      const sourceData = canonicalizeNewFamilyFields(
         Object.fromEntries(headers.map((header, cellIndex) => [header, String(cells[cellIndex] ?? "").trim()])),
-        cells,
       );
       const name = pickLikelyName(sourceData);
       if (!name) return null;

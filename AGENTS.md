@@ -106,6 +106,8 @@ care_followups!care_followups_member_id_fkey(...)
 
 ## 새가족 기능 컨텍스트
 
+- 시트 필드는 고정 열 번호로 추정하지 않습니다. `new-family-fields.ts`에서 실제 한/영 헤더를 해석하고 생년월일/방문일/성별 값을 검증합니다. 원본 헤더 값은 보존하며, 기존 잘못된 canonical 값은 건너뛰고 유효한 원본 값을 읽습니다. 상세보기/통계/멤버 전환은 같은 해석 함수를 사용하고 만 나이는 생년월일 기준으로 계산합니다.
+
 새가족 신청은 Google Form 응답 Sheet에서 들어오며 기존 `members` roster와 분리합니다.
 
 - DB table: `new_family_applicants`
