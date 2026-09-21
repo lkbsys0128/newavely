@@ -24,6 +24,7 @@ export type Member = {
   customFields: Record<string, unknown>;
   present: boolean;
   attendanceHistory: AttendanceRecordSummary[];
+  attendanceHistoryHidden?: boolean;
   careFollowups: CareFollowup[];
 };
 

@@ -81,6 +81,7 @@ import { getMemberEnglishName } from "@/lib/member-names";
 import { getPageEmoji } from "@/lib/ui-emojis";
 import { SectionNav } from "@/components/section-nav";
 import { DisclosurePanel } from "@/components/disclosure-panel";
+import { MemberLastAttendance } from "@/components/member-last-attendance";
 import { readNewFamilyField, getNewFamilyAge } from "@/lib/new-family-fields";
 import type { PublicLink } from "@/lib/public-links";
 
@@ -1667,6 +1668,7 @@ export function MembersManager({ user, members, groups }: AppDataProps) {
             <div className="member-detail-ministry-summary">
               <span className="field-note">사역팀</span>
               <MemberMinistryLabels member={selectedMember} showEmpty />
+              <MemberLastAttendance member={selectedMember} />
             </div>
           ) : null}
           {selectedMember ? (
