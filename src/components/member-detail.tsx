@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { SectionNav } from "@/components/section-nav";
+import { MemberLastAttendance } from "@/components/member-last-attendance";
 import { DisclosurePanel } from "@/components/disclosure-panel";
 import { MemberStatusComposer } from "@/components/member-status-composer";
 import {
@@ -151,6 +152,7 @@ export function MemberDetailPageContent({
               {googleAccountName ? ` · Google 이름 ${googleAccountName}` : ""}
             </p>
             <MemberMinistrySummary ministries={selectedMinistries} />
+            <MemberLastAttendance member={member} />
           </div>
         </div>
         <div className="topbar-actions">

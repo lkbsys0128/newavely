@@ -50,6 +50,7 @@ export function maskMemberToDirectoryEntry(member: Member): Member {
     customFields: {},
     present: false,
     attendanceHistory: [],
+    attendanceHistoryHidden: true,
     careFollowups: [],
   };
 }

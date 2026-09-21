@@ -58,6 +58,21 @@
   box-sizing: border-box;
 }
 
+.member-last-attendance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin: 12px 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.member-last-attendance strong {
+  color: var(--ink);
+  font-weight: var(--font-weight-ui);
+}
+
 html {
   scroll-behavior: smooth;
 }
