@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Plus, Pencil, Save, X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Save, X, ChevronLeft, ChevronRight, ExternalLink, Copy, Check } from "lucide-react";
+import { buildPrayerShareLink } from "@/lib/prayer-share-link";
 import { safeSourceUrl } from "@/lib/prayer-source-search";
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -24,6 +25,29 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const [message, setMessage] = useState("");
+  const [copyState, setCopyState] = useState<"idle" | "copying" | "copied" | "failed">("idle");
+  const [shareUrl, setShareUrl] = useState("");
+  useEffect(() => {
+    setCopyState("idle");
+    setShareUrl("");
+  }, [meeting?.id]);
+  useEffect(() => {
+    if (copyState !== "copied") return;
+    const timeout = window.setTimeout(() => setCopyState("idle"), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [copyState]);
+  async function copyLink() {
+    if (!meeting) return;
+    const url = buildPrayerShareLink(window.location.origin, meeting.id);
+    setShareUrl(url);
+    setCopyState("copying");
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+  }
   const [dirty, setDirty] = useState(false);
   const [pending, startTransition] = useTransition();
   useEffect(() => {
@@ -53,11 +77,20 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
     <header className="prayer-heading">
       <div className="prayer-brand"><Image className="seasonal-logo" src="/newave-icon.png" width={36} height={46} alt="뉴웨이브" /><h1>오늘의 기도회</h1></div>
       <div className="prayer-commands">
+        {meeting && !editing && !error ? <button className="prayer-icon-button" type="button" onClick={copyLink}
+          disabled={copyState === "copying"} aria-label="기도회 링크 복사" title="기도회 링크 복사">
+          {copyState === "copied" ? <Check size={18} /> : <Copy size={18} />}
+        </button> : null}
         {canEdit && !editing ? <><Link className="secondary-button" href="/prayer?new=1"><Plus size={16} />새 기도회</Link>
           {meeting ? <button className="primary-button" onClick={() => setEditing(true)}><Pencil size={16} />순서 수정</button> : null}</> : null}
         {!canEdit ? <Link className="secondary-button" href="/">로그인</Link> : null}
       </div>
     </header>
+    {copyState === "copied" ? <p className="meta" role="status">기도회 링크를 복사했습니다.</p> : null}
+    {copyState === "failed" ? <div className="management-form">
+      <p className="prayer-message" role="alert">자동 복사를 사용할 수 없습니다. 아래 링크를 선택해 복사해주세요.</p>
+      <label>기도회 링크<input readOnly value={shareUrl} onFocus={(event) => event.currentTarget.select()} /></label>
+    </div> : null}
     {error ? <p className="prayer-message" role="alert">{error}</p> : null}
     {editing ? <form className="management-form prayer-editor" onSubmit={(event) => {
       event.preventDefault(); setMessage("");
