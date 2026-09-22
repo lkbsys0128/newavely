@@ -19,6 +19,7 @@
     "entities": "^8.1.0",
     "lucide-react": "^1.46.0",
     "next": "latest",
+    "qrcode.react": "^4.2.0",
     "react": "latest",
     "react-dom": "latest",
     "zod": "latest"
