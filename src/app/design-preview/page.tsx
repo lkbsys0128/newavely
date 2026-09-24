@@ -7,7 +7,7 @@ export default async function DesignPreviewPage({ searchParams }: { searchParams
   if (process.env.NODE_ENV !== "development") notFound();
   const { view } = await searchParams;
   if (view === "prayer") return <main className="main-content prayer-page"><PrayerMeetingPage
-    meeting={{ id: "11111111-1111-4111-8111-111111111111", event_date: "2026-09-21", entries: [{ title: "기도", detail: "" }], version: 1, created_at: "2026-09-21T00:00:00Z", updated_at: "2026-09-21T00:00:00Z" }}
+    meeting={{ id: "11111111-1111-4111-8111-111111111111", event_date: "2026-09-21", entries: [{ title: "기도", detail: "오프닝 기도" }, { title: "찬양", detail: "주님의 사랑" }, { title: "찬양", detail: "나의 안에 거하라" }, { title: "묵상/나눔", detail: "오늘 우리에게 주신 말씀\n감사한 순간과 함께 나누고 싶은 마음" }, { title: "기도", detail: "공동체를 위한 기도" }, { title: "마무리 기도", detail: "" }], version: 1, created_at: "2026-09-21T00:00:00Z", updated_at: "2026-09-21T00:00:00Z" }}
     history={[]} canEdit={false} creating={false} today="2026-09-21" page={1} count={1} error="" /></main>;
   if (view === "public-links") return <main className="main-content"><LinksPageContent user={null}
     importantLinks={[{ id: "preview-link", title: "공동체 안내", description: "공개 링크 미리보기", url: "https://example.com", iconKey: "website" }]} /></main>;
