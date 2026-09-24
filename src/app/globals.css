@@ -5722,23 +5722,33 @@ tbody tr:hover {
 .prayer-pagination a { gap: 8px; }
 
 .prayer-program {
-  border-top: 3px solid var(--season-accent);
-  padding-block: 28px;
+  border-top: 2px solid var(--accent);
+  padding-block: 0 20px;
 }
-.prayer-program-date { margin-bottom: 24px; }
-.prayer-program-date h2 { font-size: 1.4rem; line-height: 1.5; }
+.prayer-program-date { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 32px 24px; margin-bottom: 12px; background: var(--soft); border-bottom: 1px solid var(--line); }
+.prayer-program-date h2 { font-size: 1.65rem; line-height: 1.5; margin: 8px 0 12px; overflow-wrap: anywhere; }
+.prayer-program-date .eyebrow { margin: 0; font-size: 0.78rem; color: var(--muted); }
+.prayer-program-count { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.8rem; }
+.prayer-program-mark { flex-shrink: 0; object-fit: contain; }
+.prayer-order-heading { display: grid; grid-template-columns: 42px minmax(120px, 180px) minmax(0, 1fr); gap: 24px; padding: 16px 24px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 0.72rem; }
 .prayer-order { list-style: none; padding: 0; margin: 0; }
 .prayer-order li {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  align-items: baseline;
-  gap: 18px;
-  padding-block: 20px;
+  grid-template-columns: 42px minmax(120px, 180px) minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  padding: 26px 24px;
   border-bottom: 1px solid var(--line);
 }
-.prayer-number { color: var(--season-accent); font-weight: var(--font-weight-ui); font-variant-numeric: tabular-nums; }
-.prayer-order h3 { font-size: 1.05rem; margin: 0; overflow-wrap: anywhere; }
-.prayer-order p { margin: 6px 0 0; line-height: 1.7; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.prayer-number { color: var(--accent-dark); font-weight: var(--font-weight-ui); font-variant-numeric: tabular-nums; font-size: 0.85rem; line-height: 1.8; }
+.prayer-entry-kind { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.prayer-entry-kind svg { flex-shrink: 0; align-self: flex-start; margin-top: 4px; color: var(--muted); }
+.prayer-order h3 { font-size: 0.9rem; line-height: 1.8; margin: 0; overflow-wrap: anywhere; }
+.prayer-entry-detail { min-width: 0; }
+.prayer-order p { margin: 0; font-size: 1.06rem; line-height: 1.8; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.prayer-entry-rule { display: block; width: 28px; border-top: 1px solid var(--line); margin-top: 13px; }
+.prayer-program .prayer-source-link { font-size: 0.78rem; min-height: 36px; text-decoration: underline; text-underline-offset: 4px; }
+.prayer-program .prayer-source-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
 .management-form.prayer-editor {
   display: block;
@@ -5818,7 +5828,10 @@ tbody tr:hover {
 
 @media (max-width: 760px) {
   .prayer-heading h1 { font-size: 1.4rem; }
-  .prayer-program-date h2 { font-size: 1.15rem; }
+  .prayer-program-date { padding: 24px 16px; gap: 16px; }
+  .prayer-program-date h2 { font-size: 1.2rem; }
+  .prayer-program-mark { width: 30px; height: 40px; }
+  .prayer-order-heading { display: none; }
   .prayer-editor-top { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .prayer-editor-head { display: none; }
   .prayer-edit-row { grid-template-columns: 42px minmax(0, 1fr); gap: 10px; align-items: start; }
@@ -5830,7 +5843,12 @@ tbody tr:hover {
   .prayer-mobile-label { display: block; font-size: 0.78rem; }
   .prayer-row-tools { justify-content: flex-end; }
   .prayer-icon-button { width: 42px; height: 42px; }
-  .prayer-order li { grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding-block: 18px; }
+  .prayer-order li { grid-template-columns: 28px minmax(0, 1fr); gap: 6px 12px; padding: 22px 12px; }
+  .prayer-number { grid-row: 1 / 3; }
+  .prayer-entry-detail { grid-column: 2; }
+  .prayer-entry-rule { display: none; }
+  .prayer-order p { font-size: 1rem; }
+  .prayer-commands { gap: 8px; }
   .prayer-history li a { grid-template-columns: minmax(0, 1fr) 18px; gap: 6px; }
   .prayer-history li a .meta { grid-column: 1; grid-row: 2; }
   .prayer-history li a svg { grid-column: 2; grid-row: 1 / 3; }
