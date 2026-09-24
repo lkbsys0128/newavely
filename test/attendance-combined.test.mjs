@@ -75,7 +75,7 @@ test("roster refresh reloads current server data without deleting attendance", (
   const controls = ui.slice(ui.indexOf('<div className="attendance-check-controls">'), ui.indexOf('<div className="attendance-group-strip"'));
   assert.ok(controls.indexOf('className="segmented"') < controls.indexOf('attendance-roster-refresh'));
   assert.ok(controls.includes('attendance-roster-refresh'));
-  assert.match(ui, /setLocalMembers\(members\);\s*\}, \[attendanceEventId, members\]\)/);
+  assert.match(ui, /\[localMembers, setLocalMembers\] = useOptimistic\(members\)/);
   const data = readFileSync(new URL("../src/lib/supabase/data.ts", import.meta.url), "utf8");
   assert.match(data, /group_id, groups!members_group_id_fkey\(name\), attendance_records!/);
 });

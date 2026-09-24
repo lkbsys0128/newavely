@@ -346,8 +346,10 @@ test("dashboard metric cards use role-independent server metrics", () => {
   assert.match(dataSource, /get_public_dashboard_members/);
   assert.match(dataSource, /get_public_dashboard_groups/);
   assert.match(dataSource, /get_public_permission_role_counts/);
-  assert.match(appPageDataSource, /if \(options.page === "attendance" \|\| !hasPermission\(currentMember\.role, "members:write"\)\)/);
-  assert.match(appPageDataSource, /publicDashboardData = await getPublicDashboardData/);
+  assert.match(appPageDataSource, /needsPublicDashboard = options.page === "attendance" \|\| !hasPermission\(currentMember\.role, "members:write"\)/);
+  assert.match(appPageDataSource, /\[dashboardData, sharedDashboardData\] = await Promise.all/);
+  assert.match(appPageDataSource, /getPublicDashboardData\(supabase, options\?\.attendanceEventId\)/);
+  assert.match(appPageDataSource, /publicDashboardData = sharedDashboardData \?\? dashboardData/);
   assert.match(appPageDataSource, /isMissingPublicDashboardDataRpc/);
   assert.match(appPageDataSource, /code === "PGRST202"/);
   assert.match(appPageDataSource, /globalStats = buildGlobalAppStats\(/);
