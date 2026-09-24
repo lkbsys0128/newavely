@@ -832,7 +832,16 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
         createdByMemberId: currentMember.id,
       });
     }
-    const dashboardData = await getDashboardData(supabase, options?.attendanceEventId);
+    const needsPublicDashboard = options.page === "attendance" || !hasPermission(currentMember.role, "members:write");
+    const [dashboardData, sharedDashboardData] = await Promise.all([
+      getDashboardData(supabase, options?.attendanceEventId),
+      needsPublicDashboard && !currentMember.needsOnboarding
+        ? getPublicDashboardData(supabase, options?.attendanceEventId).catch((error) => {
+            if (!isMissingPublicDashboardDataRpc(error)) throw error;
+            return null;
+          })
+        : Promise.resolve(null),
+    ]);
     const currentRosterMember = dashboardData.members.find((member) => member.id === currentMember.id);
     const appUser = {
       id: user.id,
@@ -853,14 +862,7 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       };
     }
 
-    let publicDashboardData = dashboardData;
-    if (options.page === "attendance" || !hasPermission(currentMember.role, "members:write")) {
-      try {
-        publicDashboardData = await getPublicDashboardData(supabase, options?.attendanceEventId);
-      } catch (error) {
-        if (!isMissingPublicDashboardDataRpc(error)) throw error;
-      }
-    }
+    const publicDashboardData = sharedDashboardData ?? dashboardData;
     const page = options.page ?? "dashboard";
     const canManageRoles = hasPermission(currentMember.role, "roles:manage");
     const canReadNewFamily = hasPermission(currentMember.role, "new-family:read");

@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { restoreAttendanceEvents } from "@/lib/attendance-optimistic";
 import { AttendanceLineChart } from "@/components/attendance-line-chart";
 import { attendancePresetRange, buildDailyGroupAttendance, filterDailyAttendance, inAttendanceRange, type AttendanceRange } from "@/lib/attendance-trend";
 import { GroupBulkAssignment } from "@/components/group-bulk-assignment";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import { useActionState, useEffect, useMemo, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
 import {
   createAttendanceEvent,
   createAdminFeedbackMessage,
@@ -3149,7 +3150,9 @@ export function AttendanceManager({
         : shouldScopeAttendanceGroups && manageableAttendanceGroups[0]
           ? manageableAttendanceGroups[0].id
         : "all";
-  const [localMembers, setLocalMembers] = useState(members);
+  const [localMembers, setLocalMembers] = useOptimistic(members);
+  const attendanceLocks = useRef(new Set<string>());
+  const [pendingAttendanceMembers, setPendingAttendanceMembers] = useState<Set<string>>(new Set());
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
   const [createEventState, createEventAction, isCreatingEvent] = useActionState(createAttendanceEvent, initialActionState);
   const [deleteEventState, deleteEventAction, isDeletingEvent] = useActionState(deleteAttendanceEvent, initialActionState);
@@ -3183,8 +3186,11 @@ export function AttendanceManager({
   };
 
   useEffect(() => {
-    setLocalMembers(members);
-  }, [attendanceEventId, members]);
+    if (!isPending) {
+      attendanceLocks.current.clear();
+      setPendingAttendanceMembers((current) => current.size ? new Set() : current);
+    }
+  }, [isPending]);
 
   useEffect(() => {
     if (deleteEventState.ok) {
@@ -3543,16 +3549,8 @@ export function AttendanceManager({
     attendanceOverviewEvents.some((event) => event.title === "주일 예배") &&
     attendanceOverviewEvents.some((event) => event.title === "순모임");
   const handleToggleBothAttendance = (member: Member, nextPresent: boolean) => {
-    setAttendanceActionError("");
-    startTransition(async () => {
-      try {
-        await toggleBothAttendance(member.id, attendanceOverviewEvents.map((event) => event.id), nextPresent);
-        router.refresh();
-      } catch (error) {
-        setAttendanceActionError(error instanceof Error ? error.message : "출석 저장에 실패했습니다. 다시 시도해주세요.");
-        router.refresh();
-      }
-    });
+    saveAttendance(member, attendanceOverviewEvents, nextPresent,
+      () => toggleBothAttendance(member.id, attendanceOverviewEvents.map((event) => event.id), nextPresent));
   };
   const attendanceOverviewStats = attendanceOverviewEvents.map((event) => {
     const presentCount = attendanceOverviewMembers.filter((member) => getMemberAttendanceStatus(member, event.id) === "present").length;
@@ -3578,61 +3576,44 @@ export function AttendanceManager({
     ? activeMembers.find((member) => member.id === attendanceMemberModal.memberId) ?? null
     : null;
   const handleToggleAttendanceEvent = (member: Member, event: AttendanceEvent, nextPresent: boolean) => {
-    setLocalMembers((current) =>
-      current.map((item) =>
-        item.id === member.id
-          ? {
-              ...item,
-              present: event.id === attendanceEventId ? nextPresent : item.present,
-              attendanceHistory: updateLocalAttendanceHistory({
-                attendanceDate: event.eventDate,
-                attendanceTitle: event.title,
-                eventId: event.id,
-                history: item.attendanceHistory,
-                nextPresent,
-              }),
-            }
-          : item,
-      ),
-    );
+    saveAttendance(member, [event], nextPresent, () => toggleAttendance(member.id, event.id, nextPresent));
+  };
+  function saveAttendance(member: Member, events: AttendanceEvent[], nextPresent: boolean, save: () => Promise<void>, preserveReason = true) {
+    // Keep the lock until React commits the refreshed server props, not merely the HTTP response.
+    if (attendanceLocks.current.has(member.id) || isRefreshingRoster) return;
+    attendanceLocks.current.add(member.id);
+    setPendingAttendanceMembers(new Set(attendanceLocks.current));
     setAttendanceActionError("");
     startTransition(async () => {
+      setLocalMembers((current) => current.map((item) => item.id !== member.id ? item : {
+        ...item,
+        present: events.some((event) => event.id === attendanceEventId) ? nextPresent : item.present,
+        attendanceHistory: events.reduce((history, event) => updateLocalAttendanceHistory({
+          attendanceDate: event.eventDate, attendanceTitle: event.title, eventId: event.id, history, nextPresent, preserveReason,
+        }), item.attendanceHistory),
+      }));
       try {
-        await toggleAttendance(member.id, event.id, nextPresent);
+        await save();
       } catch (error) {
-        setLocalMembers(members);
-        setAttendanceActionError(error instanceof Error ? error.message : "출석 저장에 실패했습니다.");
-        router.refresh();
+        startTransition(() => {
+          setLocalMembers((current) => restoreAttendanceEvents(current, member, events.map((event) => event.id), attendanceEventId));
+          // Reconcile even when a write succeeded but a later audit/revalidation failed.
+          router.refresh();
+        });
+        setAttendanceActionError(`${member.displayName}: ${error instanceof Error ? error.message : "출석 저장에 실패했습니다."}`);
       }
     });
-  };
+  }
   const handleToggleLeaderExtraAttendance = (member: Member, nextPresent: boolean) => {
     if (!worshipEventForDate) return;
-    setLocalMembers((current) =>
-      current.map((item) =>
-        item.id === member.id
-          ? {
-              ...item,
-              present: worshipEventForDate.id === attendanceEventId ? nextPresent : item.present,
-              attendanceHistory: updateLocalAttendanceHistory({
-                attendanceDate: worshipEventForDate.eventDate,
-                attendanceTitle: worshipEventForDate.title,
-                eventId: worshipEventForDate.id,
-                history: item.attendanceHistory,
-                nextPresent,
-              }),
-            }
-          : item,
-      ),
-    );
-    startTransition(() => {
-      void toggleLeaderExtraAttendance(member.id, worshipEventForDate.id, nextPresent);
-    });
+    saveAttendance(member, [worshipEventForDate], nextPresent,
+      () => toggleLeaderExtraAttendance(member.id, worshipEventForDate.id, nextPresent), false);
   };
 
   return (
     <>
       <PageHeader eyebrow="출석 관리" title="출석" user={user} />
+      {attendanceActionError ? <p role="alert" className="attendance-action-error">{attendanceActionError}</p> : null}
       <SectionNav
         items={[
           { href: "#attendance-stats", label: "통계" },
@@ -3684,6 +3665,7 @@ export function AttendanceManager({
         <AttendanceMemberActionModal
           attendanceEvents={attendanceOverviewEvents}
           member={selectedAttendanceModalMember}
+          isPending={pendingAttendanceMembers.has(selectedAttendanceModalMember.id)}
           onClose={() => setAttendanceMemberModal(null)}
           onOpenReason={() => setAttendanceMemberModal({ memberId: selectedAttendanceModalMember.id, mode: "reason" })}
         />
@@ -4045,7 +4027,8 @@ export function AttendanceManager({
                               className={`leader-extra-toggle ${isPresent ? "present" : "absent"} ${canToggleLeaderAttendance ? "" : "needs-role"}`}
                               key={member.id}
                               type="button"
-                              disabled={isPending || !canToggleLeaderAttendance}
+                              disabled={pendingAttendanceMembers.has(member.id) || !canToggleLeaderAttendance || isRefreshingRoster}
+                              aria-busy={pendingAttendanceMembers.has(member.id)}
                               onClick={() => handleToggleLeaderExtraAttendance(member, !isPresent)}
                             >
                               <span className="leader-extra-name">{member.displayName}</span>
@@ -4239,7 +4222,8 @@ export function AttendanceManager({
                       aria-label={`${member.displayName} 예배와 순모임 모두 ${presentCount === statuses.length ? "출석 해제" : "출석"}`}
                       aria-pressed={presentCount === statuses.length}
                       title="예배와 순모임 함께 변경"
-                      disabled={!canManageAttendance || isPending || isRefreshingRoster}
+                      disabled={!canManageAttendance || pendingAttendanceMembers.has(member.id) || isRefreshingRoster}
+                      aria-busy={pendingAttendanceMembers.has(member.id)}
                       onClick={() => handleToggleBothAttendance(member, presentCount !== statuses.length)}>
                       {presentCount === statuses.length ? "해제" : "출석"}
                     </button>
@@ -4249,7 +4233,8 @@ export function AttendanceManager({
                       <button
                         aria-label={`${member.displayName} ${event.title} ${attendanceStatusLabels[status]}`}
                         className={`snapshot-status snapshot-status-button ${status}`}
-                        disabled={!canManageAttendance || isPending}
+                        disabled={!canManageAttendance || pendingAttendanceMembers.has(member.id) || isRefreshingRoster}
+                        aria-busy={pendingAttendanceMembers.has(member.id)}
                         key={event.id}
                         onClick={() => handleToggleAttendanceEvent(member, event, status !== "present")}
                         type="button"
@@ -4266,7 +4251,6 @@ export function AttendanceManager({
                 </div>
               ) : null}
             </div>
-            {attendanceActionError ? <p role="alert" className="attendance-action-error">{attendanceActionError}</p> : null}
           </section>
         ) : null}
         {!isWelcomeAttendanceOnly && hasExplicitAttendanceSelection && attendanceOverviewEvents.length === 0 ? (
@@ -4278,7 +4262,7 @@ export function AttendanceManager({
                 attendanceDate={attendanceDate}
                 attendanceEvents={sameDateEvents}
                 canManageAttendance={canManageAttendance}
-                isPending={isPending}
+                isPending={pendingAttendanceMembers.has(member.id) || isRefreshingRoster}
                 key={member.id}
                 member={member}
                 onToggleEvent={(event, nextPresent) => handleToggleAttendanceEvent(member, event, nextPresent)}
@@ -4305,11 +4289,13 @@ function AttendanceMemberActionModal({
   attendanceEvents,
   onClose,
   onOpenReason,
+  isPending,
 }: {
   member: Member;
   attendanceEvents: AttendanceEvent[];
   onClose: () => void;
   onOpenReason: () => void;
+  isPending: boolean;
 }) {
   return (
     <div className="confirm-modal-backdrop" role="presentation" onClick={onClose}>
@@ -4345,7 +4331,7 @@ function AttendanceMemberActionModal({
           <Link className="secondary-button" href={`/members/${member.id}`}>
             상세보기
           </Link>
-          <button className="primary-button" type="button" onClick={onOpenReason}>
+          <button className="primary-button" type="button" disabled={isPending} onClick={onOpenReason}>
             사유 입력
           </button>
         </div>
@@ -4798,17 +4784,19 @@ function updateLocalAttendanceHistory({
   eventId,
   history,
   nextPresent,
+  preserveReason = true,
 }: {
   attendanceDate: string;
   attendanceTitle: string;
   eventId: string;
   history: Member["attendanceHistory"];
   nextPresent: boolean;
+  preserveReason?: boolean;
 }) {
   const currentRecord = history.find((record) => record.eventId === eventId);
   const nextStatus: AttendanceStatus = nextPresent
     ? "present"
-    : currentRecord?.note || currentRecord?.excuseStartDate || currentRecord?.excuseEndDate
+    : preserveReason && (currentRecord?.note || currentRecord?.excuseStartDate || currentRecord?.excuseEndDate)
       ? "excused"
       : "absent";
   const nextRecord = {
