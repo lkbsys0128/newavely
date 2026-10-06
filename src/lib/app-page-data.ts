@@ -826,6 +826,16 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       name: user.user_metadata?.full_name,
     });
 
+    if (currentMember.needsOnboarding) {
+      const memberLinkRequests = await getMemberLinkRequests(supabase, currentMember.id, false);
+      return {
+        status: "onboarding",
+        user: { id: user.id, name: user.user_metadata?.full_name ?? user.email ?? "새 로그인 사용자", email: user.email ?? "", role: currentMember.role },
+        currentMemberId: currentMember.id,
+        members: [],
+        memberLinkRequests,
+      };
+    }
     if (hasPermission(currentMember.role, "attendance:write")) {
       await ensureAttendanceEvent(supabase, {
         autoCreateSundayWorship: true,
@@ -849,18 +859,6 @@ export async function getAppPageData(options: AppPageDataOptions = {}): Promise<
       email: user.email ?? "",
       role: currentMember.role,
     };
-
-    if (currentMember.needsOnboarding) {
-      const memberLinkRequests = await getMemberLinkRequests(supabase, currentMember.id, false);
-
-      return {
-        status: "onboarding",
-        user: appUser,
-        currentMemberId: currentMember.id,
-        members: dashboardData.members,
-        memberLinkRequests,
-      };
-    }
 
     const publicDashboardData = sharedDashboardData ?? dashboardData;
     const page = options.page ?? "dashboard";

@@ -43,7 +43,7 @@ test("anonymous link UI has no mutation controls and does not load the roster", 
   assert.doesNotMatch(page, /getAppPageData|AppPageGate|service-role/);
   assert.match(page, /let user: AppUser \| null = null/);
   assert.match(page, /if \(auth.user\)/);
-  assert.match(page, /member.status !== "inactive"/);
+  assert.match(page, /isRegisteredMember\(member\)/);
   const ui = read("../src/components/dashboard.tsx").split("export function LinksPageContent")[1].split("const newFamilyStatusLabels")[0];
   assert.match(ui, /Boolean\(user && hasPermission\(user.role, "links:write"\)\)/);
   assert.match(ui, /canCreateLinks \? \[\{ href: "#link-create"/);

@@ -1,4 +1,5 @@
 "use server";
+import { assertRegisteredMember } from "@/lib/registration-access";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -322,6 +323,7 @@ async function getAuthorizedCurrentMember(
     | "owner:manage"
     | "links:write"
     | "new-family:write",
+  allowOnboarding = false,
 ) {
   const supabase = await createClient();
   const {
@@ -336,6 +338,7 @@ async function getAuthorizedCurrentMember(
     name: user.user_metadata?.full_name,
   });
 
+  if (!allowOnboarding) assertRegisteredMember(currentMember);
   if (!hasPermission(currentMember.role, permission)) {
     throw new Error("작업 권한이 없습니다.");
   }
@@ -1177,12 +1180,15 @@ export async function mergeMemberProfile(_previousState: ActionState, formData: 
 
 export async function createMemberLinkRequest(_previousState: ActionState, formData: FormData) {
   return runAction(async () => {
-    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:read");
+    const { supabase, currentMember } = await getAuthorizedCurrentMember("members:read", true);
     const parsed = createMemberLinkRequestSchema.parse({
       targetMemberId: formData.get("targetMemberId"),
       note: formData.get("note"),
     });
 
+    if (currentMember.needsOnboarding && parsed.targetMemberId) {
+      throw new Error("승인 전에는 관리자에게 교적 확인을 요청해주세요.");
+    }
     if (parsed.targetMemberId === currentMember.id) {
       throw new Error("본인 프로필과 같은 멤버는 선택할 수 없습니다.");
     }
@@ -2438,6 +2444,7 @@ export async function updateMyStatusMessage(_previousState: ActionState, formDat
       email: user.email,
       name: user.user_metadata?.full_name,
     });
+    assertRegisteredMember(currentMember);
     const parsed = memberStatusMessageSchema.parse({
       message: formData.get("message"),
     });
@@ -2478,6 +2485,7 @@ export async function createAdminFeedbackMessage(_previousState: ActionState, fo
       email: user.email,
       name: user.user_metadata?.full_name,
     });
+    assertRegisteredMember(currentMember);
     const parsed = adminFeedbackSchema.parse({
       category: formData.get("category"),
       title: formData.get("title"),

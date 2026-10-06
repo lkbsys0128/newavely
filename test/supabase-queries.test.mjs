@@ -118,8 +118,8 @@ test("first-login onboarding does not auto-link or auto-admin new Google users",
   assert.match(dataSource, /status: "new"/);
   assert.match(dataSource, /needsOnboarding: true/);
   assert.match(onboardingSource, /본인 교적을 연결해주세요/);
-  assert.match(onboardingSource, /검색이 어렵거나 교적이 안 보이나요/);
-  assert.match(onboardingSource, /검색 결과가 없습니다/);
+  assert.match(onboardingSource, /교적 연결 요청/);
+  assert.doesNotMatch(onboardingSource, /members\.filter|onboarding-candidate-list/);
   assert.match(globalCssSource, /position: sticky;[\s\S]*bottom: 12px/);
 });
 
@@ -487,7 +487,8 @@ test("mobile navigation collapses into an expandable dropdown", () => {
 });
 
 test("primary navigation hides pages without the current role permission", () => {
-  assert.match(layoutSource, /const navRole = await getCurrentNavRole\(\)/);
+  assert.match(layoutSource, /role: navRole, signedIn.*await getCurrentNavState\(\)/);
+  assert.match(layoutSource, /if \(!isRegisteredMember\(data\)\) return \{ role: null, signedIn: true \}/);
   assert.match(layoutSource, /const visibleNavItems = getVisibleNavItems\(navRole\)/);
   assert.match(navigationSource, /\{ href: "\/calendar", label: "캘린더" \}/);
   assert.match(navigationSource, /requiredPermission: "new-family:read"/);

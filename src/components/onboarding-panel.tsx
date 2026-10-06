@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState } from "react";
 import { createMemberLinkRequest, type ActionState } from "@/app/actions";
-import { isMergedPlaceholderMember } from "@/lib/member-filters";
 import { isActionableLinkRequest } from "@/lib/member-link-requests";
 import type { AppUser } from "@/lib/app-page-data";
 import type { Member, MemberLinkRequest } from "@/lib/types";
@@ -11,8 +10,6 @@ const initialActionState: ActionState = { ok: false, message: "" };
 
 export function OnboardingPanel({
   user,
-  currentMemberId,
-  members,
   memberLinkRequests,
 }: {
   user: AppUser;
@@ -20,26 +17,9 @@ export function OnboardingPanel({
   members: Member[];
   memberLinkRequests: MemberLinkRequest[];
 }) {
-  const [query, setQuery] = useState("");
   const [state, action, isSubmitting] = useActionState(createMemberLinkRequest, initialActionState);
   const pendingRequest = memberLinkRequests.find(isActionableLinkRequest);
   const rejectedRequest = memberLinkRequests.find((request) => request.status === "rejected");
-  const normalizedQuery = query.trim().toLowerCase();
-  const canShowResults = normalizedQuery.length >= 2;
-  const candidates = useMemo(
-    () => {
-      if (!canShowResults) return [];
-
-      return members
-        .filter((member) => member.id !== currentMemberId)
-        .filter((member) => !member.authUserId && member.status !== "inactive" && !isMergedPlaceholderMember(member))
-        .filter((member) =>
-          [member.displayName, member.name, member.email, member.groupName].some((value) => value.toLowerCase().includes(normalizedQuery)),
-        )
-        .slice(0, 12);
-    },
-    [canShowResults, currentMemberId, members, normalizedQuery],
-  );
 
   return (
     <main className="main-content">
@@ -76,27 +56,10 @@ export function OnboardingPanel({
           </div>
         ) : (
           <>
-            <div className="onboarding-search">
-              <div>
-                <h2>교적 검색</h2>
-                <p className="meta">본인 이름, 이메일, 순 이름 중 기억나는 정보로 검색해주세요.</p>
-              </div>
-              <label className="onboarding-search-field">
-                <span>검색어</span>
-                <input
-                  autoFocus
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="예: 임주환, 주환 순, joohwan@gmail.com"
-                />
-              </label>
-              <p className="onboarding-help">검색 결과에서 본인 교적을 선택하면 관리자에게 연결 승인을 요청합니다.</p>
-            </div>
-
             <form action={action} className="onboarding-request-admin">
               <div className="onboarding-request-copy">
-                <strong>검색이 어렵거나 교적이 안 보이나요?</strong>
-                <span>검색 결과를 기다리지 않고 바로 관리자에게 확인 요청을 보낼 수 있습니다.</span>
+                <strong>교적 연결 요청</strong>
+                <span>이름과 소속을 남겨주시면 관리자가 확인 후 교적을 연결합니다.</span>
               </div>
               <input name="targetMemberId" type="hidden" value="" />
               <label className="onboarding-note-field">
@@ -107,42 +70,6 @@ export function OnboardingPanel({
                 관리자에게 요청
               </button>
             </form>
-
-            {!canShowResults ? (
-              <div className="empty-state onboarding-empty-state">
-                <strong>검색어를 입력하면 교적 후보가 표시됩니다</strong>
-                <span>전체 멤버 목록을 먼저 보여주지 않고, 입력한 조건에 맞는 후보만 보여줍니다. 찾기 어렵다면 위 요청 창구를 이용해주세요.</span>
-              </div>
-            ) : null}
-
-            {canShowResults && candidates.length > 0 ? (
-              <div className="onboarding-candidate-list">
-                {candidates.map((member) => (
-                  <form action={action} className="onboarding-candidate" key={member.id}>
-                    <input name="targetMemberId" type="hidden" value={member.id} />
-                    <input
-                      name="note"
-                      type="hidden"
-                      value={`첫 로그인 계정 ${user.name} (${user.email || "이메일 없음"})의 교적 연결 요청`}
-                    />
-                    <div className="person-block">
-                      <strong>{member.displayName}</strong>
-                      <span>{member.groupName || "미배정"}</span>
-                    </div>
-                    <button className="primary-button" type="submit" disabled={isSubmitting}>
-                      이 멤버로 요청
-                    </button>
-                  </form>
-                ))}
-              </div>
-            ) : null}
-
-            {canShowResults && candidates.length === 0 ? (
-              <div className="empty-state onboarding-empty-state">
-                <strong>검색 결과가 없습니다</strong>
-                <span>위 요청 창구로 관리자에게 본인 확인을 요청해주세요.</span>
-              </div>
-            ) : null}
 
             <ActionMessage state={state} />
           </>

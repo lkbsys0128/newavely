@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isRegisteredMember } from "@/lib/registration-access";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -19,27 +20,29 @@ export const metadata: Metadata = {
   description: "교회 공동체 멤버, 순, 출석, 권한 관리 앱",
 };
 
-async function getCurrentNavRole(): Promise<Role | null> {
-  if (!hasSupabaseEnv()) return null;
+async function getCurrentNavState(): Promise<{ role: Role | null; signedIn: boolean }> {
+  const signedOut = { role: null, signedIn: false };
+  if (!hasSupabaseEnv()) return signedOut;
 
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return null;
+    if (!user) return signedOut;
 
-    const { data } = await supabase.from("members").select("role").eq("auth_user_id", user.id).maybeSingle();
+    const { data } = await supabase.from("members").select("role, status").eq("auth_user_id", user.id).maybeSingle();
+    if (!isRegisteredMember(data)) return { role: null, signedIn: true };
     const role = data?.role;
-    return roles.includes(role as Role) ? (role as Role) : null;
+    return { role: roles.includes(role as Role) ? (role as Role) : null, signedIn: true };
   } catch {
-    return null;
+    return signedOut;
   }
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const authEnabled = hasSupabaseEnv();
-  const navRole = await getCurrentNavRole();
+  const { role: navRole, signedIn } = await getCurrentNavState();
   const visibleNavItems = getVisibleNavItems(navRole);
   const themeScript = `
     (() => {
@@ -80,7 +83,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
               <div className="auth-card" aria-label="계정 메뉴">
                 <ThemeToggle />
-                {navRole ? <SignOutButton enabled={authEnabled} /> : <Link className="sign-out-button" href="/">로그인</Link>}
+                {signedIn ? <SignOutButton enabled={authEnabled} /> : <Link className="sign-out-button" href="/">로그인</Link>}
               </div>
             </div>
           </aside>
