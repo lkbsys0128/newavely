@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { canManagePrayer } from "@/lib/prayer-access";
 import { fetchPrayerSources, type PrayerSourceResult } from "@/lib/prayer-source-search";
 
 export async function searchPrayerSources(input: unknown): Promise<{ results: PrayerSourceResult[]; error?: string }> {
@@ -10,7 +11,7 @@ export async function searchPrayerSources(input: unknown): Promise<{ results: Pr
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { results: [], error: "로그인이 필요합니다." };
     const { data: member, error } = await supabase.from("members").select("id, status").eq("auth_user_id", user.id).maybeSingle();
-    if (error || !member || member.status === "inactive") return { results: [], error: "활성 멤버만 검색할 수 있습니다." };
+    if (error || !canManagePrayer(member)) return { results: [], error: "멤버 등록 승인 후 검색할 수 있습니다." };
     const apiKey = process.env.SERPAPI_API_KEY;
     if (!apiKey) return { results: [], error: "SerpApi 검색 API가 아직 설정되지 않았습니다. 관리자에게 문의해주세요." };
     const limit = await supabase.rpc("claim_prayer_source_search");

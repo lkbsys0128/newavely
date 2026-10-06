@@ -758,7 +758,7 @@ revoke all on public.prayer_meetings from anon, authenticated;
 grant select on public.prayer_meetings to authenticated;
 drop policy if exists "active members read prayer history" on public.prayer_meetings;
 create policy "active members read prayer history" on public.prayer_meetings for select to authenticated
-using (current_member_id() is not null and current_member_status() <> 'inactive');
+using (current_member_id() is not null and coalesce(current_member_status() in ('active', 'care'), false));
 
 -- Anonymous callers cannot address a row or page through historical events.
 create or replace function public.get_latest_prayer_meeting()
@@ -780,7 +780,7 @@ declare
   saved prayer_meetings%rowtype;
   entry jsonb;
 begin
-  if auth.uid() is null or current_member_id() is null or current_member_status() = 'inactive' then
+  if auth.uid() is null or current_member_id() is null or not coalesce(current_member_status() in ('active', 'care'), false) then
     raise exception '로그인한 활성 멤버만 수정할 수 있습니다.';
   end if;
   if p_event_date is null or p_version is null or p_version < 0 then
@@ -854,7 +854,7 @@ returns boolean language plpgsql security definer set search_path = public
 as $$
 declare actor uuid := current_member_id(); used integer;
 begin
-  if auth.uid() is null or actor is null or current_member_status() = 'inactive' then
+  if auth.uid() is null or actor is null or not coalesce(current_member_status() in ('active', 'care'), false) then
     raise exception '활성 멤버만 검색할 수 있습니다.';
   end if;
   insert into prayer_search_limits(member_id, window_start, requests)
@@ -878,7 +878,7 @@ declare
   saved prayer_meetings%rowtype;
   entry jsonb;
 begin
-  if auth.uid() is null or current_member_id() is null or current_member_status() = 'inactive' then
+  if auth.uid() is null or current_member_id() is null or not coalesce(current_member_status() in ('active', 'care'), false) then
     raise exception '로그인한 활성 멤버만 수정할 수 있습니다.';
   end if;
   if p_event_date is null or p_version is null or p_version < 0 then

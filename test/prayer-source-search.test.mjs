@@ -51,7 +51,7 @@ test("SerpApi failures never expose provider errors or credentials", async () =>
   const action = readFileSync(new URL("../src/app/prayer/search-actions.ts", import.meta.url), "utf8");
   assert.match(action, /process.env.SERPAPI_API_KEY/);
   assert.match(action, /claim_prayer_source_search/);
-  assert.match(action, /member.status === "inactive"/);
+  assert.match(action, /!canManagePrayer\(member\)/);
   assert.match(action, /if \(!user\)/);
   assert.doesNotMatch(action, /console\.|NEXT_PUBLIC_|NAVER_SEARCH/);
 });
@@ -71,5 +71,6 @@ test("source migration retains audited versioned saves and authenticated rate li
   assert.match(sql, /prior.version <> p_version/);
   assert.match(sql, /perform record_audit_log/);
   assert.match(sql, /'sourceUrl'/);
-  assert.ok(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8").includes(sql.trim()));
+  const registeredSql = sql.replaceAll("current_member_status() = 'inactive'", "not coalesce(current_member_status() in ('active', 'care'), false)");
+  assert.ok(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8").includes(registeredSql.trim()));
 });
