@@ -1,4 +1,5 @@
 import { PrayerMeetingPage } from "@/components/prayer-meeting-page";
+import { canManagePrayer } from "@/lib/prayer-access";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { seattleDate, type PrayerMeeting, type PrayerSummary } from "@/lib/prayer-meetings";
@@ -23,7 +24,7 @@ export default async function PrayerPage({ searchParams }: { searchParams: Promi
     if (user) {
       const { data: member, error: memberError } = await supabase.from("members").select("id, status").eq("auth_user_id", user.id).maybeSingle();
       if (memberError) throw memberError;
-      canEdit = Boolean(member && member.status !== "inactive");
+      canEdit = canManagePrayer(member);
     }
     if (canEdit) {
       creating = params.new === "1";

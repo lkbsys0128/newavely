@@ -19,6 +19,7 @@ create function record_audit_log(text,text,uuid,jsonb,jsonb,jsonb) returns uuid 
 insert into members values ('11111111-1111-4111-8111-111111111111','11111111-1111-4111-8111-111111111111','active','member');
 \ir ../../db/041_prayer_meetings.sql
 \ir ../../db/042_prayer_source_links.sql
+\ir ../../db/044_prayer_registered_members.sql
 set local role authenticated;
 select set_config('test.uid','11111111-1111-4111-8111-111111111111',true);
 select save_prayer_meeting(null,0,'2026-09-09','[{"title":"Old prayer","detail":""}]');
@@ -60,6 +61,31 @@ do $$ declare r text; begin
       (select version from prayer_meetings where event_date='2026-09-09'),'2026-09-09','[{"title":"Role test","detail":""}]');
   end loop;
 end $$;
+update members set status='new';
+set local role authenticated;
+do $$ begin
+  if (select count(*) from prayer_meetings) <> 0 then raise exception 'Pending history leak'; end if;
+  if get_latest_prayer_meeting() is null then raise exception 'Pending public view blocked'; end if;
+  begin
+    perform save_prayer_meeting(null,0,'2026-09-17','[{"title":"Pending","detail":""}]');
+    raise exception 'pending create allowed' using errcode='XX000';
+  exception when sqlstate 'P0001' then null; end;
+  begin
+    perform save_prayer_meeting((get_latest_prayer_meeting()->>'id')::uuid,2,'2026-09-16','[{"title":"Pending edit","detail":""}]');
+    raise exception 'pending update allowed' using errcode='XX000';
+  exception when sqlstate 'P0001' then null; end;
+  begin
+    perform claim_prayer_source_search();
+    raise exception 'pending search allowed' using errcode='XX000';
+  exception when sqlstate 'P0001' then null; end;
+end $$;
+reset role;
+update members set status='care';
+set local role authenticated;
+do $$ begin
+  if (select count(*) from prayer_meetings) <> 2 then raise exception 'Care history blocked'; end if;
+end $$;
+reset role;
 update members set status='inactive';
 set local role authenticated;
 do $$ begin

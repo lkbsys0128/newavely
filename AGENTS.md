@@ -243,6 +243,8 @@ npm run build
 
 ## 데이터/보안 주의
 
+- 기도회 권한은 `canManagePrayer`의 상태 allowlist(`active`, `care`)를 사용합니다. 최초 로그인 계정도 members 행이 있지만 `new`이므로 편집/생성/과거 조회/원문 검색을 허용하지 않습니다. DB RLS와 RPC도 `044_prayer_registered_members.sql`의 동일한 null-safe 조건을 유지합니다.
+
 - 기도회 공유는 `PrayerShare`의 링크 복사/QR 표시를 사용합니다. QR은 qrcode.react로 브라우저에서 생성하며 외부 QR 서비스에 URL을 보내지 않습니다. 링크와 QR은 동일한 이벤트 ID를 사용하되 익명은 계속 최신 기도회만 조회합니다. QR은 다크모드에서도 흰 배경/검은 패턴과 4모듈 여백을 유지합니다.
 
 - 기도회(`db/041_prayer_meetings.sql`)는 공개 데이터입니다. 익명 조회는 인자 없는 `get_latest_prayer_meeting()` RPC만 사용하고, query string의 ID/페이지로 과거 데이터를 노출하지 않습니다. 공통 멤버 데이터 로더를 공개 페이지에 사용하지 않습니다.

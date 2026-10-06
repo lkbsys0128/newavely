@@ -24,7 +24,9 @@ test("anonymous prayer query is parameterless and history remains authenticated"
   assert.match(sql, /grant select on public.prayer_meetings to authenticated/);
   assert.match(sql, /prior.version <> p_version/);
   assert.match(sql, /perform record_audit_log/);
-  assert.ok(read("../db/schema.sql").includes(sql.trim()));
+  const registeredSql = sql.replaceAll("current_member_status() <> 'inactive'", "coalesce(current_member_status() in ('active', 'care'), false)")
+    .replaceAll("current_member_status() = 'inactive'", "not coalesce(current_member_status() in ('active', 'care'), false)");
+  assert.ok(read("../db/schema.sql").includes(registeredSql.trim()));
 });
 
 test("prayer and links are available in unauthenticated navigation", () => {
