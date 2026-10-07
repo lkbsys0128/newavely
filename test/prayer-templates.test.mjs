@@ -15,17 +15,32 @@ test("template defaults clear songs, URLs and meditation while keeping prayer te
   ];
   const snapshot = JSON.stringify(entries);
   assert.deepEqual(JSON.parse(JSON.stringify(preparePrayerTemplate(entries))), [
-    entries[0], { title: "찬양", detail: "" }, { title: "말씀 묵상", detail: "" },
+    { title: "기도", detail: "오프닝 기도" }, { title: "찬양", detail: "" }, { title: "말씀 묵상", detail: "" },
     { title: "묵상/나눔", detail: "" }, { title: "기도", detail: "마무리 기도" },
     { title: "마무리 기도", detail: "" },
   ]);
   assert.equal(JSON.stringify(entries), snapshot);
-  assert.deepEqual(JSON.parse(JSON.stringify(preparePrayerTemplate(entries, false))), entries);
+  assert.deepEqual(JSON.parse(JSON.stringify(preparePrayerTemplate(entries, false, false))), entries);
+});
+
+test("prayer names clear independently on each line without altering song text", () => {
+  const entries = [
+    { title: "대표 기도: 김이름", detail: "김이름" },
+    { title: "기도", detail: "오프닝 기도 - 이이름\n공동체를 위한 기도: 박이름\n함께 모임" },
+    { title: "찬양", detail: "기도하는 마음", sourceUrl: "https://example.com/song" },
+    { title: "오프닝", detail: "함께 기도: 김이름" },
+  ];
+  assert.deepEqual(JSON.parse(JSON.stringify(preparePrayerTemplate(entries, false, true))), [
+    { title: "대표 기도", detail: "" },
+    { title: "기도", detail: "오프닝 기도\n공동체를 위한 기도\n함께 모임" }, entries[2], { title: "오프닝", detail: "함께 기도" },
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(preparePrayerTemplate(entries, true, false))), [entries[0], entries[1], { title: "찬양", detail: "" }, entries[3]]);
 });
 
 test("template validation requires name and rows and defaults to clearing content", () => {
   const input = { id: null, version: 0, name: "수요 기도회", entries: [{ title: "기도", detail: "" }] };
   assert.equal(prayerTemplateSchema.parse(input).clearContents, true);
+  assert.equal(prayerTemplateSchema.parse(input).clearPrayerNames, true);
   for (const change of [{ name: " " }, { entries: [] }, { version: -1 }, { entries: [{ title: "", detail: "" }] }]) {
     assert.equal(prayerTemplateSchema.safeParse({ ...input, ...change }).success, false);
   }
@@ -36,7 +51,7 @@ test("template actions check registration and SQL writes are versioned and audit
   const sql = readFileSync(new URL("../db/046_prayer_templates.sql", import.meta.url), "utf8");
   assert.equal((actions.match(/await templateClient\(\)/g) ?? []).length, 3);
   assert.match(actions, /!canManagePrayer\(data\)/);
-  assert.match(actions, /preparePrayerTemplate\(entries, clearContents\)/);
+  assert.match(actions, /preparePrayerTemplate\(entries, clearContents, clearPrayerNames\)/);
   assert.equal((sql.match(/if not public.is_registered_member\(\)/g) ?? []).length, 2);
   assert.equal((sql.match(/prior.version <> p_version/g) ?? []).length, 2);
   assert.equal((sql.match(/perform record_audit_log/g) ?? []).length, 2);

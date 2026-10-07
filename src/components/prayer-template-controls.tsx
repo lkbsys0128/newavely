@@ -13,6 +13,7 @@ export function PrayerTemplateControls({ entries, disabled, dirty, onLoad }: {
   const [selectedId, setSelectedId] = useState("");
   const [name, setName] = useState("");
   const [clearContents, setClearContents] = useState(true);
+  const [clearPrayerNames, setClearPrayerNames] = useState(true);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
@@ -29,7 +30,7 @@ export function PrayerTemplateControls({ entries, disabled, dirty, onLoad }: {
   function save(replace: boolean) {
     if (replace && (!selected || !window.confirm(`“${selected.name}” 템플릿을 현재 순서로 변경할까요?`))) return;
     startTransition(async () => {
-      const result = await savePrayerTemplate({ id: replace ? selected?.id : null, version: replace ? selected?.version : 0, name, entries, clearContents });
+      const result = await savePrayerTemplate({ id: replace ? selected?.id : null, version: replace ? selected?.version : 0, name, entries, clearContents, clearPrayerNames });
       setMessage(result.message);
       if (result.template) {
         const saved = result.template;
@@ -67,7 +68,10 @@ export function PrayerTemplateControls({ entries, disabled, dirty, onLoad }: {
         <button type="button" className="secondary-button" disabled={busy || !selected || !name.trim()} onClick={() => save(true)}><Save size={16} />선택 템플릿 변경</button>
       </div>
     </div>
-    <label className="prayer-template-reset"><input type="checkbox" checked={clearContents} disabled={busy} onChange={(event) => setClearContents(event.target.checked)} /><span>저장 시 찬양·묵상 내용과 마무리 기도 뒷부분 비우기</span></label>
+    <div className="prayer-template-options">
+      <label className="prayer-template-reset"><input type="checkbox" checked={clearContents} disabled={busy} onChange={(event) => setClearContents(event.target.checked)} /><span>찬양·묵상 내용 비우기</span></label>
+      <label className="prayer-template-reset"><input type="checkbox" checked={clearPrayerNames} disabled={busy} onChange={(event) => setClearPrayerNames(event.target.checked)} /><span>기도 항목의 ‘기도’ 뒤 텍스트 비우기</span></label>
+    </div>
     {message ? <p className="prayer-message" role="status">{message}</p> : null}
   </details>;
 }
