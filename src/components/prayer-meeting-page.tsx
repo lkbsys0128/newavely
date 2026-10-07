@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Plus, Pencil, Save, X, ChevronLeft, ChevronRight, ExternalLink, CalendarDays, Music2, BookOpen, HeartHandshake } from "lucide-react";
 import { PrayerShare } from "@/components/prayer-share";
+import { PrayerTemplateControls } from "@/components/prayer-template-controls";
 import { safeSourceUrl } from "@/lib/prayer-source-search";
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -71,6 +72,9 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
     }}>
       <div className="prayer-editor-top"><label>기도회 날짜<input type="date" required value={date} disabled={pending} onChange={(event) => { setDate(event.target.value); setDirty(true); }} /></label>
         <p className="meta">저장한 날짜 중 가장 최신 기도회는 누구나 볼 수 있습니다. 개인 연락처나 민감한 기도 제목은 입력하지 마세요.</p></div>
+      <PrayerTemplateControls entries={entries} disabled={pending} dirty={dirty} onLoad={(loaded) => {
+        setEntries(loaded.map((entry) => toPrayerEditEntry(entry, `template-${crypto.randomUUID()}`))); setDirty(true);
+      }} />
       <div className="prayer-editor-head" aria-hidden="true"><span>순서</span><span>항목</span><span>찬양 제목 · 내용</span><span>삭제</span></div>
       <DndContext id="prayer-order-editor" sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
         if (pending || !over || active.id === over.id) return;
