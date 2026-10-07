@@ -13,6 +13,7 @@ grant usage on schema auth to authenticated, anon;
 \ir ../../db/schema.sql
 \ir ../../db/003_audit_logs.sql
 \ir ../../db/045_onboarding_access_boundary.sql
+\ir ../../db/047_prayer_bible_links.sql
 insert into auth.users values ('11111111-1111-4111-8111-111111111111'), ('22222222-2222-4222-8222-222222222222');
 insert into members(id, auth_user_id, name, status) values
  ('11111111-1111-4111-8111-111111111111','11111111-1111-4111-8111-111111111111','Pending','new'),
@@ -41,6 +42,23 @@ do $$ declare saved jsonb; template_id uuid; begin
   if (select entries->0->>'detail' from prayer_meetings limit 1) <> 'Opening' then raise exception 'Meeting mutated'; end if;
   perform save_prayer_template(null,0,'Private','[{"title":"기도","detail":""}]');
 end $$;
+do $$ declare entries jsonb; saved jsonb; begin
+  entries := '[{"title":"묵상/나눔","detail":"Keep notes","sourceUrl":"http://www.holybible.or.kr/mobile/B_GAE/cgi-m/bibleftxt.php?VR=GAE&VL=13&CN=19&CV=99"}]';
+  saved := save_prayer_meeting(null,0,'2026-10-08',entries);
+  if saved->'entries' <> entries then raise exception 'Bible link not preserved'; end if;
+  saved := save_prayer_template(null,0,'Bible',entries);
+  if saved->'entries' <> entries then raise exception 'Template Bible link not preserved'; end if;
+  if is_prayer_bible_link('http://www.holybible.or.kr/mobile/B_GAE/cgi-m/bibleftxt.php?VR=GAE&VL=13&CN=30&CV=99') then raise exception 'Invalid chapter accepted'; end if;
+  entries := '[{"title":"묵상/나눔","detail":"","sourceUrl":"http://example.com"}]';
+  begin
+    perform save_prayer_meeting(null,0,'2026-10-09',entries);
+    raise exception 'Arbitrary HTTP accepted' using errcode='XX000';
+  exception when sqlstate 'P0001' then null; end;
+  begin
+    perform save_prayer_template(null,0,'Invalid',entries);
+    raise exception 'Arbitrary template HTTP accepted' using errcode='XX000';
+  exception when sqlstate 'P0001' then null; end;
+end $$;
 select set_config('test.uid','11111111-1111-4111-8111-111111111111',true);
 do $$ begin
   if (select count(*) from prayer_templates) <> 0 then raise exception 'Pending read allowed'; end if;
@@ -62,7 +80,7 @@ do $$ begin
 end $$;
 reset role;
 do $$ begin
-  if (select count(*) from audit_logs where action like 'prayer_template.%') <> 4 then raise exception 'Audit missing'; end if;
+  if (select count(*) from audit_logs where action like 'prayer_template.%') <> 5 then raise exception 'Audit missing'; end if;
 end $$;
 rollback;
 \echo 'Prayer template integration tests passed'
