@@ -1,4 +1,9 @@
 import { decodeHTML } from "entities";
+import { parseBibleLink } from "./bible-links";
+
+export function safePrayerSourceUrl(value: string): boolean {
+  return Boolean(parseBibleLink(value)) || safeSourceUrl(value);
+}
 
 export type PrayerSourceResult = { title: string; url: string; domain: string };
 

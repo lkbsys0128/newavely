@@ -243,6 +243,8 @@ npm run build
 
 ## 데이터/보안 주의
 
+- 묵상/나눔의 말씀 링크는 `bible-links.ts`의 66권/장 범위로 생성하며 `047_prayer_bible_links.sql`을 사용합니다. HolyBible의 지정된 HTTP 장 링크만 허용하고 일반 HTTP나 임의 쿼리를 허용하지 않습니다. 본문은 수집하지 않습니다. 공개 뷰도 `safePrayerSourceUrl`로 검증하며 찬양 검색은 기존 HTTPS 전용 검증을 유지합니다.
+
 - 기도회 템플릿은 `046_prayer_templates.sql`의 등록 멤버 공용 데이터입니다. 직접 테이블 쓰기는 금지하고 버전 검사/감사 로그가 있는 저장·삭제 RPC를 사용합니다. 템플릿을 적용해도 날짜/기존 기도회는 바꾸지 않습니다. `preparePrayerTemplate`은 독립된 clearContents/clearPrayerNames 옵션으로 찬양·묵상 내용/링크 및 기도 항목 각 줄의 ‘기도’ 뒤 텍스트를 지우며 원본 배열은 변경하지 않습니다.
 
 - 가입 대기 접근 경계는 `registration-access.ts`와 `045_onboarding_access_boundary.sql`을 사용합니다. 서버 액션은 등록 상태 검사가 기본이며 교적 연결 요청만 명시적으로 예외입니다. 가입 화면에서 전체 roster/통계/출석을 읽지 않습니다. 승인 전 후보 검색을 재도입하거나 자기 members 상태 업데이트를 허용하지 않습니다. 최신 기도회와 공개 링크는 전용 RPC로 읽고, 기존 복구 요청은 유지합니다.
