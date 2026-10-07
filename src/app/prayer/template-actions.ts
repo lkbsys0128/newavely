@@ -29,9 +29,9 @@ export async function savePrayerTemplate(input: unknown): Promise<{ ok: boolean;
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "입력값을 확인해주세요." };
   try {
     const client = await templateClient();
-    const { id, version, name, entries, clearContents } = parsed.data;
+    const { id, version, name, entries, clearContents, clearPrayerNames } = parsed.data;
     const { data, error } = await client.rpc("save_prayer_template", {
-      p_id: id, p_version: version, p_name: name, p_entries: preparePrayerTemplate(entries, clearContents),
+      p_id: id, p_version: version, p_name: name, p_entries: preparePrayerTemplate(entries, clearContents, clearPrayerNames),
     });
     if (error) return { ok: false, message: error.code === "P0001" ? error.message : "템플릿을 저장하지 못했습니다." };
     revalidatePath("/prayer");

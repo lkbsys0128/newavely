@@ -47,7 +47,7 @@ h1, h2, h3, h4, h5, h6, strong, b, th { font-weight: var(--font-weight-ui); lett
 }
 :root .editorial-shell :is(.metric-card, .panel, .section-nav, .login-card,
   .new-family-sheet-panel, .new-family-breakdown-card, .calendar-layout,
-  .prayer-sheet, .prayer-editor, .prayer-history, .status-composer-panel,
+  .prayer-sheet, .status-composer-panel,
   .attendance-trend-card, .attendance-compare-card, .event-selector-panel) {
   background: var(--surface);
   border-color: var(--line);
