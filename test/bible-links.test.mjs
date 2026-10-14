@@ -2,9 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { loadTsModule } from "./load-ts-module.mjs";
-const { bibleBooks, buildBibleLink, parseBibleLink } = loadTsModule("../src/lib/bible-links.ts");
+const { bibleBooks, buildBibleLink, parseBibleLink, searchBibleBooks } = loadTsModule("../src/lib/bible-links.ts");
 const { prayerEntrySchema } = loadTsModule("../src/lib/prayer-meetings.ts");
 const { preparePrayerTemplate } = loadTsModule("../src/lib/prayer-templates.ts");
+
+test("Bible name search filters partial names without changing book IDs", () => {
+  assert.equal(searchBibleBooks("").length, 66);
+  assert.equal(searchBibleBooks("역대").length, 2);
+  assert.equal(searchBibleBooks(" 역 대 상 ")[0].book, 13);
+  assert.equal(searchBibleBooks("요한").length, 5);
+  assert.equal(searchBibleBooks("없는책").length, 0);
+  assert.equal(buildBibleLink(searchBibleBooks("요한복음")[0].book, 3), buildBibleLink(43, 3));
+});
 
 test("all 66 books round-trip with valid chapter bounds", () => {
   assert.equal(bibleBooks.length, 66);
