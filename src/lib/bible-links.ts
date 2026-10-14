@@ -14,6 +14,12 @@ export const bibleBooks = [
   ["베드로후서", 3], ["요한일서", 5], ["요한이서", 1], ["요한삼서", 1], ["유다서", 1], ["요한계시록", 22],
 ] as const;
 
+export function searchBibleBooks(query: string) {
+  const normalized = query.replace(/\s/g, "").toLowerCase();
+  return bibleBooks.map(([name], index) => ({ name, book: index + 1 }))
+    .filter(({ name }) => name.includes(normalized));
+}
+
 export function buildBibleLink(book: number, chapter: number): string {
   const selected = bibleBooks[book - 1];
   if (!Number.isInteger(book) || !selected || !Number.isInteger(chapter) || chapter < 1 || chapter > selected[1]) return "";

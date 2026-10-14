@@ -5781,6 +5781,8 @@ tbody tr:hover {
 .prayer-bible-fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
 .prayer-bible-fields label { display: grid; gap: 6px; min-width: 0; }
 .prayer-bible-fields select { width: 100%; min-width: 0; }
+.prayer-bible-search { display: grid; gap: 6px; min-width: 0; }
+.prayer-bible-search input { width: 100%; min-width: 0; }
 .prayer-source-picker { display: grid; min-width: 0; gap: 10px; }
 .prayer-source-query { display: grid; grid-template-columns: minmax(0, 1fr) 42px; align-items: end; gap: 8px; }
 .prayer-source-results { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
