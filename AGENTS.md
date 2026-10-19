@@ -243,6 +243,8 @@ npm run build
 
 ## 데이터/보안 주의
 
+- 기도회 다중 링크는 `048_prayer_multiple_links.sql`을 사용합니다. 기존 `sourceUrl`과 추가 `additionalSourceUrls`(최대 9개)를 함께 검증하고 표시합니다. 공개 보기에서 모든 URL을 검증하며 템플릿 내용 초기화 시 추가 링크도 제거합니다. 첫 링크 외 찬양 검색 결과는 기존 찬양 제목을 덮어쓰지 않습니다.
+
 - 묵상/나눔의 말씀 링크는 `bible-links.ts`의 66권/장 범위로 생성하며 `047_prayer_bible_links.sql`을 사용합니다. HolyBible의 지정된 HTTP 장 링크만 허용하고 일반 HTTP나 임의 쿼리를 허용하지 않습니다. 본문은 수집하지 않습니다. 공개 뷰도 `safePrayerSourceUrl`로 검증하며 찬양 검색은 기존 HTTPS 전용 검증을 유지합니다.
 
 - 기도회 템플릿은 `046_prayer_templates.sql`의 등록 멤버 공용 데이터입니다. 직접 테이블 쓰기는 금지하고 버전 검사/감사 로그가 있는 저장·삭제 RPC를 사용합니다. 템플릿을 적용해도 날짜/기존 기도회는 바꾸지 않습니다. `preparePrayerTemplate`은 독립된 clearContents/clearPrayerNames 옵션으로 찬양·묵상 내용/링크 및 기도 항목 각 줄의 ‘기도’ 뒤 텍스트를 지우며 원본 배열은 변경하지 않습니다.

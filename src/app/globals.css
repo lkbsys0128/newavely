@@ -5778,6 +5778,10 @@ tbody tr:hover {
 .prayer-item-fields { display: grid; min-width: 0; gap: 10px; }
 .prayer-item-content { display: grid; min-width: 0; gap: 12px; }
 .prayer-bible-picker { display: grid; gap: 12px; min-width: 0; }
+.prayer-extra-link { display: grid; gap: 12px; min-width: 0; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px; }
+.prayer-extra-link-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.prayer-add-link { justify-self: start; margin-top: 12px; }
+.prayer-entry-links { display: flex; flex-wrap: wrap; gap: 10px 16px; min-width: 0; }
 .prayer-bible-fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
 .prayer-bible-fields label { display: grid; gap: 6px; min-width: 0; }
 .prayer-bible-fields select { width: 100%; min-width: 0; }
