@@ -4,6 +4,7 @@ import { assertRegisteredMember } from "@/lib/registration-access";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { hasPermission, type Role } from "@/lib/rbac";
 import { getOrCreateCurrentMember } from "@/lib/supabase/data";
 import { canDeleteMemberRole, canUseDeleteActions, getRoleChangeBlockReason } from "@/lib/role-policy";
@@ -1883,13 +1884,16 @@ export async function updateAttendanceExtraCounts(_previousState: ActionState, f
 export async function toggleLeaderExtraAttendance(memberId: string, eventId: string, nextPresent: boolean) {
   const { supabase, currentMember } = await getAuthorizedCurrentMember("attendance:extras:write");
   const parsed = leaderExtraAttendanceSchema.parse({ memberId, eventId, nextPresent });
+  // Welcome cannot read private member rows or write general attendance through RLS.
+  // Keep this privileged client local to the validated extra-attendance operation.
+  const attendanceClient = createServiceRoleClient();
 
   const [
     { data: targetEvent, error: targetEventError },
     { data: targetMember, error: targetMemberError },
   ] = await Promise.all([
-    supabase.from("attendance_events").select("id, title, event_date").eq("id", parsed.eventId).single(),
-    supabase
+    attendanceClient.from("attendance_events").select("id, title, event_date").eq("id", parsed.eventId).single(),
+    attendanceClient
       .from("members")
       .select("id, group_id, custom_fields, groups!members_group_id_fkey(name)")
       .eq("id", parsed.memberId)
@@ -1912,7 +1916,7 @@ export async function toggleLeaderExtraAttendance(memberId: string, eventId: str
     throw new Error("먼저 멤버 상세에서 공동체 리더 구분을 지정해주세요.");
   }
 
-  const { data: beforeData, error: beforeError } = await supabase
+  const { data: beforeData, error: beforeError } = await attendanceClient
     .from("attendance_records")
     .select("*")
     .eq("event_id", parsed.eventId)
@@ -1921,7 +1925,7 @@ export async function toggleLeaderExtraAttendance(memberId: string, eventId: str
 
   if (beforeError) throw beforeError;
 
-  const { data: afterData, error } = await supabase
+  const { data: afterData, error } = await attendanceClient
     .from("attendance_records")
     .upsert(
       {
