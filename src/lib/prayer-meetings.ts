@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { safePrayerSourceUrl } from "./prayer-source-search";
 
+const prayerLinkSchema = z.string().max(2000).refine((value) => value === "" || safePrayerSourceUrl(value), "원문 링크를 확인해주세요.");
+
 export const prayerEntrySchema = z.object({
   title: z.string().trim().min(1, "항목 이름을 입력해주세요.").max(120),
   detail: z.string().trim().max(500).default(""),
-  sourceUrl: z.string().refine((value) => value === "" || safePrayerSourceUrl(value), "원문 링크를 확인해주세요.").optional(),
+  sourceUrl: prayerLinkSchema.optional(),
+  additionalSourceUrls: z.array(prayerLinkSchema).max(9).optional(),
 });
 export const prayerMeetingSchema = z.object({
   id: z.string().uuid().nullable(),
@@ -17,6 +20,16 @@ export const prayerMeetingSchema = z.object({
 });
 
 export type PrayerEntry = z.infer<typeof prayerEntrySchema>;
+
+export function prayerEntryLinks(entry: PrayerEntry): string[] {
+  return [...new Set([entry.sourceUrl, ...(entry.additionalSourceUrls ?? [])]
+    .filter((url): url is string => Boolean(url && safePrayerSourceUrl(url))))];
+}
+
+export function serializePrayerEntry({ title, detail, sourceUrl, additionalSourceUrls }: PrayerEntry): PrayerEntry {
+  const extra = additionalSourceUrls?.filter(Boolean);
+  return { title, detail, ...(sourceUrl ? { sourceUrl } : {}), ...(extra?.length ? { additionalSourceUrls: extra } : {}) };
+}
 export type PrayerMeeting = {
   id: string;
   event_date: string;
