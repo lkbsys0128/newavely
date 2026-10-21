@@ -6,6 +6,25 @@ const { prayerEntrySchema, prayerEntryLinks, serializePrayerEntry } = loadTsModu
 const { preparePrayerTemplate } = loadTsModule("../src/lib/prayer-templates.ts");
 const { buildBibleLink } = loadTsModule("../src/lib/bible-links.ts");
 
+test("link labels survive saving and templates, while stale labels are removed", () => {
+  const url = "https://example.com/song";
+  const entry = { title: "찬양", detail: "Song", sourceUrl: url, sourceLabels: { [url]: " 찬양 영상 ", "https://example.com/old": "old" } };
+  const saved = serializePrayerEntry(entry);
+  assert.equal(saved.sourceLabels[url], "찬양 영상");
+  assert.equal(Object.keys(saved.sourceLabels).length, 1);
+  assert.equal(prayerEntrySchema.safeParse(saved).success, true);
+  assert.equal(preparePrayerTemplate([saved], false)[0].sourceLabels[url], "찬양 영상");
+  assert.equal(preparePrayerTemplate([saved])[0].sourceLabels, undefined);
+  assert.equal(entry.sourceLabels[url], " 찬양 영상 ");
+  assert.equal(serializePrayerEntry({ ...entry, sourceUrl: "" }).sourceLabels, undefined);
+});
+
+test("label validation rejects unsafe URL keys, non-text labels and excessive size", () => {
+  for (const sourceLabels of [{ "javascript:alert(1)": "bad" }, { "https://example.com": 1 }, { "https://example.com": "x".repeat(121) }, Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`https://example.com/${i}`, "label"]))]) {
+    assert.equal(prayerEntrySchema.safeParse({ title: "찬양", sourceLabels }).success, false);
+  }
+});
+
 test("legacy links and additional links round-trip without editor metadata", () => {
   const entry = { title: "찬양", detail: "Song", sourceUrl: "https://example.com/one", additionalSourceUrls: ["", "https://example.com/two"], key: "row", linkKeys: ["a", "b"] };
   const saved = serializePrayerEntry(entry);

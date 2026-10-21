@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Download, Save, Trash2, Plus, RefreshCw } from "lucide-react";
 import { listPrayerTemplates, savePrayerTemplate, deletePrayerTemplate } from "@/app/prayer/template-actions";
-import type { PrayerEntry } from "@/lib/prayer-meetings";
+import { serializePrayerEntry, type PrayerEntry } from "@/lib/prayer-meetings";
 import type { PrayerTemplate } from "@/lib/prayer-templates";
 
 export function PrayerTemplateControls({ entries, disabled, dirty, onLoad }: {
@@ -30,7 +30,7 @@ export function PrayerTemplateControls({ entries, disabled, dirty, onLoad }: {
   function save(replace: boolean) {
     if (replace && (!selected || !window.confirm(`“${selected.name}” 템플릿을 현재 순서로 변경할까요?`))) return;
     startTransition(async () => {
-      const result = await savePrayerTemplate({ id: replace ? selected?.id : null, version: replace ? selected?.version : 0, name, entries, clearContents, clearPrayerNames });
+      const result = await savePrayerTemplate({ id: replace ? selected?.id : null, version: replace ? selected?.version : 0, name, entries: entries.map(serializePrayerEntry), clearContents, clearPrayerNames });
       setMessage(result.message);
       if (result.template) {
         const saved = result.template;
