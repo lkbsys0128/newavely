@@ -6,6 +6,8 @@ const workflow = readFileSync(new URL("../.github/workflows/database-backup.yml"
 
 test("backup pins compatible PostgreSQL client and runner versions", () => {
   assert.match(workflow, /runs-on: ubuntu-24\.04/);
+  assert.match(workflow, /https:\/\/apt.postgresql.org\/pub\/repos\/apt noble-pgdg main/);
+  assert.match(workflow, /signed-by=\/usr\/share\/postgresql-common\/pgdg\/apt.postgresql.org.asc/);
   assert.match(workflow, /apt-get install --yes postgresql-client-17/);
   assert.match(workflow, /echo "\/usr\/lib\/postgresql\/17\/bin" >> "\$GITHUB_PATH"/);
 });
