@@ -2,6 +2,11 @@ name: Database Backup
 
 on:
   workflow_dispatch:
+    inputs:
+      restore_test:
+        description: Download encrypted artifact and attempt isolated PostgreSQL restore
+        type: boolean
+        default: false
   schedule:
     - cron: "0 11 * * 1"
 
@@ -15,6 +20,11 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      - uses: actions/checkout@v4
+        if: ${{ inputs.restore_test == true }}
+        with:
+          persist-credentials: false
+
       - name: Install PostgreSQL 17 client
         run: |
           set -euo pipefail
@@ -107,3 +117,22 @@ jobs:
           path: ${{ env.BACKUP_DIR }}.tar.gz.gpg
           retention-days: 30
           if-no-files-found: error
+
+      - name: Download uploaded encrypted backup
+        if: ${{ inputs.restore_test == true }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.BACKUP_DIR }}-encrypted
+          path: ${{ runner.temp }}/backup-rehearsal-download
+
+      - name: Verify downloaded backup and rehearse restore
+        if: ${{ inputs.restore_test == true }}
+        env:
+          BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+        run: python3 scripts/verify-backup-restore.py
+
+      - name: Remove rehearsal files
+        if: ${{ always() && inputs.restore_test == true }}
+        run: |
+          docker rm -fv newavely-restore-test > /dev/null 2>&1 || true
+          rm -rf "$RUNNER_TEMP/backup-rehearsal-download" "$RUNNER_TEMP/backup-rehearsal"
