@@ -11,14 +11,17 @@ permissions:
 jobs:
   backup:
     name: Weekly encrypted Supabase backup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
-      - name: Install PostgreSQL client
+      - name: Install PostgreSQL 17 client
         run: |
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes postgresql-client
+          sudo apt-get install --yes postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Validate required secrets
         env:
@@ -52,10 +55,15 @@ jobs:
             --no-acl \
             --file "$BACKUP_DIR/full.dump"
 
+          test -s "$BACKUP_DIR/schema.sql"
+          test -s "$BACKUP_DIR/full.dump"
+          pg_restore --list "$BACKUP_DIR/full.dump" > /dev/null
+
           {
             echo "project=newavely"
             echo "created_at_utc=${BACKUP_DATE}"
             echo "format=pg_dump custom + schema sql"
+            echo "client_version=$(pg_dump --version)"
             echo "restore_schema=psql --dbname \"\$DATABASE_URL\" --file schema.sql"
             echo "restore_full=pg_restore --dbname \"\$DATABASE_URL\" --clean --if-exists --no-owner --no-acl full.dump"
           } > "$BACKUP_DIR/manifest.txt"
@@ -77,6 +85,11 @@ jobs:
             --passphrase "$BACKUP_GPG_PASSPHRASE" \
             --output "${BACKUP_DIR}.tar.gz.gpg" \
             "${BACKUP_DIR}.tar.gz"
+
+          gpg --batch --pinentry-mode loopback \
+            --passphrase "$BACKUP_GPG_PASSPHRASE" \
+            --decrypt "${BACKUP_DIR}.tar.gz.gpg" \
+            | cmp - "${BACKUP_DIR}.tar.gz"
 
           shred -u "${BACKUP_DIR}.tar.gz"
           rm -rf "$BACKUP_DIR"

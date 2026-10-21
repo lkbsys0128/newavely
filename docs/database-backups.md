@@ -16,6 +16,10 @@ Newavely 운영 데이터에는 교적, 출석, 돌봄 기록처럼 민감한 �
 
 Artifact 보관 기간은 기본 30일입니다. 장기 보관이 필요하면 encrypted artifact를 내려받아 별도 안전한 저장소에 보관합니다.
 
+Ubuntu 24.04 runner에서 `postgresql-client-17`을 설치하고 `/usr/lib/postgresql/17/bin`을 우선 사용합니다. Supabase PostgreSQL 17과 이전 `pg_dump` 16의 버전 불일치를 방지합니다. 서버 major 버전이 올라가면 클라이언트 버전도 함께 검토해야 합니다.
+
+업로드 전에 두 덤프가 비어 있지 않은지, `pg_restore --list`로 custom dump를 읽을 수 있는지 확인합니다. 암호화 결과를 스트림으로 복호화해 원본과 비교하며 평문 복호화 파일은 만들지 않습니다. 이 검사는 실제 DB 복구 테스트를 대신하지 않습니다.
+
 ## GitHub Secrets
 
 Repository Settings > Secrets and variables > Actions에 아래 secrets를 추가해야 합니다.
