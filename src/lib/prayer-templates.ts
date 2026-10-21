@@ -12,15 +12,15 @@ export const prayerTemplateSchema = z.object({
 export type PrayerTemplate = { id: string; name: string; entries: PrayerEntry[]; version: number; updated_at: string };
 
 export function preparePrayerTemplate(entries: PrayerEntry[], clearContents = true, clearPrayerNames = true): PrayerEntry[] {
-  return entries.map(({ title, detail, sourceUrl, additionalSourceUrls }) => {
+  return entries.map(({ title, detail, sourceUrl, additionalSourceUrls, sourceLabels }) => {
     if (/찬양|묵상|나눔|큐티/.test(title)) {
-      return clearContents ? { title, detail: "" } : serializePrayerEntry({ title, detail, sourceUrl, additionalSourceUrls });
+      return clearContents ? { title, detail: "" } : serializePrayerEntry({ title, detail, sourceUrl, additionalSourceUrls, sourceLabels });
     }
     if (clearPrayerNames && /기도/.test(`${title}\n${detail}`)) {
       const cleanLine = (line: string) => line.replace(/기도[^\r\n]*/u, "기도");
       return { title: cleanLine(title), detail: /기도/.test(detail)
         ? detail.split(/\r?\n/).map(cleanLine).join("\n") : "" };
     }
-    return serializePrayerEntry({ title, detail, sourceUrl, additionalSourceUrls });
+    return serializePrayerEntry({ title, detail, sourceUrl, additionalSourceUrls, sourceLabels });
   });
 }

@@ -4,8 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, Plus } from "lucide-react";
 import { changePrayerItemType, prayerItemTypes, selectPrayerSource, type PrayerEditEntry } from "@/lib/prayer-editor";
-import { PrayerSourcePicker } from "@/components/prayer-source-picker";
-import { PrayerBiblePicker } from "@/components/prayer-bible-picker";
+import { PrayerLinkEditor } from "@/components/prayer-link-editor";
 import { parseBibleLink } from "@/lib/bible-links";
 
 type Props = { entry: PrayerEditEntry; index: number; pending: boolean; onlyRow: boolean;
@@ -30,18 +29,17 @@ export function PrayerEditRow({ entry, index, pending, onlyRow, onChange, onDele
     </div>
     <div className="prayer-item-content"><label><span className="prayer-mobile-label">찬양 제목 · 내용</span><textarea aria-label={`${index + 1}번 내용`} rows={2} value={entry.detail} maxLength={500} disabled={pending}
       onChange={(event) => onChange({ ...entry, detail: event.target.value })} /></label>
-      {entry.kind === "묵상/나눔" || parseBibleLink(entry.sourceUrl) ? <PrayerBiblePicker sourceUrl={entry.sourceUrl} disabled={pending} label={`${index + 1}번`} onSelect={(sourceUrl) => onChange({ ...entry, sourceUrl })} /> : null}
-      {(entry.kind === "찬양" || entry.sourceUrl) && !parseBibleLink(entry.sourceUrl) ? <PrayerSourcePicker sourceUrl={entry.sourceUrl} disabled={pending} label={`${index + 1}번`} onSelect={(sourceUrl, songTitle) => onChange(selectPrayerSource(entry, sourceUrl, songTitle))} /> : null}
+      {entry.kind === "묵상/나눔" || entry.kind === "찬양" || entry.sourceUrl ? <PrayerLinkEditor url={entry.sourceUrl} text={entry.sourceLabels?.[entry.sourceUrl ?? ""]}
+        bible={entry.kind === "묵상/나눔" || Boolean(parseBibleLink(entry.sourceUrl))} disabled={pending} label={`${index + 1}번`}
+        onChange={(sourceUrl, text, songTitle) => onChange({ ...selectPrayerSource(entry, sourceUrl, songTitle), sourceLabels: { ...entry.sourceLabels, [sourceUrl]: text } })} /> : null}
       {(entry.additionalSourceUrls ?? []).map((url, linkIndex) => {
         const label = `${index + 1}번 추가 링크 ${linkIndex + 1}`;
-        const update = (value: string) => onChange({ ...entry, additionalSourceUrls: entry.additionalSourceUrls?.map((item, i) => i === linkIndex ? value : item) });
+        const update = (value: string, text: string) => onChange({ ...entry, additionalSourceUrls: entry.additionalSourceUrls?.map((item, i) => i === linkIndex ? value : item), sourceLabels: { ...entry.sourceLabels, [value]: text } });
         return <div className="prayer-extra-link" key={entry.linkKeys?.[linkIndex] ?? linkIndex}>
           <div className="prayer-extra-link-heading"><span>링크 {linkIndex + 2}</span>
             <button type="button" className="prayer-icon-button" title="추가 링크 삭제" aria-label={`${label} 삭제`} disabled={pending}
               onClick={() => onChange({ ...entry, additionalSourceUrls: entry.additionalSourceUrls?.filter((_, i) => i !== linkIndex), linkKeys: entry.linkKeys?.filter((_, i) => i !== linkIndex) })}><Trash2 size={16} /></button></div>
-          {parseBibleLink(url) || (!url && entry.kind === "묵상/나눔")
-            ? <PrayerBiblePicker sourceUrl={url} disabled={pending} label={label} onSelect={update} />
-            : <PrayerSourcePicker sourceUrl={url} disabled={pending} label={label} onSelect={update} />}
+          <PrayerLinkEditor url={url} text={entry.sourceLabels?.[url]} bible={entry.kind === "묵상/나눔" || Boolean(parseBibleLink(url))} disabled={pending} label={label} onChange={update} />
         </div>;
       })}
       {entry.kind === "찬양" || entry.kind === "묵상/나눔" || entry.sourceUrl || entry.additionalSourceUrls?.length ?

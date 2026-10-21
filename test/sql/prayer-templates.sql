@@ -15,6 +15,7 @@ grant usage on schema auth to authenticated, anon;
 \ir ../../db/045_onboarding_access_boundary.sql
 \ir ../../db/047_prayer_bible_links.sql
 \ir ../../db/048_prayer_multiple_links.sql
+\ir ../../db/049_prayer_link_labels.sql
 insert into auth.users values ('11111111-1111-4111-8111-111111111111'), ('22222222-2222-4222-8222-222222222222');
 insert into members(id, auth_user_id, name, status) values
  ('11111111-1111-4111-8111-111111111111','11111111-1111-4111-8111-111111111111','Pending','new'),
@@ -22,11 +23,22 @@ insert into members(id, auth_user_id, name, status) values
 set local role authenticated;
 select set_config('test.uid','22222222-2222-4222-8222-222222222222',true);
 do $$ declare entries jsonb; saved jsonb; invalid jsonb; begin
-  entries := '[{"title":"찬양","detail":"Song","sourceUrl":"https://example.com/one","additionalSourceUrls":["https://example.com/two","http://www.holybible.or.kr/mobile/B_GAE/cgi-m/bibleftxt.php?VR=GAE&VL=1&CN=1&CV=99"]}]';
+  entries := '[{"title":"찬양","detail":"Song","sourceUrl":"https://example.com/one","sourceLabels":{"https://example.com/one":"찬양 영상","https://example.com/two":"악보"},"additionalSourceUrls":["https://example.com/two","http://www.holybible.or.kr/mobile/B_GAE/cgi-m/bibleftxt.php?VR=GAE&VL=1&CN=1&CV=99"]}]';
   saved := save_prayer_meeting(null,0,'2026-10-10',entries);
   if saved->'entries' <> entries then raise exception 'Extra links not preserved'; end if;
   saved := save_prayer_template(null,0,'Multiple links',entries);
   if saved->'entries' <> entries then raise exception 'Template extra links not preserved'; end if;
+  for invalid in select value from jsonb_array_elements('[null,[],{"https://example.com/one":1},{"https://example.com/missing":"orphan"}]') loop
+    entries := jsonb_build_array(jsonb_build_object('title','찬양','detail','','sourceUrl','https://example.com/one','sourceLabels',invalid));
+    begin
+      perform save_prayer_meeting(null,0,'2026-10-12',entries);
+      raise exception 'Invalid labels accepted' using errcode='XX000';
+    exception when sqlstate 'P0001' then null; end;
+    begin
+      perform save_prayer_template(null,0,'Invalid labels',entries);
+      raise exception 'Invalid template labels accepted' using errcode='XX000';
+    exception when sqlstate 'P0001' then null; end;
+  end loop;
   for invalid in select value from jsonb_array_elements('[null,{},[1],["javascript:alert(1)"],["http://example.com"],["http://www.holybible.or.kr/mobile/B_GAE/cgi-m/bibleftxt.php?VR=GAE&VL=1&CN=99&CV=99"],["","","","","","","","","",""]]') loop
     entries := jsonb_build_array(jsonb_build_object('title','찬양','detail','','additionalSourceUrls',invalid));
     begin

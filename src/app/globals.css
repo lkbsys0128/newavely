@@ -5778,7 +5778,17 @@ tbody tr:hover {
 .prayer-item-fields { display: grid; min-width: 0; gap: 10px; }
 .prayer-item-content { display: grid; min-width: 0; gap: 12px; }
 .prayer-bible-picker { display: grid; gap: 12px; min-width: 0; }
-.prayer-extra-link { display: grid; gap: 12px; min-width: 0; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px; }
+.prayer-extra-link { display: grid; gap: 12px; min-width: 0; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 4px; }
+.prayer-link-editor { display: grid; min-width: 0; gap: 16px; padding-top: 8px; }
+.prayer-link-modes { display: flex; justify-self: start; gap: 4px; padding: 4px; border-radius: 6px; background: var(--soft); }
+.prayer-link-modes button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 6px 12px; border: 1px solid transparent; border-radius: 4px; color: var(--muted); background: transparent; font-weight: var(--font-weight-ui); }
+.prayer-link-modes button:hover { background: var(--interaction-hover); }
+.prayer-link-modes button[aria-pressed="true"] { color: var(--interaction-selected-ink); background: var(--interaction-selected); border-color: var(--interaction-selected-border); }
+.prayer-manual-link { display: grid; gap: 12px; min-width: 0; }
+.prayer-manual-link label { display: grid; gap: 6px; min-width: 0; }
+.prayer-manual-link input { width: 100%; min-width: 0; }
+.prayer-link-error { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.prayer-entry-links svg, .prayer-attached-source svg { flex-shrink: 0; }
 .prayer-extra-link-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .prayer-add-link { justify-self: start; margin-top: 12px; }
 .prayer-entry-links { display: flex; flex-wrap: wrap; gap: 10px 16px; min-width: 0; }

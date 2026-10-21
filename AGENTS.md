@@ -243,6 +243,8 @@ npm run build
 
 ## 데이터/보안 주의
 
+- 기도회 링크 표시 텍스트는 `049_prayer_link_labels.sql`의 선택적 `sourceLabels`(URL별 최대 120자, 최대 10개)를 사용합니다. 검색/직접 입력 모드는 URL 보안 정책을 바꾸지 않습니다. 렌더링은 React 텍스트로만 하며 HTML을 해석하지 않습니다. 저장 시 삭제된 링크의 텍스트를 제거하고 템플릿 내용 초기화 시 함께 비웁니다.
+
 - 기도회 다중 링크는 `048_prayer_multiple_links.sql`을 사용합니다. 기존 `sourceUrl`과 추가 `additionalSourceUrls`(최대 9개)를 함께 검증하고 표시합니다. 공개 보기에서 모든 URL을 검증하며 템플릿 내용 초기화 시 추가 링크도 제거합니다. 첫 링크 외 찬양 검색 결과는 기존 찬양 제목을 덮어쓰지 않습니다.
 
 - 묵상/나눔의 말씀 링크는 `bible-links.ts`의 66권/장 범위로 생성하며 `047_prayer_bible_links.sql`을 사용합니다. HolyBible의 지정된 HTTP 장 링크만 허용하고 일반 HTTP나 임의 쿼리를 허용하지 않습니다. 본문은 수집하지 않습니다. 공개 뷰도 `safePrayerSourceUrl`로 검증하며 찬양 검색은 기존 HTTPS 전용 검증을 유지합니다.

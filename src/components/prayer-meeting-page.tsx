@@ -103,7 +103,7 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
         return <li key={index}><span className="prayer-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div className="prayer-entry-kind"><EntryIcon size={17} aria-hidden="true" /><h3>{entry.title}</h3></div><div className="prayer-entry-detail">{entry.detail ? <p>{entry.detail}</p> : <span className="prayer-entry-rule" aria-hidden="true" />}
         <div className="prayer-entry-links">{prayerEntryLinks(entry).map((url, linkIndex, links) => {
           const bibleLink = parseBibleLink(url);
-          return <a key={url} className="prayer-source-link" href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} />{bibleLink ? `${bibleLink.label} · 말씀 보기 (개역개정)` : `가사 원문${links.length > 1 ? ` ${linkIndex + 1}` : ""}`}</a>;
+          return <a key={url} className="prayer-source-link" href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /><span>{entry.sourceLabels?.[url]?.trim() || (bibleLink ? `${bibleLink.label} · 말씀 보기 (개역개정)` : `링크 보기${links.length > 1 ? ` ${linkIndex + 1}` : ""}`)}</span></a>;
         })}</div>
       </div></li>;})}</ol>
     </article> : !error ? <div className="prayer-empty"><h2>아직 등록된 기도회가 없습니다</h2>{canEdit ? <Link className="primary-button" href="/prayer?new=1"><Plus size={16} />첫 기도회 만들기</Link> : null}</div> : null}
