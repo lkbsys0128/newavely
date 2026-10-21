@@ -463,7 +463,7 @@ Production에서는 Vercel Cron이 매주 일요일 `18:00 UTC`에 `/api/cron/en
 - Artifact: GPG로 암호화된 `schema.sql` + `full.dump`
 - Required GitHub Secrets: `SUPABASE_DB_URL`, `BACKUP_GPG_PASSPHRASE`
 
-자세한 설정, 수동 실행, 복구 테스트 방법은 `docs/database-backups.md`를 참고합니다.
+설정·수동 실행과 사고 시 백업 선택, 안전한 복호화, 격리된 테스트 복원, 권한 검증, 운영 전환·되돌리기 절차는 [백업·복구 런북](docs/database-backups.md)을 참고합니다. 백업 성공과 실제 복원 검증은 별개이며 운영 DB에 복구 명령을 바로 실행하지 않습니다.
 
 ## 협업 개발 규칙
 

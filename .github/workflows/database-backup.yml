@@ -2,6 +2,11 @@ name: Database Backup
 
 on:
   workflow_dispatch:
+    inputs:
+      restore_test:
+        description: Download encrypted artifact and attempt isolated PostgreSQL restore
+        type: boolean
+        default: false
   schedule:
     - cron: "0 11 * * 1"
 
@@ -11,14 +16,28 @@ permissions:
 jobs:
   backup:
     name: Weekly encrypted Supabase backup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
-      - name: Install PostgreSQL client
+      - uses: actions/checkout@v4
+        if: ${{ inputs.restore_test == true }}
+        with:
+          persist-credentials: false
+
+      - name: Install PostgreSQL 17 client
         run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error --location \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update
-          sudo apt-get install --yes postgresql-client
+          sudo apt-get install --yes postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Validate required secrets
         env:
@@ -52,10 +71,15 @@ jobs:
             --no-acl \
             --file "$BACKUP_DIR/full.dump"
 
+          test -s "$BACKUP_DIR/schema.sql"
+          test -s "$BACKUP_DIR/full.dump"
+          pg_restore --list "$BACKUP_DIR/full.dump" > /dev/null
+
           {
             echo "project=newavely"
             echo "created_at_utc=${BACKUP_DATE}"
             echo "format=pg_dump custom + schema sql"
+            echo "client_version=$(pg_dump --version)"
             echo "restore_schema=psql --dbname \"\$DATABASE_URL\" --file schema.sql"
             echo "restore_full=pg_restore --dbname \"\$DATABASE_URL\" --clean --if-exists --no-owner --no-acl full.dump"
           } > "$BACKUP_DIR/manifest.txt"
@@ -78,6 +102,11 @@ jobs:
             --output "${BACKUP_DIR}.tar.gz.gpg" \
             "${BACKUP_DIR}.tar.gz"
 
+          gpg --batch --pinentry-mode loopback \
+            --passphrase "$BACKUP_GPG_PASSPHRASE" \
+            --decrypt "${BACKUP_DIR}.tar.gz.gpg" \
+            | cmp - "${BACKUP_DIR}.tar.gz"
+
           shred -u "${BACKUP_DIR}.tar.gz"
           rm -rf "$BACKUP_DIR"
 
@@ -88,3 +117,22 @@ jobs:
           path: ${{ env.BACKUP_DIR }}.tar.gz.gpg
           retention-days: 30
           if-no-files-found: error
+
+      - name: Download uploaded encrypted backup
+        if: ${{ inputs.restore_test == true }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.BACKUP_DIR }}-encrypted
+          path: ${{ runner.temp }}/backup-rehearsal-download
+
+      - name: Verify downloaded backup and rehearse restore
+        if: ${{ inputs.restore_test == true }}
+        env:
+          BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+        run: python3 scripts/verify-backup-restore.py
+
+      - name: Remove rehearsal files
+        if: ${{ always() && inputs.restore_test == true }}
+        run: |
+          docker rm -fv newavely-restore-test > /dev/null 2>&1 || true
+          rm -rf "$RUNNER_TEMP/backup-rehearsal-download" "$RUNNER_TEMP/backup-rehearsal"
