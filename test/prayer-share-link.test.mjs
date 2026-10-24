@@ -11,7 +11,7 @@ test("bulletin sharing uses the stable public page, not an expiring image URL", 
   const share = readFileSync(new URL("../src/components/prayer-share.tsx", import.meta.url), "utf8");
   const bulletin = readFileSync(new URL("../src/components/bulletin-page.tsx", import.meta.url), "utf8");
   assert.match(share, /new URL\("\/bulletin", origin\).href/);
-  assert.match(bulletin, /bulletin && imageUrl \? <BulletinShare eventDate=\{bulletin.event_date\}/);
+  assert.match(bulletin, /bulletin && imageUrl && bulletin.event_date === latestDate \? <BulletinShare eventDate=\{bulletin.event_date\}/);
   assert.match(share, /setUrl\(buildLink\(window.location.origin\)\)/);
 });
 
