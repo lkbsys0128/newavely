@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ExternalLink, Upload, X, Newspaper, Plus, Pencil } from "lucide-react";
+import { ExternalLink, Upload, X, Newspaper, Plus, Pencil, ChevronDown } from "lucide-react";
 import { publishBulletin } from "@/app/bulletin/actions";
 import { bulletinMaxBytes, type Bulletin } from "@/lib/bulletin";
 import { formatPrayerDate } from "@/lib/prayer-meetings";
@@ -35,9 +35,9 @@ export function BulletinPage({ bulletin, imageUrl, canEdit, error, today, histor
         {canEdit ? <button type="button" className="primary-button" disabled={pending} onClick={() => { setEditing(true); setReplacing(false); setFile(null); setMessage(""); }}><Plus size={16} />새 주보</button> : null}</div>
     </header>
     {canEdit && history.length > 0 ? <details className="bulletin-history" open>
-      <summary>저장된 주보 <span className="meta">{history.length}개</span></summary>
+      <summary><span>저장된 주보 <span className="bulletin-count">{history.length}</span></span><ChevronDown size={18} /></summary>
       <ul>{history.map((item) => <li key={item.event_date}><Link href={`/bulletin?date=${item.event_date}`} aria-current={item.event_date === bulletin?.event_date ? "page" : undefined}>
-        <time dateTime={item.event_date}>{item.event_date}</time><span>{item.title}</span>{item.event_date === latestDate ? <span className="meta">최신 · 공개</span> : null}
+        <time dateTime={item.event_date}>{item.event_date}</time><span className="bulletin-history-title">{item.title}</span>{item.event_date === latestDate ? <span className="bulletin-status">최신 · 공개</span> : null}
       </Link></li>)}</ul>
     </details> : null}
     {error || message ? <p className="prayer-message" role="status">{error || message}</p> : null}
@@ -56,7 +56,7 @@ export function BulletinPage({ bulletin, imageUrl, canEdit, error, today, histor
       <h2>{replacing ? "주보 수정" : "새 주보 저장"}</h2>
       <div className="bulletin-upload-fields"><label>주보 제목<input name="title" defaultValue={replacing ? bulletin?.title : "뉴웨이브 주일 주보"} required maxLength={120} disabled={pending} /></label>
         <label>주보 날짜<input type="date" name="date" defaultValue={replacing ? bulletin?.event_date : today} readOnly={replacing} required disabled={pending} /></label></div>
-      <label>주보 이미지 · JPEG / PNG · 최대 3MB<input type="file" name="image" accept="image/jpeg,image/png" required disabled={pending} onChange={(event) => {
+      <label><span className="bulletin-file-label">주보 이미지 <span>JPEG / PNG · 최대 3MB</span></span><input type="file" name="image" accept="image/jpeg,image/png" required disabled={pending} onChange={(event) => {
         const selected = event.target.files?.[0] ?? null;
         if (selected && (!['image/jpeg', 'image/png'].includes(selected.type) || selected.size > bulletinMaxBytes)) {
           setMessage("3MB 이하의 JPEG 또는 PNG 파일을 선택해주세요."); setFile(null); event.target.value = ""; return;
