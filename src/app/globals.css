@@ -5797,6 +5797,25 @@ tbody tr:hover {
 .prayer-bible-fields select { width: 100%; min-width: 0; }
 .prayer-bible-search { display: grid; gap: 6px; min-width: 0; }
 .prayer-bible-search input { width: 100%; min-width: 0; }
+.bulletin-page { max-width: 1200px; }
+.bulletin-heading, .bulletin-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.bulletin-heading { margin-bottom: 28px; }
+.bulletin-heading h1 { display: flex; align-items: center; gap: 12px; margin: 0; }
+.bulletin-actions { justify-content: flex-end; }
+.bulletin-document { min-width: 0; }
+.bulletin-caption { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 16px; }
+.bulletin-caption h2 { margin: 0; font-size: 1.15rem; overflow-wrap: anywhere; }
+.bulletin-caption time { color: var(--muted); font-size: 0.9rem; }
+.bulletin-image { display: block; width: 100%; height: auto; }
+.management-form.bulletin-upload { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 32px; padding: 20px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.bulletin-upload-fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
+.bulletin-upload label { display: grid; gap: 8px; min-width: 0; }
+.bulletin-upload input { width: 100%; min-width: 0; }
+.bulletin-upload-preview { width: 100%; max-height: 420px; object-fit: contain; }
+@media (max-width: 640px) {
+  .bulletin-upload-fields { grid-template-columns: minmax(0, 1fr); }
+  .bulletin-heading { align-items: flex-start; }
+}
 .prayer-source-picker { display: grid; min-width: 0; gap: 10px; }
 .prayer-source-query { display: grid; grid-template-columns: minmax(0, 1fr) 42px; align-items: end; gap: 8px; }
 .prayer-source-results { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }

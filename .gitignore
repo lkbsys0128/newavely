@@ -7,3 +7,4 @@ tsconfig.tsbuildinfo
 .env.*
 !.env.example
 private/
+public/bulletin-preview.jpeg

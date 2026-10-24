@@ -34,5 +34,5 @@ test("prayer and links are available in unauthenticated navigation", () => {
   assert.match(nav, /href: "\/calendar", label: "캘린더" \},\s*\{ href: "\/prayer", label: "오늘의 기도회", public: true/);
   assert.match(nav, /if \(!role\) return navItems.filter\(\(item\) => item.public\)/);
   assert.match(nav, /href: "\/links", label: "링크", requiredPermission: "links:read", public: true/);
-  assert.equal((nav.match(/public: true/g) ?? []).length, 2);
+  assert.equal((nav.match(/public: true/g) ?? []).length, 3);
 });
