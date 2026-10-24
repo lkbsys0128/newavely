@@ -7,13 +7,21 @@ import { buildPrayerShareLink } from "@/lib/prayer-share-link";
 import { formatPrayerDate } from "@/lib/prayer-meetings";
 
 export function PrayerShare({ meetingId, eventDate }: { meetingId: string; eventDate: string }) {
+  return <PageShare eventDate={eventDate} title="오늘의 기도회" label="기도회" buildLink={(origin) => buildPrayerShareLink(origin, meetingId)} />;
+}
+
+export function BulletinShare({ eventDate }: { eventDate: string }) {
+  return <PageShare eventDate={eventDate} title="주보" label="주보" buildLink={(origin) => new URL("/bulletin", origin).href} />;
+}
+
+function PageShare({ eventDate, title, label, buildLink }: { eventDate: string; title: string; label: string; buildLink: (origin: string) => string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [url, setUrl] = useState("");
   const [qr, setQr] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copying" | "copied" | "failed">("idle");
   function open() {
-    setUrl(buildPrayerShareLink(window.location.origin, meetingId));
+    setUrl(buildLink(window.location.origin));
     setQr(false); setExpanded(false); setCopyState("idle");
     dialog.current?.showModal();
   }
@@ -32,12 +40,12 @@ export function PrayerShare({ meetingId, eventDate }: { meetingId: string; event
       onClick={(event) => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
       <div className="prayer-share-content">
         <header className="prayer-share-header">
-          <h2 id="prayer-share-title">{qr ? "오늘의 기도회" : "기도회 공유"}</h2>
+          <h2 id="prayer-share-title">{qr ? title : `${label} 공유`}</h2>
           <button className="prayer-icon-button" type="button" aria-label="공유 닫기" title="닫기" onClick={() => dialog.current?.close()}><X size={20} /></button>
         </header>
         <p className="meta">{formatPrayerDate(eventDate)}</p>
         {qr ? <>
-          <div className="prayer-share-qr"><QRCodeSVG value={url} size={640} level="M" marginSize={4} bgColor="#ffffff" fgColor="#000000" title="기도회 링크 QR코드" /></div>
+          <div className="prayer-share-qr"><QRCodeSVG value={url} size={640} level="M" marginSize={4} bgColor="#ffffff" fgColor="#000000" title={`${label} 링크 QR코드`} /></div>
           <div className="prayer-share-actions">
             <button className="secondary-button" type="button" onClick={() => { setQr(false); setExpanded(false); }}><ArrowLeft size={17} />뒤로</button>
             <button className="secondary-button" type="button" onClick={() => setExpanded(!expanded)}>{expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}{expanded ? "작게 보기" : "크게 보기"}</button>
@@ -46,9 +54,9 @@ export function PrayerShare({ meetingId, eventDate }: { meetingId: string; event
           <button className="secondary-button" type="button" disabled={copyState === "copying"} onClick={copyLink}><Copy size={20} />링크 복사</button>
           <button className="secondary-button" type="button" onClick={() => { setQr(true); setCopyState("idle"); }}><QrCode size={20} />QR코드 보기</button>
         </div>}
-        {copyState === "copied" ? <p className="meta" role="status">기도회 링크를 복사했습니다.</p> : null}
+        {copyState === "copied" ? <p className="meta" role="status">{label} 링크를 복사했습니다.</p> : null}
         {copyState === "failed" ? <p className="prayer-message" role="alert">자동 복사를 사용할 수 없습니다. 아래 링크를 선택해 복사해주세요.</p> : null}
-        {qr || copyState === "failed" ? <div className="management-form"><label>기도회 링크<input readOnly value={url} onFocus={(event) => event.currentTarget.select()} /></label></div> : null}
+        {qr || copyState === "failed" ? <div className="management-form"><label>{label} 링크<input readOnly value={url} onFocus={(event) => event.currentTarget.select()} /></label></div> : null}
       </div>
     </dialog>
   </>;

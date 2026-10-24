@@ -7,6 +7,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { QRCodeSVG } from "qrcode.react";
 const { buildPrayerShareLink } = loadTsModule("../src/lib/prayer-share-link.ts");
 
+test("bulletin sharing uses the stable public page, not an expiring image URL", () => {
+  const share = readFileSync(new URL("../src/components/prayer-share.tsx", import.meta.url), "utf8");
+  const bulletin = readFileSync(new URL("../src/components/bulletin-page.tsx", import.meta.url), "utf8");
+  assert.match(share, /new URL\("\/bulletin", origin\).href/);
+  assert.match(bulletin, /bulletin && imageUrl \? <BulletinShare eventDate=\{bulletin.event_date\}/);
+  assert.match(share, /setUrl\(buildLink\(window.location.origin\)\)/);
+});
+
 test("share links identify the displayed saved event without edit or pagination state", () => {
   const url = new URL(buildPrayerShareLink("https://newavely.com/prayer?new=1&page=2", "event-123"));
   assert.equal(url.pathname, "/prayer");

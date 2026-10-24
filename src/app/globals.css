@@ -72,6 +72,7 @@
 .prayer-share-dialog.is-expanded { width: min(900px, calc(100vw - 32px)); }
 .prayer-share-content { padding: 24px; display: grid; gap: 20px; }
 .prayer-share-content > p { margin: 0; }
+.prayer-share-content > .management-form { grid-template-columns: minmax(0, 1fr); }
 .prayer-share-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .prayer-share-header h2 { margin: 0; font-size: 1.25rem; }
 .prayer-share-options { display: grid; gap: 12px; }
