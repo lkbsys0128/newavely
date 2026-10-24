@@ -10,6 +10,7 @@ create schema auth;
 create table auth.users(id uuid primary key);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
 grant usage on schema auth to authenticated, anon;
+\ir storage-fixture.sql
 \ir ../../db/schema.sql
 \ir ../../db/003_audit_logs.sql
 \ir ../../db/045_onboarding_access_boundary.sql

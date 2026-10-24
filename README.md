@@ -1,5 +1,11 @@
 # Newavely
 
+## 공개 주보
+
+`/bulletin`은 로그인 없이 현재 게시된 주보 한 장을 보여줍니다. 등록된 `owner`/`admin`만 JPEG 또는 PNG(최대 3MB)를 올리거나 교체할 수 있습니다. 배포 전에 `db/050_public_bulletin.sql`을 049 다음에 실행하세요. 비공개 `bulletins` Storage 버킷과 정책, 감사 로그·버전 충돌 검사를 포함한 게시 RPC를 생성합니다. 새 환경 변수는 없습니다. 업로드 제한을 위해 Server Actions body limit은 4MB입니다.
+
+공개 조회는 전용 RPC와 현재 이미지에 대한 1시간 유효 서명 URL만 사용합니다. 과거 파일은 공개 목록에서 제외되고 비공개로 보관합니다(이미 발급된 서명 URL은 만료 전까지 유효). 파일 보관량은 Supabase Storage에 누적되며 **DB dump 백업에는 실제 이미지 파일이 포함되지 않습니다**. Storage 파일은 별도 백업이 필요합니다. 예시 이미지는 로컬의 Git 제외 파일 `public/bulletin-preview.jpeg`이며 배포하지 않습니다.
+
 ## 기도회 말씀 링크
 
 - `046` 다음으로 `db/047_prayer_bible_links.sql`을 실행합니다. 기도회/템플릿 저장 검증에 HolyBible의 지정된 HTTP 장 링크만 예외로 허용합니다. 새 환경 변수는 없습니다.
