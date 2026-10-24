@@ -6,6 +6,7 @@ import { ExternalLink, Upload, X, Newspaper } from "lucide-react";
 import { publishBulletin } from "@/app/bulletin/actions";
 import { bulletinMaxBytes, type Bulletin } from "@/lib/bulletin";
 import { formatPrayerDate } from "@/lib/prayer-meetings";
+import { BulletinShare } from "@/components/prayer-share";
 
 export function BulletinPage({ bulletin, imageUrl, canEdit, error, today }: {
   bulletin: Bulletin | null; imageUrl: string; canEdit: boolean; error: string; today: string;
@@ -26,6 +27,7 @@ export function BulletinPage({ bulletin, imageUrl, canEdit, error, today }: {
   return <>
     <header className="bulletin-heading"><div><p className="eyebrow">뉴웨이브 공동체</p><h1><Newspaper size={28} />주보</h1></div>
       <div className="bulletin-actions">{imageUrl ? <a className="secondary-button" href={imageUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />원본 보기</a> : null}
+        {bulletin && imageUrl ? <BulletinShare eventDate={bulletin.event_date} /> : null}
         {canEdit ? <button type="button" className="primary-button" disabled={pending} onClick={() => { setEditing(!editing); setMessage(""); }}><Upload size={16} />{bulletin ? "주보 교체" : "주보 올리기"}</button> : null}</div>
     </header>
     {error || message ? <p className="prayer-message" role="status">{error || message}</p> : null}
