@@ -35,3 +35,15 @@ test("public bulletin uses a dedicated loader and private storage with versioned
   assert.match(sql, /record_audit_log\('bulletin.publish'/);
   assert.ok(read("../db/schema.sql").includes(sql.trim()));
 });
+
+test("history is admin-only and dates are saved independently", () => {
+  const read = (name) => readFileSync(new URL(name, import.meta.url), "utf8");
+  const sql = read("../db/051_bulletin_history.sql");
+  assert.match(sql, /primary key \(event_date\)/);
+  assert.match(sql, /order by event_date desc limit 1/);
+  assert.match(sql, /if not public.can_manage_bulletin\(\)/);
+  assert.match(sql, /where event_date=p_date/);
+  assert.match(sql, /not public.is_saved_bulletin_image\(name\)/);
+  assert.ok(read("../db/schema.sql").includes(sql.trim()));
+  assert.match(read("../src/app/bulletin/page.tsx"), /if \(canEdit\) \{[\s\S]*get_bulletin_history/);
+});

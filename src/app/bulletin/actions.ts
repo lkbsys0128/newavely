@@ -32,7 +32,7 @@ export async function publishBulletin(form: FormData): Promise<{ ok: boolean; me
       return { ok: false, message: saved.error.code === "P0001" ? saved.error.message : "주보를 저장하지 못했습니다." };
     }
     revalidatePath("/bulletin");
-    return { ok: true, message: "주보를 게시했습니다." };
+    return { ok: true, message: "주보를 저장했습니다." };
   } catch {
     return { ok: false, message: "연결을 확인한 뒤 다시 시도해주세요." };
   }

@@ -9,6 +9,7 @@ export default async function DesignPreviewPage({ searchParams }: { searchParams
   const { view, edit } = await searchParams;
   if (view === "bulletin") return <main className="main-content bulletin-page"><BulletinPage
     bulletin={{ title: "뉴웨이브 주일 주보", event_date: "2026-10-18", image_path: "preview", version: 1 }}
+    history={["2026-10-18", "2026-10-11", "2026-10-04"].map((date) => ({ title: "뉴웨이브 주일 주보", event_date: date, image_path: "preview", version: 1 }))}
     imageUrl="/bulletin-preview.jpeg" canEdit={edit === "1"} today="2026-10-23" error="" /></main>;
   if (view === "prayer") return <main className="main-content prayer-page"><PrayerMeetingPage
     meeting={{ id: "11111111-1111-4111-8111-111111111111", event_date: "2026-09-21", entries: [{ title: "기도", detail: "오프닝 기도" }, { title: "찬양", detail: "주님의 사랑" }, { title: "찬양", detail: "나의 안에 거하라" }, { title: "묵상/나눔", detail: "오늘 우리에게 주신 말씀\n감사한 순간과 함께 나누고 싶은 마음" }, { title: "기도", detail: "공동체를 위한 기도" }, { title: "마무리 기도", detail: "" }], version: 1, created_at: "2026-09-21T00:00:00Z", updated_at: "2026-09-21T00:00:00Z" }}

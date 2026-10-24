@@ -5799,6 +5799,13 @@ tbody tr:hover {
 .prayer-bible-search { display: grid; gap: 6px; min-width: 0; }
 .prayer-bible-search input { width: 100%; min-width: 0; }
 .bulletin-page { max-width: 1200px; }
+.bulletin-history { margin-bottom: 24px; border-block: 1px solid var(--line); padding-block: 16px; }
+.bulletin-history summary { cursor: pointer; font-weight: var(--font-weight-ui); }
+.bulletin-history ul { list-style: none; padding: 0; margin: 12px 0 0; max-height: 280px; overflow-y: auto; }
+.bulletin-history a { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
+.bulletin-history a:hover { background: var(--interaction-hover); }
+.bulletin-history a[aria-current="page"] { background: var(--interaction-selected); color: var(--interaction-selected-ink); }
+.bulletin-history a > span:first-of-type { flex: 1; min-width: 140px; overflow-wrap: anywhere; }
 .bulletin-heading, .bulletin-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .bulletin-heading { margin-bottom: 28px; }
 .bulletin-heading h1 { display: flex; align-items: center; gap: 12px; margin: 0; }
