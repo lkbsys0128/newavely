@@ -3,8 +3,10 @@ import { canManagePrayer } from "@/lib/prayer-access";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { seattleDate, type PrayerMeeting, type PrayerSummary } from "@/lib/prayer-meetings";
+import { getPrayerAgentConfig } from "@/lib/prayer-agent-server";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 export const metadata = { title: "오늘의 기도회 | Newavely" };
 
 export default async function PrayerPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -53,5 +55,5 @@ export default async function PrayerPage({ searchParams }: { searchParams: Promi
   }
   return <main className="main-content prayer-page"><PrayerMeetingPage key={`${meeting?.id ?? (creating ? "new" : "empty")}:${meeting?.version ?? 0}`}
     meeting={meeting} history={history} canEdit={canEdit && !error} creating={creating} today={today}
-    page={page} count={count} error={error} /></main>;
+    page={page} count={count} error={error} generationEnabled={Boolean(getPrayerAgentConfig())} /></main>;
 }

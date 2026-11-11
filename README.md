@@ -1,5 +1,43 @@
 # Newavely
 
+## 찬양으로 기도회 자동 생성 (052)
+
+`/prayer`의 **찬양으로 만들기**에서 날짜와 말씀 전·후 찬양 두 곡씩을 입력하면, 연결된
+ChatGPT Workspace Agent가 자료를 확인하고 기본 8개 순서의 기도회를 저장합니다.
+벅스 가사 페이지와 실제 악보 이미지 링크를 넣고, 해당 날짜 생명의삶의 제목·성경 범위를
+확인합니다. 생명의삶 원문 URL은 순서지에 넣지 않고 성경 장 링크만 유지합니다.
+
+- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`을 적용합니다.
+  신규 DB용 `db/schema.sql`에도 포함되어 있습니다. 운영 DB에 테스트 fixture를 실행하지 않습니다.
+- 등록된 `active`/`care` 멤버가 자신의 요청만 생성·조회·취소합니다. 신규 요청은 시간당 5개,
+  동시에 진행할 요청은 2개이며 같은 날짜에는 진행 중 요청 하나만 허용합니다.
+- 에이전트는 24시간 유효한 요청별 capability로 `/api/prayer-agent/mcp`에 결과를 제출합니다.
+  서버는 날짜·곡 순서·링크·말씀을 검증하고 기존 `save_prayer_meeting` RPC와 감사 기록을 사용합니다.
+  기존 기도회를 덮어쓰지 않으며, service-role 키를 에이전트나 callback에 사용하지 않습니다.
+- 접수 응답이 끊기면 같은 요청 ID로 다시 확인합니다. **에이전트 run 완료**와 **기도회 저장 완료**를
+  구분하며, 실제 저장된 ID가 있을 때만 완료 링크를 보여줍니다.
+- 연결을 설정하기 전에는 자동 생성이 준비 중으로 표시됩니다. 기존 수동 작성은 계속 사용할 수 있습니다.
+
+아래 값은 모두 서버 전용입니다. Vercel **Preview와 Production에 각각** 설정하고 재배포합니다.
+`NEXT_PUBLIC_` 접두사를 붙이거나 비밀 값을 Git/채팅에 넣지 않습니다.
+
+```txt
+PRAYER_GENERATION_ENABLED=false
+PRAYER_AGENT_TRIGGER_ID=agtch_...
+PRAYER_AGENT_ACCESS_TOKEN=<Workspace Agents scope token>
+PRAYER_AGENT_SIGNING_SECRET=<32바이트 이상의 난수 비밀>
+PRAYER_AGENT_APP_URL=https://newavely.com
+```
+
+기존 Supabase URL/anon key도 필요합니다. OpenAI 모델 API 키를 추가하는 방식이 아닙니다.
+MCP 연결, `agent/newavely-prayer/` 스킬 업로드, Workspace Agent API 채널 게시와 실제 저장 Preview를
+확인한 뒤 `PRAYER_GENERATION_ENABLED=true`로 활성화합니다. 워크스페이스 기능과 토큰 발급 권한은
+계정에서 별도로 확인해야 합니다. [설정·운영 절차](docs/prayer-generation.md)를 따르세요.
+
+`npm test`는 외부 계정·운영 DB 없이 프로토콜/재시도/검증 테스트와 PGlite 기반 임시 PostgreSQL의
+RLS·RPC·감사·경합 테스트를 실행합니다. SQL만 점검할 때는
+`node --test test/prayer-generation-sql.test.mjs`를 사용합니다.
+
 ### 주보 목록 (051)
 `db/051_bulletin_history.sql`을 050 다음에 적용하면 현재 주보를 보존하면서 날짜별 저장으로 전환합니다. 관리자/최고관리자는 **새 주보**로 추가하고 **저장된 주보** 목록에서 과거 날짜를 열어 수정할 수 있습니다. 같은 날짜는 한 건만 저장하며 버전 충돌을 검사합니다. 익명과 일반 멤버는 날짜 파라미터와 무관하게 날짜 기준 최신 주보만 조회합니다. 공유 버튼도 최신 주보에만 표시합니다. 과거 날짜를 수정해도 최신 공개 주보는 바뀌지 않습니다. 기존에 교체되어 파일만 남은 이미지는 날짜 정보가 없어 자동 복원하지 않으며, 현재 게시 중인 한 건부터 목록에 보존합니다. 이미지 자동 삭제는 없습니다.
 
