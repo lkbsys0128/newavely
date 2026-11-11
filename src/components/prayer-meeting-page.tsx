@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Plus, Pencil, Save, X, ChevronLeft, ChevronRight, ExternalLink, CalendarDays, Music2, BookOpen, HeartHandshake } from "lucide-react";
@@ -15,11 +16,15 @@ import { toPrayerEditEntry } from "@/lib/prayer-editor";
 import { savePrayerMeeting } from "@/app/prayer/actions";
 import { formatPrayerDate, prayerEntryLinks, serializePrayerEntry, type PrayerMeeting, type PrayerSummary } from "@/lib/prayer-meetings";
 
-type Props = { meeting: PrayerMeeting | null; history: PrayerSummary[]; canEdit: boolean; creating: boolean; today: string; page: number; count: number; error: string };
+const PrayerGenerationPanel = dynamic(() => import("@/components/prayer-generation-panel").then((module) => module.PrayerGenerationPanel));
 
-export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, page, count, error }: Props) {
+type Props = { meeting: PrayerMeeting | null; history: PrayerSummary[]; canEdit: boolean; creating: boolean; today: string; page: number; count: number; error: string; generationEnabled?: boolean };
+
+export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, page, count, error, generationEnabled = false }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(creating && canEdit);
+  const [generationOpen, setGenerationOpen] = useState(false);
+  const [generationMounted, setGenerationMounted] = useState(false);
   const [date, setDate] = useState(meeting?.event_date ?? today);
   const [entries, setEntries] = useState(() => (meeting?.entries ?? [{ title: "기도", detail: "" }, { title: "찬양", detail: "" }, { title: "묵상/나눔", detail: "" }])
     .map((entry, index) => toPrayerEditEntry(entry, `row-${index}`)));
@@ -56,12 +61,14 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
       <div className="prayer-brand"><Image className="seasonal-logo" src="/newave-icon.png" width={36} height={46} alt="뉴웨이브" /><h1>오늘의 기도회</h1></div>
       <div className="prayer-commands">
         {meeting && !editing && !error ? <PrayerShare key={meeting.id} meetingId={meeting.id} eventDate={meeting.event_date} /> : null}
-        {canEdit && !editing ? <><Link className="secondary-button" href="/prayer?new=1"><Plus size={16} />새 기도회</Link>
+        {canEdit && !editing ? <><button type="button" className="secondary-button" aria-expanded={generationOpen} aria-controls="prayer-generation-panel" onClick={() => { setGenerationMounted(true); setGenerationOpen((current) => !current); }}><Music2 size={16} />찬양으로 만들기</button>
+          <Link className="secondary-button" href="/prayer?new=1"><Plus size={16} />새 기도회</Link>
           {meeting ? <button className="primary-button" onClick={() => setEditing(true)}><Pencil size={16} />순서 수정</button> : null}</> : null}
         {!canEdit ? <Link className="secondary-button" href="/">로그인</Link> : null}
       </div>
     </header>
     {error ? <p className="prayer-message" role="alert">{error}</p> : null}
+    {canEdit && generationMounted ? <PrayerGenerationPanel today={today} generationEnabled={generationEnabled} open={generationOpen && !editing} onClose={() => setGenerationOpen(false)} /> : null}
     {editing ? <form className="management-form prayer-editor" onSubmit={(event) => {
       event.preventDefault(); setMessage("");
       startTransition(async () => {

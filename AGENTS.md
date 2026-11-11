@@ -247,6 +247,13 @@ npm run build
 
 ## 데이터/보안 주의
 
+- 기도회 자동 생성은 `052_prayer_generation_requests.sql`과 `docs/prayer-generation.md`를 따릅니다.
+  등록 멤버의 고정 날짜·네 곡 요청에만 24시간 capability를 부여하며, DB에는 해시만 저장합니다.
+  callback은 요청자의 현재 등록 상태를 재확인하고 기존 `save_prayer_meeting`의 검증·감사를 사용합니다.
+  provider run 완료를 저장 완료로 표시하거나, 기존 날짜를 자동 덮어쓰거나, service-role로 대신 쓰지 않습니다.
+  서버 Workspace token은 설정된 API 채널에만 사용합니다. capability와 provider 정보는 공개 결과·로그·브라우저로 반환하지 않습니다.
+  생명의삶 URL은 검증 자료에만 남기며 순서지 링크에서 제외합니다. MCP 연결과 실제 저장 Preview 확인 전에는 자동 생성을 활성화하지 않습니다.
+
 - 기도회 링크 표시 텍스트는 `049_prayer_link_labels.sql`의 선택적 `sourceLabels`(URL별 최대 120자, 최대 10개)를 사용합니다. 검색/직접 입력 모드는 URL 보안 정책을 바꾸지 않습니다. 렌더링은 React 텍스트로만 하며 HTML을 해석하지 않습니다. 저장 시 삭제된 링크의 텍스트를 제거하고 템플릿 내용 초기화 시 함께 비웁니다.
 
 - 기도회 다중 링크는 `048_prayer_multiple_links.sql`을 사용합니다. 기존 `sourceUrl`과 추가 `additionalSourceUrls`(최대 9개)를 함께 검증하고 표시합니다. 공개 보기에서 모든 URL을 검증하며 템플릿 내용 초기화 시 추가 링크도 제거합니다. 첫 링크 외 찬양 검색 결과는 기존 찬양 제목을 덮어쓰지 않습니다.

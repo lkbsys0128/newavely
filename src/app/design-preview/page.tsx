@@ -3,10 +3,13 @@ import { BulletinPage } from "@/components/bulletin-page";
 import { PrayerMeetingPage } from "@/components/prayer-meeting-page";
 import { AttendanceManager, CalendarPageContent, DashboardOverview, GroupsPageContent, LinksPageContent, MembersManager, NewFamilyPageContent } from "@/components/dashboard";
 import { sampleGroups, sampleMembers } from "@/lib/sample-data";
+import { seattleDate } from "@/lib/prayer-meetings";
+import { PrayerGenerationPreview } from "./prayer-generation-preview";
 
-export default async function DesignPreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; edit?: string }> }) {
+export default async function DesignPreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; edit?: string; state?: string }> }) {
   if (process.env.NODE_ENV !== "development") notFound();
-  const { view, edit } = await searchParams;
+  const { view, edit, state } = await searchParams;
+  if (view === "prayer-generation") return <main className="main-content prayer-page"><PrayerGenerationPreview today={seattleDate()} state={state} /></main>;
   if (view === "bulletin") return <main className="main-content bulletin-page"><BulletinPage
     bulletin={{ title: "뉴웨이브 주일 주보", event_date: "2026-10-18", image_path: "preview", version: 1 }}
     history={["2026-10-18", "2026-10-11", "2026-10-04"].map((date) => ({ title: "뉴웨이브 주일 주보", event_date: date, image_path: "preview", version: 1 }))}
