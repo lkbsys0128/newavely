@@ -8,3 +8,6 @@ tsconfig.tsbuildinfo
 !.env.example
 private/
 public/bulletin-preview.jpeg
+.workflow-data/
+src/app/.well-known/workflow/
+/.swc

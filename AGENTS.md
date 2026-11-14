@@ -247,7 +247,11 @@ npm run build
 
 ## 데이터/보안 주의
 
-- 기도회 자동 생성은 `052_prayer_generation_requests.sql`과 `docs/prayer-generation.md`를 따릅니다.
+- 기도회 자동 생성은 `052_prayer_generation_requests.sql`, `053_prayer_responses_dispatch.sql`, `054_prayer_server_completion.sql`과 `docs/prayer-generation.md`를 따릅니다.
+  Responses 모드는 웹 검색/strict JSON 결과만 요청하며 capability·MCP URL을 모델에 보내지 않습니다.
+  Vercel Workflow가 서버에서 결과를 조회하고 실제 악보 이미지 검증 후 기존 저장 RPC를 사용합니다.
+  workflow 인자에는 요청 ID/날짜/곡명만 넣고 비밀은 step 내부에서 읽습니다. 054의 claim으로 동시 워커/UI를 제한합니다.
+  별도 도메인/Preview 보호 해제는 필요 없으며, Responses 모드에서 MCP POST는 닫습니다.
   Responses 실행은 `053_prayer_responses_dispatch.sql`의 capability 기반 실행 예약을 먼저 사용합니다.
   접수 불명 상태에서 POST를 자동 재시도하지 않습니다. 서버의 이미지 입력 검증 실패 시 저장하지 않습니다.
   `OPENAI_API_KEY`는 서버 전용이고 provider 종료와 실제 DB 저장 완료를 구분합니다.
@@ -255,7 +259,7 @@ npm run build
   callback은 요청자의 현재 등록 상태를 재확인하고 기존 `save_prayer_meeting`의 검증·감사를 사용합니다.
   provider run 완료를 저장 완료로 표시하거나, 기존 날짜를 자동 덮어쓰거나, service-role로 대신 쓰지 않습니다.
   서버 Workspace token은 설정된 API 채널에만 사용합니다. capability와 provider 정보는 공개 결과·로그·브라우저로 반환하지 않습니다.
-  생명의삶 URL은 검증 자료에만 남기며 순서지 링크에서 제외합니다. MCP 연결과 실제 저장 Preview 확인 전에는 자동 생성을 활성화하지 않습니다.
+  생명의삶 URL은 검증 자료에만 남기며 순서지 링크에서 제외합니다. 실제 생성·검증·저장 Preview 확인 전에는 자동 생성을 활성화하지 않습니다. MCP 연결은 Workspace 모드에만 필요합니다.
 
 - 기도회 링크 표시 텍스트는 `049_prayer_link_labels.sql`의 선택적 `sourceLabels`(URL별 최대 120자, 최대 10개)를 사용합니다. 검색/직접 입력 모드는 URL 보안 정책을 바꾸지 않습니다. 렌더링은 React 텍스트로만 하며 HTML을 해석하지 않습니다. 저장 시 삭제된 링크의 텍스트를 제거하고 템플릿 내용 초기화 시 함께 비웁니다.
 

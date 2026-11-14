@@ -46,6 +46,7 @@ insert into members values
 \ir ../../db/049_prayer_link_labels.sql
 \ir ../../db/052_prayer_generation_requests.sql
 \ir ../../db/053_prayer_responses_dispatch.sql
+\ir ../../db/054_prayer_server_completion.sql
 
 create function test_assert(condition boolean, message text) returns void language plpgsql as $$ begin
   if condition is distinct from true then raise exception '%',message using errcode='XX000'; end if;
@@ -334,11 +335,26 @@ select mark_prayer_response_dispatched('eeeeeeee-0000-4000-8000-000000000001',re
 select mark_prayer_response_dispatched('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test');
 select test_expect_error($cmd$select mark_prayer_response_dispatched('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_other')$cmd$);
 select test_assert(claim_prayer_generation_poll('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'api_trigger_id'='responses_v1','Response poll provider missing');
+reset role;
+update prayer_generation_requests set polled_at=null where id='eeeeeeee-0000-4000-8000-000000000001';
+set local role anon;
+select set_config('request.jwt.claim.sub','',true);
+select test_expect_error($cmd$select claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('x',43))$cmd$);
+select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'run_id'='resp_test','Worker cannot claim');
+select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'state'='busy','Duplicate worker not throttled');
+reset role;
+update members set status='inactive' where id='11111111-1111-4111-8111-111111111111';
+set local role anon;
+select test_expect_error($cmd$select claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))$cmd$);
+reset role;
+update members set status='active' where id='11111111-1111-4111-8111-111111111111';
+set local role authenticated;
 select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
 select test_expect_error($cmd$select reserve_prayer_response_dispatch('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))$cmd$);
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 select cancel_prayer_generation_request('eeeeeeee-0000-4000-8000-000000000001');
 select test_assert(not reserve_prayer_response_dispatch('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43)),'Cancelled dispatch allowed');
+select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'state'='done','Cancelled worker not stopped');
 
 -- Existing public read boundaries remain intact: latest meeting only.
 set local role anon;

@@ -11,6 +11,7 @@ function memberClient(rpc, status = "active") {
 function actionLoader(client, request, env = configuredEnv) {
   return createPrayerModuleLoader({ env, fetch: request, mocks: {
     "@/lib/supabase/server": { createClient: async () => client }, "next/cache": { revalidatePath() {} },
+    "@/lib/prayer-workflow-server": { schedulePrayerCompletion: async () => {} },
   } })("src/app/prayer/generation-actions.ts");
 }
 
@@ -178,6 +179,47 @@ test("Responses reservation losers and failed reservation reads never call the p
     await actions.startPrayerGeneration({ requestId, ...input });
     assert.equal(posts, 0);
   }
+});
+
+test("Responses worker registration failure can recover without another model dispatch", async () => {
+  let row = jobRow();
+  let posts = 0;
+  let workers = 0;
+  const client = memberClient(async (name) => {
+    if (name === "reserve_prayer_response_dispatch") return { data: true };
+    if (name === "mark_prayer_response_dispatched") row = { ...row, dispatched: true };
+    return { data: row };
+  });
+  const load = createPrayerModuleLoader({ env: { ...configuredEnv, PRAYER_GENERATION_PROVIDER: "responses", OPENAI_API_KEY: "fixture" },
+    fetch: async () => { posts += 1; return Response.json({ id: "resp_fixture", status: "queued", metadata: { prayer_request_id: requestId } }); },
+    mocks: { "@/lib/supabase/server": { createClient: async () => client }, "next/cache": { revalidatePath() {} },
+      "@/lib/prayer-workflow-server": { schedulePrayerCompletion: async () => { if (++workers === 1) throw new Error("queue transport"); } },
+    } });
+  const actions = load("src/app/prayer/generation-actions.ts");
+  assert.equal((await actions.startPrayerGeneration({ requestId, ...input })).uncertain, true);
+  assert.equal((await actions.startPrayerGeneration({ requestId, ...input })).ok, true);
+  assert.equal(posts, 1);
+  assert.equal(workers, 2);
+});
+
+test("Responses progress reads can finalize through the server and expose only a saved meeting ID", async () => {
+  let row = jobRow();
+  let invalidations = 0;
+  const load = createPrayerModuleLoader({ env: { ...configuredEnv, PRAYER_GENERATION_PROVIDER: "responses", OPENAI_API_KEY: "fixture" }, mocks: {
+    "@/lib/supabase/server": { createClient: async () => memberClient(async () => ({ data: row })) },
+    "next/cache": { revalidatePath() { invalidations += 1; } },
+    "@/lib/prayer-workflow-server": { schedulePrayerCompletion: async () => { throw new Error("queue down"); } },
+    "@/lib/prayer-response-completion": { completePrayerResponse: async (id, original) => {
+      assert.equal(id, requestId);
+      assert.equal(JSON.stringify(original), JSON.stringify(input));
+      row = jobRow({ status: "completed", meeting_id: "50000000-0000-4000-8000-000000000001", run_id: "resp_private" });
+    } },
+  } });
+  const result = await load("src/app/prayer/generation-actions.ts").getPrayerGenerationJob(requestId);
+  assert.equal(result.job.status, "completed");
+  assert.ok(result.job.meetingId);
+  assert.equal(JSON.stringify(result).includes("resp_private"), false);
+  assert.equal(invalidations, 1);
 });
 
 test("Responses callback authenticates before image costs and saves only after every score matches", async () => {

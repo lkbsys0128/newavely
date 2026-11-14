@@ -1,17 +1,17 @@
 # Newavely
 
-## 찬양으로 기도회 자동 생성 (052/053)
+## 찬양으로 기도회 자동 생성 (052–054)
 
 `/prayer`의 **찬양으로 만들기**에서 날짜와 말씀 전·후 찬양 두 곡씩을 입력하면, 연결된
 OpenAI Responses API 또는 ChatGPT Workspace Agent가 자료를 확인하고 기본 8개 순서의 기도회를 저장합니다.
 벅스 가사 페이지와 실제 악보 이미지 링크를 넣고, 해당 날짜 생명의삶의 제목·성경 범위를
 확인합니다. 생명의삶 원문 URL은 순서지에 넣지 않고 성경 장 링크만 유지합니다.
 
-- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`, `db/053_prayer_responses_dispatch.sql`을 순서대로 적용합니다.
+- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`, `db/053_prayer_responses_dispatch.sql`, `db/054_prayer_server_completion.sql`을 순서대로 적용합니다.
   신규 DB용 `db/schema.sql`에도 포함되어 있습니다. 운영 DB에 테스트 fixture를 실행하지 않습니다.
 - 등록된 `active`/`care` 멤버가 자신의 요청만 생성·조회·취소합니다. 신규 요청은 시간당 5개,
   동시에 진행할 요청은 2개이며 같은 날짜에는 진행 중 요청 하나만 허용합니다.
-- 에이전트는 24시간 유효한 요청별 capability로 `/api/prayer-agent/mcp`에 결과를 제출합니다.
+- Responses 모드에서는 앱 서버가 연구 결과를 받아 검증하고 저장합니다. 24시간 요청별 capability는 서버에만 유지합니다.
   서버는 날짜·곡 순서·링크·말씀을 검증하고 기존 `save_prayer_meeting` RPC와 감사 기록을 사용합니다.
   기존 기도회를 덮어쓰지 않으며, service-role 키를 에이전트나 callback에 사용하지 않습니다.
 - 접수 응답이 끊기면 같은 요청 ID로 다시 확인합니다. **에이전트 run 완료**와 **기도회 저장 완료**를
@@ -27,13 +27,14 @@ PRAYER_GENERATION_PROVIDER=responses
 OPENAI_API_KEY=<server-only project key>
 OPENAI_PRAYER_MODEL=gpt-5.4
 PRAYER_AGENT_SIGNING_SECRET=<32바이트 이상의 난수 비밀>
-PRAYER_AGENT_APP_URL=https://<stable-preview-host>
 ```
 
 Preview는 비운영 Supabase URL/anon key를 사용하며 운영 service-role 키를 상속하지 않습니다.
-Responses 모드는 서버가 웹 검색과 두 MCP callback을 연결하고, 저장 전 네 악보를 별도 이미지 입력으로 검증합니다.
+Responses 모드는 웹 검색과 strict JSON 출력을 사용하고, 저장 전 네 악보를 별도 이미지 입력으로 검증합니다.
+Vercel Workflow가 브라우저 종료 후에도 결과를 확인하며, 앱 서버가 기존 저장 RPC를 호출합니다.
+외부 MCP/별도 도메인/Preview 보호 해제가 필요 없습니다. `PRAYER_AGENT_APP_URL`은 선택적 표시용 주소입니다.
 실행 전 DB 예약으로 동시/재시도 POST를 막습니다. 네트워크 접수 불명 상태는 자동 재실행하지 않으며
-callback을 기다리거나 취소 후 새 요청을 만듭니다. API 종료만으로 저장 완료 처리하지 않습니다.
+응답 ID가 기록되지 않은 불확실한 요청은 취소 후 새 요청을 만듭니다. API 종료만으로 저장 완료 처리하지 않습니다.
 실제 Preview 저장 검증 후 운영 활성화를 별도 결정합니다. Workspace 모드는
 `PRAYER_GENERATION_PROVIDER=workspace`와 기존 `PRAYER_AGENT_TRIGGER_ID`, `PRAYER_AGENT_ACCESS_TOKEN`을 사용합니다.
 [설정·운영 절차](docs/prayer-generation.md)를 따르세요.

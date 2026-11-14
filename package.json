@@ -23,6 +23,7 @@
     "qrcode.react": "^4.2.0",
     "react": "latest",
     "react-dom": "latest",
+    "workflow": "^5.5.0",
     "zod": "latest"
   },
   "devDependencies": {

@@ -26,7 +26,7 @@ function savedResult(data: unknown): GenerationToolResponse {
   return { status: job.status, message: job.message, ...(job.meetingId ? { meetingId: job.meetingId } : {}), ...(meetingUrl ? { meetingUrl } : {}) };
 }
 
-export const prayerGenerationToolHandlers: GenerationToolHandlers = {
+export function createPrayerGenerationHandlers(invalidate = true): GenerationToolHandlers { return {
   async report(input) {
     if (input.message.includes(input.requestToken)) return failure("요청 인증 정보는 상태 메시지에 포함할 수 없습니다.");
     try {
@@ -73,8 +73,10 @@ export const prayerGenerationToolHandlers: GenerationToolHandlers = {
       });
       if (saved.error || !saved.data) return failure();
       const result = savedResult(saved.data);
-      if (result.status === "completed") revalidatePath("/prayer");
+      if (result.status === "completed" && invalidate) revalidatePath("/prayer");
       return result;
     } catch { return failure(); }
   },
-};
+}; }
+
+export const prayerGenerationToolHandlers = createPrayerGenerationHandlers();

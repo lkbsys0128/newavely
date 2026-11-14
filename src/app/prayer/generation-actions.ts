@@ -7,7 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 import { buildPrayerAgentInput, createPrayerRequestToken, getPrayerAgentConfig, hashPrayerRequestToken } from "@/lib/prayer-agent-server";
 import { isGenerationPending, startPrayerGenerationSchema, toGenerationJob, type GenerationJob, type PrayerGenerationInput } from "@/lib/prayer-generation";
 import { AgentDispatchError, getWorkspaceAgentRun, triggerWorkspaceAgent } from "@/lib/workspace-agent-client";
-import { getPrayerResponse, triggerPrayerResponse } from "@/lib/prayer-responses-client";
+import { triggerPrayerResponse } from "@/lib/prayer-responses-client";
+import { completePrayerResponse } from "@/lib/prayer-response-completion";
+import { schedulePrayerCompletion } from "@/lib/prayer-workflow-server";
 
 type ActionResult = { ok: boolean; message: string; job?: GenerationJob; jobs?: GenerationJob[]; uncertain?: boolean };
 class GenerationAccessError extends Error {}
@@ -47,7 +49,11 @@ export async function startPrayerGeneration(value: unknown): Promise<ActionResul
         : "접수 여부를 확인하지 못했습니다. 같은 요청으로 다시 확인해주세요."), ...(!knownRejection ? { uncertain: true } : {}) };
     }
     job = toGenerationJob(created.data);
-    if (!isGenerationPending(job.status) || created.data?.dispatched === true) return { ok: true, message: job.message, job };
+    if (!isGenerationPending(job.status)) return { ok: true, message: job.message, job };
+    if (created.data?.dispatched === true) {
+      if (config.provider === "responses") await schedulePrayerCompletion(requestId, input);
+      return { ok: true, message: job.message, job };
+    }
     try {
       if (config.provider === "responses") {
         const reserved = await client.rpc("reserve_prayer_response_dispatch", { p_id: requestId, p_token: token });
@@ -63,6 +69,7 @@ export async function startPrayerGeneration(value: unknown): Promise<ActionResul
       });
       if (marked.error || !marked.data) throw new AgentDispatchError(false);
       job = toGenerationJob(marked.data);
+      if (config.provider === "responses" && isGenerationPending(job.status)) await schedulePrayerCompletion(requestId, input);
       return { ok: true, message: isGenerationPending(job.status)
         ? "기도회를 생성하고 있습니다. 이 화면을 닫아도 작업은 계속됩니다." : job.message, job };
     } catch (error) {
@@ -95,12 +102,19 @@ export async function getPrayerGenerationJob(id: string): Promise<ActionResult> 
     if (config && isGenerationPending(job.status)) {
       const input: PrayerGenerationInput = { eventDate: job.eventDate, beforeSongs: [job.beforeSongs[0], job.beforeSongs[1]], afterSongs: [job.afterSongs[0], job.afterSongs[1]] };
       const requestToken = createPrayerRequestToken(config.signingSecret, id, input);
+      if (config.provider === "responses") {
+        try { await schedulePrayerCompletion(id, input); } catch { /* The authenticated request can also finalize. */ }
+        try { await completePrayerResponse(id, input); } catch { /* Retry reads, never redispatch research. */ }
+        const latest = await client.rpc("get_prayer_generation_request", { p_id: id });
+        if (!latest.error && latest.data) job = toGenerationJob(latest.data);
+        if (job.status === "completed") revalidatePath("/prayer");
+        return { ok: true, message: job.message, job };
+      }
       const claim = await client.rpc("claim_prayer_generation_poll", { p_id: id, p_token: requestToken });
       // Provider metadata is never an authority to use this server credential on another channel.
       if (!claim.error && claim.data?.api_trigger_id === config.triggerId && claim.data?.run_id) {
         try {
-          const state = config.provider === "responses" ? await getPrayerResponse(config, claim.data.run_id, id)
-            : await getWorkspaceAgentRun(config, claim.data.run_id);
+          const state = await getWorkspaceAgentRun(config, claim.data.run_id);
           if (state === "failed" || state === "completed") {
             await client.rpc("fail_prayer_generation_dispatch", { p_id: id, p_message: state === "completed"
               ? "에이전트 작업이 끝났지만 기도회가 저장되지 않았습니다. 연결과 자료를 확인한 뒤 다시 요청해주세요."

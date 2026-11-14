@@ -1,12 +1,15 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { createPrayerGenerationMcpServer } from "@/lib/prayer-generation-mcp";
 import { prayerGenerationToolHandlers } from "@/lib/prayer-generation-callback";
+import { getPrayerAgentConfig } from "@/lib/prayer-agent-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
+  const config = getPrayerAgentConfig();
+  if (!config || config.provider === "responses") return new Response("Not found", { status: 404 });
   // Browser origins are checked independently of the per-request capability authorization.
   const origin = request.headers.get("origin");
   const configuredOrigin = process.env.PRAYER_AGENT_APP_URL;
