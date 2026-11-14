@@ -27,7 +27,7 @@ export function createPrayerGenerationMcpServer(handlers: GenerationToolHandlers
   }, async (input) => toolResult(await handlers.report(input)));
   server.registerTool("submit_prayer_generation_result", {
     title: "검증한 기도회 저장",
-    description: "Use after verifying the requested four songs, Bugs lyric pages, loaded score images, and exact-date official devotional metadata. Supply requestedTitle in original order and UTC ISO verifiedAt. The server builds and saves the fixed program; it excludes devotional source URLs. This capability creates only the original request's date and never overwrites an existing meeting.",
+    description: "Use after verifying the four songs, Bugs lyric pages and exact-date devotional metadata. Supply requestedTitle in original order and UTC ISO verifiedAt. In Responses mode, real source-page image candidates may use scoreImageVerified=false: the server inspects all four image inputs before saving and rejects any uncertainty. Workspace mode still requires prior image verification. The server builds the fixed program, excludes devotional source URLs, and never overwrites a meeting.",
     inputSchema: z.object({ ...generationCapabilitySchema, result: prayerGenerationResultSchema }).strict(),
     outputSchema, annotations,
   }, async (input) => toolResult(await handlers.submit(input)));

@@ -248,6 +248,9 @@ npm run build
 ## 데이터/보안 주의
 
 - 기도회 자동 생성은 `052_prayer_generation_requests.sql`과 `docs/prayer-generation.md`를 따릅니다.
+  Responses 실행은 `053_prayer_responses_dispatch.sql`의 capability 기반 실행 예약을 먼저 사용합니다.
+  접수 불명 상태에서 POST를 자동 재시도하지 않습니다. 서버의 이미지 입력 검증 실패 시 저장하지 않습니다.
+  `OPENAI_API_KEY`는 서버 전용이고 provider 종료와 실제 DB 저장 완료를 구분합니다.
   등록 멤버의 고정 날짜·네 곡 요청에만 24시간 capability를 부여하며, DB에는 해시만 저장합니다.
   callback은 요청자의 현재 등록 상태를 재확인하고 기존 `save_prayer_meeting`의 검증·감사를 사용합니다.
   provider run 완료를 저장 완료로 표시하거나, 기존 날짜를 자동 덮어쓰거나, service-role로 대신 쓰지 않습니다.

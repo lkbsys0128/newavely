@@ -149,3 +149,66 @@ test("untrusted dispatch metadata cannot use the server token to poll another ag
   assert.equal(result.job.status, "queued");
   assert.equal(fetched, false);
 });
+
+test("Responses reserves once and never repeats a POST after an uncertain acceptance", async () => {
+  let row = jobRow();
+  let posts = 0;
+  let reservations = 0;
+  const actions = actionLoader(memberClient(async (name) => {
+    if (name === "reserve_prayer_response_dispatch") {
+      reservations += 1;
+      row = { ...row, dispatched: true };
+      return { data: true, error: null };
+    }
+    return { data: row, error: null };
+  }), async () => { posts += 1; throw new Error("lost acknowledgement"); },
+  { ...configuredEnv, PRAYER_GENERATION_PROVIDER: "responses", OPENAI_API_KEY: "fixture" });
+  assert.equal((await actions.startPrayerGeneration({ requestId, ...input })).uncertain, true);
+  await actions.startPrayerGeneration({ requestId, ...input });
+  assert.equal(posts, 1);
+  assert.equal(reservations, 1);
+});
+
+test("Responses reservation losers and failed reservation reads never call the paid API", async () => {
+  for (const reservation of [{ data: false, error: null }, { data: null, error: { code: "NETWORK" } }]) {
+    let posts = 0;
+    const actions = actionLoader(memberClient(async (name) => name === "reserve_prayer_response_dispatch" ? reservation : { data: jobRow(), error: null }),
+      async () => { posts += 1; throw new Error("must not dispatch"); },
+      { ...configuredEnv, PRAYER_GENERATION_PROVIDER: "responses", OPENAI_API_KEY: "fixture" });
+    await actions.startPrayerGeneration({ requestId, ...input });
+    assert.equal(posts, 0);
+  }
+});
+
+test("Responses callback authenticates before image costs and saves only after every score matches", async () => {
+  for (const matches of [[true,true,true,true], [true,false,true,true]]) {
+    let saved = false;
+    let images = 0;
+    let reported;
+    const token = "T".repeat(43);
+    const candidate = verifiedResult(new Date().toISOString());
+    candidate.songs.forEach((song) => { song.scoreImageVerified = false; });
+    const load = createPrayerModuleLoader({ env: { ...configuredEnv, PRAYER_GENERATION_PROVIDER: "responses", OPENAI_API_KEY: "fixture",
+      NEXT_PUBLIC_SUPABASE_URL: "https://db.example.test", NEXT_PUBLIC_SUPABASE_ANON_KEY: "fixture" },
+      fetch: async () => { images += 1; return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ matches }) }] }] }); },
+      mocks: { "next/cache": { revalidatePath() {} }, "@supabase/supabase-js": { createClient: () => ({ rpc: async (name, params) => {
+        if (params.p_token !== token) return { error: { code: "P0001" } };
+        if (name === "get_prayer_generation_task") return { data: { input, status: "running", api_trigger_id: "responses_v1", created_at: new Date(Date.now()-60_000).toISOString() } };
+        if (name === "report_prayer_generation_status") { reported = params.p_status; return { data: {} }; }
+        if (name === "complete_prayer_generation_request") {
+          assert.ok(params.p_result.songs.every((song) => song.scoreImageVerified));
+          saved = true;
+          return { data: jobRow({ status: "completed", meeting_id: "50000000-0000-4000-8000-000000000001" }) };
+        }
+        throw new Error("unexpected RPC");
+      } }) } } });
+    const { prayerGenerationToolHandlers: handlers } = load("src/lib/prayer-generation-callback.ts");
+    await handlers.submit({ requestId, requestToken: "X".repeat(43), result: candidate });
+    assert.equal(images, 0);
+    const result = await handlers.submit({ requestId, requestToken: token, result: candidate });
+    assert.equal(images, 1);
+    assert.equal(saved, matches.every(Boolean));
+    assert.equal(result.status, matches.every(Boolean) ? "completed" : "error");
+    if (!saved) assert.equal(reported, "needs_input");
+  }
+});

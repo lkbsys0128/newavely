@@ -67,7 +67,7 @@ const verifiedSongSchema = z.object({
   scoreSourceUrl: sourceUrl,
   scoreKey: singleLine(40).optional(),
   lyricsVerified: z.literal(true),
-  scoreImageVerified: z.literal(true),
+  scoreImageVerified: z.boolean(),
   verifiedAt: z.iso.datetime(),
 }).strict().refine((song) => song.scoreImageUrl !== song.scoreSourceUrl && song.scoreImageUrl !== song.lyricsUrl,
   "악보 원문 글과 실제 이미지 주소를 구분해주세요.");
@@ -112,6 +112,7 @@ export function prepareGeneratedPrayer(
   options: { now?: number; createdAt?: string; requestToken?: string } = {},
 ): { result: PrayerGenerationResult; entries: PrayerEntry[] } {
   const result = prayerGenerationResultSchema.parse(candidate);
+  if (result.songs.some((song) => !song.scoreImageVerified)) throw new Error("악보 이미지 확인이 필요합니다.");
   const expected = [...input.beforeSongs, ...input.afterSongs];
   if (result.devotional.date !== input.eventDate) throw new Error("말씀 자료의 날짜가 기도회 날짜와 다릅니다.");
   if (result.songs.some((song, index) => song.requestedTitle !== expected[index])) throw new Error("찬양 순서 또는 요청한 곡이 일치하지 않습니다.");

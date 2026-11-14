@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildPrayerAgentInput, createPrayerRequestToken, getPrayerAgentConfig, hashPrayerRequestToken } from "@/lib/prayer-agent-server";
 import { isGenerationPending, startPrayerGenerationSchema, toGenerationJob, type GenerationJob, type PrayerGenerationInput } from "@/lib/prayer-generation";
 import { AgentDispatchError, getWorkspaceAgentRun, triggerWorkspaceAgent } from "@/lib/workspace-agent-client";
+import { getPrayerResponse, triggerPrayerResponse } from "@/lib/prayer-responses-client";
 
 type ActionResult = { ok: boolean; message: string; job?: GenerationJob; jobs?: GenerationJob[]; uncertain?: boolean };
 class GenerationAccessError extends Error {}
@@ -48,8 +49,16 @@ export async function startPrayerGeneration(value: unknown): Promise<ActionResul
     job = toGenerationJob(created.data);
     if (!isGenerationPending(job.status) || created.data?.dispatched === true) return { ok: true, message: job.message, job };
     try {
-      const dispatched = await triggerWorkspaceAgent(config, { requestId, input: buildPrayerAgentInput(config, requestId, token, input) });
-      const marked = await client.rpc("mark_prayer_generation_dispatched", {
+      if (config.provider === "responses") {
+        const reserved = await client.rpc("reserve_prayer_response_dispatch", { p_id: requestId, p_token: token });
+        if (reserved.error) throw new AgentDispatchError(false);
+        if (reserved.data !== true) return { ok: true, message: "이미 접수된 요청의 진행 상태를 확인하고 있습니다.", job };
+      }
+      const event = { requestId, input: buildPrayerAgentInput(config, requestId, token, input) };
+      const dispatched = config.provider === "responses" ? await triggerPrayerResponse(config, event) : await triggerWorkspaceAgent(config, event);
+      const marked = config.provider === "responses" ? await client.rpc("mark_prayer_response_dispatched", {
+        p_id: requestId, p_token: token, p_response_id: dispatched.runId,
+      }) : await client.rpc("mark_prayer_generation_dispatched", {
         p_id: requestId, p_api_trigger_id: config.triggerId, p_run_id: dispatched.runId, p_conversation_url: dispatched.conversationUrl,
       });
       if (marked.error || !marked.data) throw new AgentDispatchError(false);
@@ -64,8 +73,10 @@ export async function startPrayerGeneration(value: unknown): Promise<ActionResul
         if (!failed.error && failed.data) job = toGenerationJob(failed.data);
         return { ok: job.status === "completed", message: job.message || "생성 연결을 확인해주세요.", job };
       }
-      // A timeout can happen after acceptance. Retry this same event, never create a second job.
-      return { ok: true, message: "요청 접수를 확인 중입니다. 잠시 후 ‘요청 다시 확인’을 눌러주세요.", job, uncertain: true };
+      // A timeout can happen after acceptance. Responses reservations prevent another POST.
+      return { ok: true, message: config.provider === "responses"
+        ? "접수 여부를 확인 중입니다. 중복 실행하지 않고 결과를 기다립니다. 계속 진행되지 않으면 요청을 취소해주세요."
+        : "요청 접수를 확인 중입니다. 잠시 후 ‘요청 다시 확인’을 눌러주세요.", job, uncertain: true };
     }
   } catch (error) {
     return { ok: false, message: error instanceof GenerationAccessError ? error.message
@@ -88,7 +99,8 @@ export async function getPrayerGenerationJob(id: string): Promise<ActionResult> 
       // Provider metadata is never an authority to use this server credential on another channel.
       if (!claim.error && claim.data?.api_trigger_id === config.triggerId && claim.data?.run_id) {
         try {
-          const state = await getWorkspaceAgentRun(config, claim.data.run_id);
+          const state = config.provider === "responses" ? await getPrayerResponse(config, claim.data.run_id, id)
+            : await getWorkspaceAgentRun(config, claim.data.run_id);
           if (state === "failed" || state === "completed") {
             await client.rpc("fail_prayer_generation_dispatch", { p_id: id, p_message: state === "completed"
               ? "에이전트 작업이 끝났지만 기도회가 저장되지 않았습니다. 연결과 자료를 확인한 뒤 다시 요청해주세요."

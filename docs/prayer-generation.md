@@ -1,5 +1,71 @@
 # 기도회 자동 생성 운영 안내
 
+## Responses API 실행 경로 (2026-11-14)
+
+현재 개인 Pro 계정 UI에서는 Workspace Admin/Access tokens 메뉴를 확인하지 못했습니다.
+계정 구독과 API 실행 권한을 동일하게 취급하지 않습니다. `PRAYER_GENERATION_PROVIDER=responses`는
+Workspace Agent 대신 OpenAI Responses background 실행을 사용합니다. 아래 Workspace 전용
+채널/토큰/스킬 업로드 절차는 `workspace` provider에만 해당합니다.
+
+### Preview 설정
+
+- `052` 다음에 `053_prayer_responses_dispatch.sql`을 비운영 DB에 적용합니다.
+- `PRAYER_GENERATION_PROVIDER=responses`, `OPENAI_API_KEY` (서버 Secret),
+  `OPENAI_PRAYER_MODEL=gpt-5.4`, `PRAYER_AGENT_SIGNING_SECRET` (32자 이상 난수 Secret),
+  `PRAYER_AGENT_APP_URL` (외부에서 MCP POST가 가능한 고정 HTTPS Preview origin)을 설정합니다.
+- `PRAYER_GENERATION_ENABLED=false`를 유지하며 MCP 연결을 먼저 확인합니다.
+  검증 실행 시에는 비운영 환경에서만 일시적으로 켜고 전체 생성/저장 결과를 확인합니다.
+- Supabase URL/anon key는 `newavely-preview` (`xghrctxjtjnnhnpqvzav`)를 사용합니다.
+  등록된 active/care 테스트 멤버가 필요합니다. Production 데이터는 복사하지 않습니다.
+- Preview가 운영 service-role/Google 쓰기 자격증명을 상속하지 않도록 확인합니다.
+  이 생성 경로는 service-role 키를 사용하지 않습니다. Production 설정은 별도로 유지합니다.
+- API key는 Responses 생성 및 상태 조회에 필요한 범위만 허용합니다. 실제 제한 키로 GET 상태
+  조회가 가능한지도 검증합니다. API 비용은 ChatGPT 로그인 여부와 별개로 관리합니다.
+
+### 실행/실패 정책
+
+1. 등록/요청 생성 검사 뒤 capability를 검증하는 DB 예약을 잠급니다. 예약 성공자만 POST합니다.
+2. OpenAI에 날짜/곡 입력, 요청별 capability, 연구 지침, 참고 곡 목록과 성경 책 정보를 보냅니다.
+   멤버 교적/개인 로그인 세션/DB service-role 키는 보내지 않습니다.
+3. 웹 검색과 허용 목록에 있는 두 MCP 도구만 연결합니다. 두 도구의 자동 쓰기는 해당 요청의
+   capability 범위로 제한됩니다. 전역 앱 쓰기 권한이나 개인 ChatGPT 도구를 상속하지 않습니다.
+4. `background=true`, `store=true`, 최대 24 도구 호출/8,000 출력 토큰을 사용합니다.
+   저장된 provider 입력에는 24시간 capability가 포함되므로 OpenAI의 응답 보관 정책도 고려합니다.
+   로컬 로그/브라우저/감사 로그에는 이 값을 노출하지 않습니다.
+5. 실제 원문에서 찾은 악보 후보는 `scoreImageVerified=false`로 제출할 수 있습니다. callback은
+   두 번째 Responses 호출에 네 URL을 실제 `input_image`로 전달하여 로딩/악보/곡 일치를 확인합니다.
+   모든 항목이 true여야 검증 플래그를 true로 저장합니다. 모델의 자체 true 주장만으로 저장하지 않습니다.
+   거절/잘못된 JSON/이미지 실패/시간 초과는 needs_input으로 전환하고 저장하지 않습니다.
+6. 최종 RPC가 이미지 확인 이후에도 등록 상태/취소/만료/날짜 충돌을 다시 검사합니다.
+7. GET 상태 조회는 응답 metadata의 요청 UUID도 확인합니다. provider completed 자체는 DB 저장 완료가 아닙니다.
+
+Responses POST의 멱등성을 추정하지 않습니다. DB 예약 후 네트워크가 끊기거나 프로세스가
+종료되면 자동 재POST하지 않습니다. callback을 기다리고, 계속 진행되지 않으면 취소 후 새 요청을
+생성합니다. 실행이 이미 시작된 경우 취소는 DB 저장을 막지만 provider의 비용 발생을 즉시 중단하지는 않습니다.
+이 정책은 중복 생성/중복 과금을 줄이는 대신 불확실한 실행을 자동 복구하지 않는 보수적 정책입니다.
+
+### 현재 외부 검증 상태
+
+- 비운영 DB에 기본 schema와 052가 초기화됐고 멤버/기도회 0건, 요청 RLS와 callback 권한을 확인했습니다.
+- 2026-11-14 기능 브랜치 Preview `newavehub-ojspo30xn-newave-hub.vercel.app`의 Ready 상태와
+  브랜치 전용 테스트 DB URL/API 키 설정 존재를 확인했습니다. 이 배포는 전환 전 커밋입니다.
+- 실제 Responses 검색/MCP/이미지 확인/DB 저장 E2E는 아직 검증 전입니다. 053 및 새로운 서버 설정,
+  테스트 멤버/인증, Preview 보호와 MCP 연결을 준비해야 합니다. 기능은 계속 비활성입니다.
+- MCP 경로 외부 HEAD 요청이 Vercel SSO로 HTTP 302를 반환했습니다. 개인 브라우저 로그인은
+  OpenAI callback에 승계되지 않습니다. 별도 테스트 호스트 또는 승인된 제한적 접근 방식을
+  결정하기 전에는 보호를 해제하거나 bypass 자격증명을 OpenAI에 전달하지 않습니다.
+- 이번 전환 후 `npm run typecheck`, `npm test` (209/209), `npm run build`, `git diff --check`를
+  통과했습니다. 053의 실행권 예약/토큰/소유자/중복/취소 검증은 임시 PGlite에서 실행했습니다.
+  실제 Supabase에 053을 적용했다는 의미가 아닙니다. 이번 변경은 UI 레이아웃을 바꾸지 않습니다.
+- main 병합과 Production DB 변경은 별도 승인 대상입니다.
+
+공식 참고: [Responses background](https://developers.openai.com/api/docs/guides/background),
+[Remote MCP](https://developers.openai.com/api/docs/guides/tools-connectors-mcp),
+[이미지 입력](https://developers.openai.com/api/docs/guides/images-vision),
+[GPT-5.4 도구 지원](https://developers.openai.com/api/docs/models/gpt-5.4).
+
+## 기존 Workspace Agent 실행 경로
+
 등록 멤버가 날짜와 찬양 네 곡을 제출하면 Newavely가 요청을 저장하고 Workspace Agent를
 실행한다. 에이전트는 자료를 확인해 MCP로 결과를 제출하고, Newavely 서버가 여덟 행의
 순서지와 성경 장 링크를 구성해 기존 저장 RPC로 저장·공개한다.

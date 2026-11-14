@@ -1,13 +1,13 @@
 # Newavely
 
-## 찬양으로 기도회 자동 생성 (052)
+## 찬양으로 기도회 자동 생성 (052/053)
 
 `/prayer`의 **찬양으로 만들기**에서 날짜와 말씀 전·후 찬양 두 곡씩을 입력하면, 연결된
-ChatGPT Workspace Agent가 자료를 확인하고 기본 8개 순서의 기도회를 저장합니다.
+OpenAI Responses API 또는 ChatGPT Workspace Agent가 자료를 확인하고 기본 8개 순서의 기도회를 저장합니다.
 벅스 가사 페이지와 실제 악보 이미지 링크를 넣고, 해당 날짜 생명의삶의 제목·성경 범위를
 확인합니다. 생명의삶 원문 URL은 순서지에 넣지 않고 성경 장 링크만 유지합니다.
 
-- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`을 적용합니다.
+- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`, `db/053_prayer_responses_dispatch.sql`을 순서대로 적용합니다.
   신규 DB용 `db/schema.sql`에도 포함되어 있습니다. 운영 DB에 테스트 fixture를 실행하지 않습니다.
 - 등록된 `active`/`care` 멤버가 자신의 요청만 생성·조회·취소합니다. 신규 요청은 시간당 5개,
   동시에 진행할 요청은 2개이며 같은 날짜에는 진행 중 요청 하나만 허용합니다.
@@ -23,16 +23,20 @@ ChatGPT Workspace Agent가 자료를 확인하고 기본 8개 순서의 기도�
 
 ```txt
 PRAYER_GENERATION_ENABLED=false
-PRAYER_AGENT_TRIGGER_ID=agtch_...
-PRAYER_AGENT_ACCESS_TOKEN=<Workspace Agents scope token>
+PRAYER_GENERATION_PROVIDER=responses
+OPENAI_API_KEY=<server-only project key>
+OPENAI_PRAYER_MODEL=gpt-5.4
 PRAYER_AGENT_SIGNING_SECRET=<32바이트 이상의 난수 비밀>
-PRAYER_AGENT_APP_URL=https://newavely.com
+PRAYER_AGENT_APP_URL=https://<stable-preview-host>
 ```
 
-기존 Supabase URL/anon key도 필요합니다. OpenAI 모델 API 키를 추가하는 방식이 아닙니다.
-MCP 연결, `agent/newavely-prayer/` 스킬 업로드, Workspace Agent API 채널 게시와 실제 저장 Preview를
-확인한 뒤 `PRAYER_GENERATION_ENABLED=true`로 활성화합니다. 워크스페이스 기능과 토큰 발급 권한은
-계정에서 별도로 확인해야 합니다. [설정·운영 절차](docs/prayer-generation.md)를 따르세요.
+Preview는 비운영 Supabase URL/anon key를 사용하며 운영 service-role 키를 상속하지 않습니다.
+Responses 모드는 서버가 웹 검색과 두 MCP callback을 연결하고, 저장 전 네 악보를 별도 이미지 입력으로 검증합니다.
+실행 전 DB 예약으로 동시/재시도 POST를 막습니다. 네트워크 접수 불명 상태는 자동 재실행하지 않으며
+callback을 기다리거나 취소 후 새 요청을 만듭니다. API 종료만으로 저장 완료 처리하지 않습니다.
+실제 Preview 저장 검증 후 운영 활성화를 별도 결정합니다. Workspace 모드는
+`PRAYER_GENERATION_PROVIDER=workspace`와 기존 `PRAYER_AGENT_TRIGGER_ID`, `PRAYER_AGENT_ACCESS_TOKEN`을 사용합니다.
+[설정·운영 절차](docs/prayer-generation.md)를 따르세요.
 
 `npm test`는 외부 계정·운영 DB 없이 프로토콜/재시도/검증 테스트와 PGlite 기반 임시 PostgreSQL의
 RLS·RPC·감사·경합 테스트를 실행합니다. SQL만 점검할 때는

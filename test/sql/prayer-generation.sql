@@ -45,6 +45,7 @@ insert into members values
 \ir ../../db/048_prayer_multiple_links.sql
 \ir ../../db/049_prayer_link_labels.sql
 \ir ../../db/052_prayer_generation_requests.sql
+\ir ../../db/053_prayer_responses_dispatch.sql
 
 create function test_assert(condition boolean, message text) returns void language plpgsql as $$ begin
   if condition is distinct from true then raise exception '%',message using errcode='XX000'; end if;
@@ -318,6 +319,26 @@ do $$ declare listed jsonb; begin
   perform test_assert(cancel_prayer_generation_request((listed->0->>'id')::uuid)->>'status'='cancelled','Visible active request could not be cancelled');
   perform test_assert(cancel_prayer_generation_request((listed->1->>'id')::uuid)->>'status'='cancelled','Older active request could not be cancelled');
 end $$;
+
+-- Responses dispatch is single-attempt, owner/capability scoped and cannot change run IDs.
+reset role;
+update prayer_generation_requests set created_at=clock_timestamp()-interval '2 hours';
+set local role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+select create_prayer_generation_request('eeeeeeee-0000-4000-8000-000000000001',test_generation_input('2027-03-01'),test_token_hash(repeat('r',43)));
+select test_expect_error($cmd$select reserve_prayer_response_dispatch('eeeeeeee-0000-4000-8000-000000000001',repeat('x',43))$cmd$);
+select test_assert(reserve_prayer_response_dispatch('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43)),'Initial dispatch not reserved');
+select test_assert(not reserve_prayer_response_dispatch('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43)),'Duplicate dispatch allowed');
+select test_expect_error($cmd$select mark_prayer_response_dispatched('eeeeeeee-0000-4000-8000-000000000001',repeat('x',43),'resp_test')$cmd$);
+select mark_prayer_response_dispatched('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test');
+select mark_prayer_response_dispatched('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test');
+select test_expect_error($cmd$select mark_prayer_response_dispatched('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_other')$cmd$);
+select test_assert(claim_prayer_generation_poll('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'api_trigger_id'='responses_v1','Response poll provider missing');
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
+select test_expect_error($cmd$select reserve_prayer_response_dispatch('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))$cmd$);
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+select cancel_prayer_generation_request('eeeeeeee-0000-4000-8000-000000000001');
+select test_assert(not reserve_prayer_response_dispatch('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43)),'Cancelled dispatch allowed');
 
 -- Existing public read boundaries remain intact: latest meeting only.
 set local role anon;
