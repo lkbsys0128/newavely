@@ -17,10 +17,23 @@ test("manual recovery preserves date and song order without claiming verified so
   assert.throws(() => createPrayerGenerationDraft({ ...input, beforeSongs: ["one"] }));
 });
 
+test("creation has one mode switch and saved AI meetings use the existing editor", () => {
+  const page = readFileSync(new URL("../src/components/prayer-meeting-page.tsx", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../src/app/prayer/page.tsx", import.meta.url), "utf8");
+  const panel = readFileSync(new URL("../src/components/prayer-generation-panel.tsx", import.meta.url), "utf8");
+  assert.match(page, /aria-label="기도회 생성 방식"/);
+  assert.match(page, /open=\{creationMode === "ai"\}/);
+  assert.match(page, /editing && \(!creating \|\| creationMode === "manual"\)/);
+  assert.doesNotMatch(page, /generationMounted|generationOpen|찬양으로 만들기/);
+  assert.match(route, /editingRequested = canEdit && params.edit === "1"/);
+  assert.match(panel, /encodeURIComponent\(job.meetingId\)\}&edit=1/);
+  assert.match(panel, /<details className="prayer-generation-history"/);
+});
+
 test("recovery is an explicit unsaved create through the registered-member editor, never overwrite", () => {
   const page = readFileSync(new URL("../src/components/prayer-meeting-page.tsx", import.meta.url), "utf8");
   const panel = readFileSync(new URL("../src/components/prayer-generation-panel.tsx", import.meta.url), "utf8");
-  assert.match(page, /canEdit && generationMounted/);
+  assert.match(page, /canEdit && creating/);
   assert.match(page, /id: generationDraft \? null : meeting\?\.id/);
   assert.match(page, /version: generationDraft \? 0 : meeting\?\.version/);
   assert.match(page, /savePrayerMeeting/);

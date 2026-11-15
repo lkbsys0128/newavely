@@ -56,8 +56,9 @@ export default async function PrayerPage({ searchParams }: { searchParams: Promi
   } catch {
     error = "기도회 순서를 불러오지 못했습니다. 잠시 후 다시 확인해주세요.";
   }
-  return <main className="main-content prayer-page"><PrayerMeetingPage key={`${meeting?.id ?? (creating ? "new" : "empty")}:${meeting?.version ?? 0}`}
+  const editingRequested = canEdit && params.edit === "1";
+  return <main className="main-content prayer-page"><PrayerMeetingPage key={`${meeting?.id ?? (creating ? "new" : "empty")}:${meeting?.version ?? 0}:${editingRequested}`}
     meeting={meeting} history={history} canEdit={canEdit && !error} creating={creating} today={today}
-    page={page} count={count} error={error} generationEnabled={Boolean(getPrayerAgentConfig())} />
-    {canViewUsage ? <PrayerApiUsage /> : null}</main>;
+    page={page} count={count} error={error} generationEnabled={Boolean(getPrayerAgentConfig())} editingRequested={editingRequested} />
+    {canViewUsage && !creating && !editingRequested ? <PrayerApiUsage /> : null}</main>;
 }

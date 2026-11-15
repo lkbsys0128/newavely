@@ -10,7 +10,7 @@ type Draft = { eventDate: string; beforeSongs: [string, string]; afterSongs: [st
 type Submission = Draft & { requestId: string };
 type Notice = { message: string; error?: boolean };
 const serverActions = { cancelPrayerGeneration, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration };
-type Props = { today: string; generationEnabled: boolean; open: boolean; onClose: () => void; onEditDraft?: (draft: Draft) => void; actions?: typeof serverActions };
+type Props = { today: string; generationEnabled: boolean; open: boolean; onClose?: () => void; onEditDraft?: (draft: Draft) => void; actions?: typeof serverActions };
 
 const statusLabels: Record<GenerationJob["status"], string> = {
   queued: "접수됨", running: "자료 확인 중", needs_input: "확인 필요", completed: "저장 완료", failed: "생성 실패", cancelled: "취소됨",
@@ -187,16 +187,16 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
   return <section className="prayer-generation-panel" id="prayer-generation-panel" hidden={!open} aria-labelledby="prayer-generation-title">
     <div className="prayer-generation-heading">
       <div><h2 id="prayer-generation-title" ref={heading} tabIndex={-1}><Music2 size={20} aria-hidden="true" />찬양으로 기도회 만들기</h2>
-        <p className="meta" id="prayer-generation-help">앞·뒤 찬양 네 곡으로 기본 순서를 만들고, 벅스 가사와 악보 이미지 링크를 넣습니다.</p></div>
-      <button type="button" className="prayer-icon-button" aria-label="자동 생성 닫기" onClick={onClose}><X size={18} /></button>
+        </div>
+      {onClose ? <button type="button" className="prayer-icon-button" aria-label="자동 생성 닫기" onClick={onClose}><X size={18} /></button> : null}
     </div>
-    {!generationEnabled ? <p className="prayer-generation-notice" role="status">자동 생성 연결을 준비 중입니다. ‘새 기도회’에서 직접 작성할 수 있습니다.</p> : null}
-    <form className="management-form prayer-generation-form" aria-describedby="prayer-generation-help" onSubmit={(event) => {
+    {!generationEnabled ? <p className="prayer-generation-notice" role="status">AI 생성 연결을 준비 중입니다. 직접 작성은 사용할 수 있습니다.</p> : null}
+    {!job ? <form className="management-form prayer-generation-form" onSubmit={(event) => {
       event.preventDefault(); if (!job && !uncertain) void generate();
     }}>
       <div className="prayer-generation-date"><label>기도회 날짜<input type="date" required value={shown.eventDate} disabled={fieldsDisabled} onChange={(event) => {
         draftTouched.current = true; submission.current = null; setDraft((current) => ({ ...current, eventDate: event.target.value }));
-      }} /></label><p className="meta">해당 날짜의 생명의삶 제목과 성경 범위를 확인합니다. 생명의삶 링크는 넣지 않습니다.</p></div>
+      }} /></label></div>
       <div className="prayer-generation-song-groups">{(["beforeSongs", "afterSongs"] as const).map((group) => <fieldset key={group} disabled={fieldsDisabled}>
         <legend>{group === "beforeSongs" ? "말씀 전 찬양" : "말씀 후 찬양"}</legend>
         {([0, 1] as const).map((index) => <label key={index}>{group === "beforeSongs" ? "앞" : "뒤"} 찬양 {index + 1}<input required maxLength={120} value={shown[group][index]}
@@ -213,7 +213,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
           : <button className="primary-button" type="submit" disabled={busy || !generationEnabled}><Music2 size={16} />{pending ? "요청 접수 중" : "기도회 생성 · 공개"}</button>}
         {loading ? <span className="meta" role="status">이전 요청 확인 중...</span> : null}
       </div> : null}
-    </form>
+    </form> : null}
     {notice?.message && (notice.error || !job || activeJob(job)) ? <p className={`prayer-generation-notice${notice.error ? " is-error" : ""}`} role={notice.error ? "alert" : "status"}>{notice.message}</p> : null}
     {job ? <div className="prayer-generation-result">
       <div className="prayer-generation-status" role="status" aria-live="polite" aria-atomic="true">
@@ -224,7 +224,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
         {["failed", "needs_input"].includes(job.status) ? <p style={{ overflowWrap: "anywhere" }}>요청 ID: {job.id}</p> : null}
       </div>
       {pollNotice ? <p className="meta" role="status">{pollNotice}</p> : null}
-      {saved && job.meetingId ? <Link className="primary-button prayer-generation-open" href={`/prayer?id=${encodeURIComponent(job.meetingId)}`}>생성된 기도회 보기<ChevronRight size={16} /></Link> : null}
+      {saved && job.meetingId ? <div className="prayer-generation-actions"><Link className="primary-button prayer-generation-open" href={`/prayer?id=${encodeURIComponent(job.meetingId)}&edit=1`}><Pencil size={16} />순서 수정</Link><Link className="secondary-button prayer-generation-open" href={`/prayer?id=${encodeURIComponent(job.meetingId)}`}>기도회 보기<ChevronRight size={16} /></Link></div> : null}
       {saved && job.resultSummary ? <div className="prayer-generation-summary">
         {job.resultSummary.songs?.length ? <ul>{job.resultSummary.songs.map((song, index) => <li key={index}><span>{song.title}</span><span className="meta">{song.artist}</span></li>)}</ul> : null}
         {job.resultSummary.passage ? <p>{job.resultSummary.passage}{job.resultSummary.devotionalTitle ? ` · ${job.resultSummary.devotionalTitle}` : ""}</p> : null}
@@ -237,18 +237,18 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
           <button className="secondary-button" type="button" disabled={busy} onClick={() => void cancelJob()}><X size={16} />생성 취소</button>
         </> : <>
           {onEditDraft && ["needs_input", "failed"].includes(job.status) ? <button className="primary-button" type="button" disabled={busy} onClick={() => onEditDraft(jobDraft(job))}><Pencil size={16} />직접 보완하기</button> : null}
-          <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => newRequest(job)}>내용 수정해 다시 요청</button>
+          {!saved ? <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => newRequest(job)}>내용 수정해 다시 요청</button> : null}
           <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => newRequest()}>새 요청 작성</button>
         </>}
       </div>
     </div> : null}
-    {generationEnabled ? <div className="prayer-generation-history">
+    {generationEnabled ? <details className="prayer-generation-history"><summary>내 생성 요청 {jobs.length ? `(${jobs.length})` : ""}</summary>
       <div className="prayer-generation-history-heading"><h3>내 생성 요청</h3><button className="secondary-button" type="button" disabled={busy} onClick={() => void refreshJobs()}><RefreshCw size={15} />목록 새로고침</button></div>
       {jobs.length ? <ul>{jobs.map((item) => <li key={item.id}><button type="button" aria-pressed={job?.id === item.id} disabled={busy || uncertain} onClick={() => {
         acceptJob(item, true); setNotice(null); setPollNotice("");
       }}><span><time dateTime={item.eventDate}>{item.eventDate}</time><span className="meta">{item.beforeSongs[0]} 외 3곡</span></span>
         <span>{item.status === "completed" && !item.meetingId ? "결과 확인 필요" : statusLabels[item.status]}</span></button></li>)}</ul>
         : <p className="meta">{loading ? "이전 요청을 확인하고 있습니다." : "아직 생성 요청이 없습니다."}</p>}
-    </div> : null}
+    </details> : null}
   </section>;
 }

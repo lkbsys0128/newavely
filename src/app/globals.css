@@ -8374,7 +8374,14 @@ tbody tr:hover {
   .prayer-template-buttons button { min-height: 42px; }
 }
 
-.prayer-generation-panel { min-width: 0; margin-bottom: 32px; padding: 24px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.prayer-creation-modes { display: flex; gap: 4px; padding: 4px; margin: 0 0 28px; width: min(100%, 400px); border: 1px solid var(--line); border-radius: 8px; }
+.prayer-creation-modes button { display: flex; flex: 1; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 12px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--ink); font: inherit; font-weight: var(--font-weight-ui); cursor: pointer; }
+.prayer-creation-modes button:hover { background: var(--interaction-hover); }
+.prayer-creation-modes button[aria-pressed="true"] { background: var(--interaction-selected); color: var(--interaction-ink); border-color: var(--interaction-border); }
+.prayer-creation-modes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.prayer-generation-panel { min-width: 0; margin-bottom: 32px; padding: 0; }
+.prayer-generation-heading { margin-bottom: 24px; }
+.prayer-generation-history > summary { cursor: pointer; font-weight: var(--font-weight-ui); padding: 4px 0 16px; }
 .prayer-generation-panel[hidden] { display: none; }
 .prayer-generation-heading, .prayer-generation-history-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .prayer-generation-heading > div { min-width: 0; }
@@ -8420,7 +8427,7 @@ tbody tr:hover {
 @keyframes prayer-generation-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .prayer-generation-spinner { animation: none; } }
 @media (max-width: 640px) {
-  .prayer-generation-panel { padding: 18px 14px; }
+  .prayer-generation-panel { padding: 0; }
   .prayer-generation-date, .prayer-generation-song-groups { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .prayer-generation-heading { gap: 8px; }
   .prayer-generation-heading h2 { font-size: 1rem; }
