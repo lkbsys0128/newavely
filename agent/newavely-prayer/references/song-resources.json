@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "recordedOn": "2026-11-04",
+  "purpose": "Historical starting points only. Reopen the Bugs page, source page, and current score image before every submission.",
+  "artistPolicy": "Previously used versions, not user-confirmed defaults or verified popularity winners.",
+  "songs": [
+    {
+      "canonicalTitle": "목마른 사슴",
+      "aliases": ["As the Deer"],
+      "composer": "Martin Nystrom",
+      "identityNote": "Do not merge with a different song titled 목마른 사슴이.",
+      "artist": "올네이션스 경배와찬양",
+      "album": "전하세 예수 1",
+      "selectionStatus": "previously_used",
+      "lyricsUrl": "https://music.bugs.co.kr/track/474529",
+      "scoreSourceUrl": "https://toolsministry.tistory.com/21",
+      "historicalScoreKey": "C",
+      "revalidateBeforeUse": true
+    },
+    {
+      "canonicalTitle": "그 사랑 얼마나",
+      "aliases": [],
+      "composer": "설경욱",
+      "artist": "조수아",
+      "selectionStatus": "previously_used",
+      "lyricsUrl": "https://music.bugs.co.kr/track/30140273",
+      "scoreSourceUrl": "https://worshipleader.tistory.com/618",
+      "historicalScoreKey": "G",
+      "revalidateBeforeUse": true
+    },
+    {
+      "canonicalTitle": "내 이름 아시죠",
+      "aliases": ["나를 지으신 주님"],
+      "artist": "디사이플스",
+      "album": "Run Modern Worship",
+      "selectionStatus": "previously_used",
+      "lyricsUrl": "https://music.bugs.co.kr/track/7000373",
+      "scoreSourceUrl": "https://akkbo.tistory.com/463",
+      "historicalScoreKey": "E",
+      "revalidateBeforeUse": true
+    },
+    {
+      "canonicalTitle": "주의 아름다움은 말로 다",
+      "aliases": ["I Stand in Awe", "주 경외함으로 서리라"],
+      "observedUserTypo": "주의 이름다움은 말로 다",
+      "composer": "Mark Altrogge",
+      "artist": "아이자야씩스티원",
+      "album": "THE AWE",
+      "selectionStatus": "previously_used",
+      "lyricsUrl": "https://music.bugs.co.kr/track/6300690",
+      "scoreSourceUrl": "https://record3937.tistory.com/429",
+      "historicalScoreKey": "A",
+      "revalidateBeforeUse": true
+    }
+  ],
+  "scoreImagePolicy": "No signed CDN URL is cached in this package. Obtain a current image URL from the actual source page, load it, and inspect the score. Never invent or strip signature parameters."
+}

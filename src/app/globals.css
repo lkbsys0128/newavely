@@ -8373,3 +8373,87 @@ tbody tr:hover {
   .prayer-template-controls { padding: 16px; }
   .prayer-template-buttons button { min-height: 42px; }
 }
+
+.prayer-creation-modes { display: flex; gap: 4px; padding: 4px; margin: 0 0 28px; width: min(100%, 400px); border: 1px solid var(--line); border-radius: 8px; }
+.prayer-creation-modes button { display: flex; flex: 1; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 12px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--ink); font: inherit; font-weight: var(--font-weight-ui); cursor: pointer; }
+.prayer-creation-modes button:hover { background: var(--interaction-hover); }
+.prayer-creation-modes button[aria-pressed="true"] { background: var(--interaction-selected); color: var(--interaction-ink); border-color: var(--interaction-border); }
+.prayer-creation-modes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.prayer-generation-panel { min-width: 0; margin-bottom: 32px; padding: 0; }
+.prayer-generation-heading { margin-bottom: 24px; }
+.prayer-generation-history > summary { cursor: pointer; font-weight: var(--font-weight-ui); padding: 4px 0 16px; }
+.prayer-generation-panel[hidden] { display: none; }
+.prayer-generation-song-row { display: grid; grid-template-columns: minmax(0, 1fr) 40px; align-items: end; gap: 8px; }
+.prayer-generation-song-row .prayer-icon-button { width: 40px; height: 44px; margin-bottom: 0; }
+.prayer-generation-song-groups fieldset > .secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; }
+.prayer-generation-heading, .prayer-generation-history-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.prayer-generation-heading > div { min-width: 0; }
+.prayer-generation-heading h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.1rem; line-height: 1.5; font-weight: var(--font-weight-ui); }
+.prayer-generation-heading h2:focus { outline: none; }
+.prayer-generation-heading p { margin: 8px 0 20px; line-height: 1.7; }
+.prayer-generation-panel svg { flex-shrink: 0; }
+.management-form.prayer-generation-form { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.prayer-generation-date { display: grid; grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); align-items: center; gap: 20px; }
+.prayer-generation-date p, .prayer-generation-hint { margin: 0; line-height: 1.7; }
+.prayer-generation-song-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.prayer-generation-song-groups fieldset { display: grid; min-width: 0; gap: 14px; margin: 0; padding: 0; border: 0; }
+.prayer-generation-song-groups legend { margin-bottom: 12px; padding: 0; color: var(--ink); font-size: 0.9rem; font-weight: var(--font-weight-ui); }
+.prayer-generation-form label, .prayer-generation-form input { min-width: 0; }
+.prayer-generation-form input:disabled { opacity: 1; background: var(--soft); color: var(--muted); cursor: not-allowed; }
+.prayer-generation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.prayer-generation-actions button, .prayer-generation-open, .prayer-generation-history-heading button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; }
+.prayer-generation-notice { margin: 18px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); color: var(--ink); line-height: 1.7; overflow-wrap: anywhere; }
+.prayer-generation-notice.is-error { color: var(--danger); }
+.prayer-generation-result { display: grid; gap: 16px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.prayer-generation-result > .meta { margin: 0; line-height: 1.7; }
+.prayer-generation-status { display: grid; gap: 10px; }
+.prayer-generation-status p { margin: 0; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.prayer-generation-badge { display: inline-flex; align-items: center; justify-self: start; gap: 6px; padding: 5px 9px; border-radius: 6px; background: var(--soft); color: var(--ink); font-size: 0.8rem; font-weight: var(--font-weight-ui); }
+.prayer-generation-badge.needs-attention { color: var(--danger); }
+.prayer-generation-open { justify-self: start; }
+.prayer-generation-summary { min-width: 0; line-height: 1.7; }
+.prayer-generation-summary ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.prayer-generation-summary li { display: flex; flex-wrap: wrap; column-gap: 12px; overflow-wrap: anywhere; }
+.prayer-generation-summary p { margin: 14px 0 0; }
+.prayer-generation-summary .prayer-generation-notes { margin-top: 14px; color: var(--muted); }
+.prayer-generation-history { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.prayer-generation-history-heading { align-items: center; margin-bottom: 12px; }
+.prayer-generation-history-heading h3 { margin: 0; font-size: 0.9rem; font-weight: var(--font-weight-ui); }
+.prayer-generation-history ul { padding: 0; margin: 0; list-style: none; }
+.prayer-generation-history li + li { margin-top: 6px; }
+.prayer-generation-history li button { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); text-align: left; font-size: 0.82rem; }
+.prayer-generation-history li button > span:first-child { display: grid; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
+.prayer-generation-history li button > span:last-child { flex-shrink: 0; }
+.prayer-generation-history li button:hover:not(:disabled) { background: var(--interaction-hover); color: var(--interaction-hover-ink); border-color: var(--interaction-border); }
+.prayer-generation-history li button[aria-pressed="true"] { background: var(--interaction-selected); color: var(--interaction-ink); border-color: var(--interaction-border); }
+.prayer-generation-spinner { display: inline-flex; animation: prayer-generation-spin 1.1s linear infinite; }
+@keyframes prayer-generation-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .prayer-generation-spinner { animation: none; } }
+@media (max-width: 640px) {
+  .prayer-generation-panel { padding: 0; }
+  .prayer-generation-date, .prayer-generation-song-groups { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .prayer-generation-heading { gap: 8px; }
+  .prayer-generation-heading h2 { font-size: 1rem; }
+  .prayer-generation-heading > .prayer-icon-button { width: 32px; flex-shrink: 0; }
+  .prayer-generation-history-heading { flex-wrap: wrap; gap: 10px; }
+  .prayer-generation-actions > .primary-button, .prayer-generation-open { width: 100%; }
+}
+
+.prayer-api-usage { margin-top: 28px; padding-block: 20px; border-top: 1px solid var(--border); min-width: 0; }
+.prayer-api-usage summary { cursor: pointer; font-weight: var(--font-weight-ui); padding-block: 8px; }
+.prayer-usage-totals { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-block: 16px; }
+.prayer-api-usage p, .prayer-api-usage small { font-size: .8rem; color: var(--muted); }
+.prayer-usage-scroll { max-width: 100%; overflow-x: auto; margin-block: 16px; }
+.prayer-usage-scroll table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.prayer-usage-scroll th, .prayer-usage-scroll td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.prayer-usage-scroll td small { display: block; margin-top: 4px; }
+.prayer-score-dialog { width: min(960px, calc(100vw - 24px)); max-width: none; max-height: 94dvh; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.prayer-score-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.prayer-score-content { padding: 12px; display: grid; gap: 12px; }
+.prayer-score-content header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.prayer-score-content h2 { font-size: 18px; margin: 0; overflow-wrap: anywhere; }
+.prayer-score-toolbar { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.prayer-score-toolbar span { min-width: 48px; text-align: center; font-size: 14px; }
+.prayer-score-stage { height: min(70dvh, 900px); overflow: auto; overscroll-behavior: contain; background: var(--soft); }
+.prayer-score-stage img { display: block; max-width: none; height: auto; margin-inline: auto; }
+.prayer-score-stage p { padding: 16px; }

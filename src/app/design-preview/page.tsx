@@ -3,17 +3,33 @@ import { BulletinPage } from "@/components/bulletin-page";
 import { PrayerMeetingPage } from "@/components/prayer-meeting-page";
 import { AttendanceManager, CalendarPageContent, DashboardOverview, GroupsPageContent, LinksPageContent, MembersManager, NewFamilyPageContent } from "@/components/dashboard";
 import { sampleGroups, sampleMembers } from "@/lib/sample-data";
+import { seattleDate } from "@/lib/prayer-meetings";
+import { PrayerGenerationPreview } from "./prayer-generation-preview";
+import { PrayerApiUsageView } from "@/components/prayer-api-usage";
+import { PrayerEntryLinks } from "@/components/prayer-entry-links";
 
-export default async function DesignPreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; edit?: string }> }) {
+export default async function DesignPreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; edit?: string; state?: string; image?: string; image2?: string }> }) {
   if (process.env.NODE_ENV !== "development") notFound();
-  const { view, edit } = await searchParams;
+  const { view, edit, state, image, image2 } = await searchParams;
+  if (view === "score-viewer") return <main className="main-content prayer-page"><h1>악보 뷰어 테스트</h1><PrayerEntryLinks entry={{ title: "찬양", detail: "악보 이미지 표시 테스트", sourceUrl: image,
+    additionalSourceUrls: image2 ? [image2] : [], sourceLabels: { ...(image ? { [image]: "악보 1" } : {}), ...(image2 ? { [image2]: "악보 2" } : {}) } }} /></main>;
+  if (view === "prayer-usage") return <main className="main-content prayer-page"><PrayerApiUsageView report={state === "error" ? null : {
+    estimated_usd: .1375, calls: 3, untracked_requests: 1, unpriced_calls: 0,
+    rows: [
+      { id: "00000000-0000-4000-8000-000000000001", event_date: "2026-11-14", status: "completed", calls: 3,
+        vision_calls: 1, input_tokens: 30000, cached_tokens: 10000, output_tokens: 5000, search_calls: 1, estimated_usd: .1375, unpriced_calls: 0 },
+      { id: "00000000-0000-4000-8000-000000000002", event_date: "2026-11-13", status: "failed", calls: 0,
+        vision_calls: 0, input_tokens: null, cached_tokens: null, output_tokens: null, search_calls: 0, estimated_usd: null, unpriced_calls: 0 },
+    ],
+  }} /></main>;
+  if (view === "prayer-generation") return <main className="main-content prayer-page"><PrayerGenerationPreview today={seattleDate()} state={state} /></main>;
   if (view === "bulletin") return <main className="main-content bulletin-page"><BulletinPage
     bulletin={{ title: "뉴웨이브 주일 주보", event_date: "2026-10-18", image_path: "preview", version: 1 }}
     history={["2026-10-18", "2026-10-11", "2026-10-04"].map((date) => ({ title: "뉴웨이브 주일 주보", event_date: date, image_path: "preview", version: 1 }))}
     imageUrl="/bulletin-preview.jpeg" canEdit={edit === "1"} today="2026-10-23" error="" /></main>;
   if (view === "prayer") return <main className="main-content prayer-page"><PrayerMeetingPage
     meeting={{ id: "11111111-1111-4111-8111-111111111111", event_date: "2026-09-21", entries: [{ title: "기도", detail: "오프닝 기도" }, { title: "찬양", detail: "주님의 사랑" }, { title: "찬양", detail: "나의 안에 거하라" }, { title: "묵상/나눔", detail: "오늘 우리에게 주신 말씀\n감사한 순간과 함께 나누고 싶은 마음" }, { title: "기도", detail: "공동체를 위한 기도" }, { title: "마무리 기도", detail: "" }], version: 1, created_at: "2026-09-21T00:00:00Z", updated_at: "2026-09-21T00:00:00Z" }}
-    history={[]} canEdit={edit === "1"} creating={edit === "1"} today="2026-09-21" page={1} count={1} error="" /></main>;
+    history={[]} canEdit={edit === "1"} creating={edit === "1" && state !== "edit"} editingRequested={state === "edit"} today="2026-09-21" page={1} count={1} error="" /></main>;
   if (view === "public-links") return <main className="main-content"><LinksPageContent user={null}
     importantLinks={[{ id: "preview-link", title: "공동체 안내", description: "공개 링크 미리보기", url: "https://example.com", iconKey: "website" }]} /></main>;
   const views = { attendance: AttendanceManager, calendar: CalendarPageContent, groups: GroupsPageContent, members: MembersManager, "new-family": NewFamilyPageContent };

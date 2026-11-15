@@ -1,5 +1,53 @@
 # Newavely
 
+## 찬양으로 기도회 자동 생성 (052–060)
+
+- 다중 악보 페이지는 `db/059_prayer_score_pages.sql`을 058 다음에 적용합니다. 곡당 최대 9장의 검증된 이미지를 저장하며 앱 내부 뷰어로 표시합니다. 기존 한 장짜리 결과도 지원합니다.
+
+- `db/060_remove_prayer_generation_budget.sql`을 059 다음에 적용합니다. 058의 앱 내부 월간 제한과 사용자 게이지를 제거합니다. 사용량 기록과 관리자 비용 조회는 유지하며 OpenAI 제한 설정은 관리자가 별도로 관리합니다.
+
+`/prayer`의 **새 기도회 → AI로 생성**에서 날짜와 찬양을 입력하면, 연결된
+OpenAI Responses API 또는 ChatGPT Workspace Agent가 자료를 확인하고 찬양 수 + 4개 순서의 기도회를 저장합니다. 기본은 앞·뒤 두 곡씩이며 총 1~8곡까지 추가·삭제할 수 있습니다.
+벅스 가사 페이지와 실제 악보 이미지 링크를 넣고, 해당 날짜 생명의삶의 제목·성경 범위를
+확인합니다. 생명의삶 원문 URL은 순서지에 넣지 않고 성경 장 링크만 유지합니다.
+
+- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`, `db/053_prayer_responses_dispatch.sql`, `db/054_prayer_server_completion.sql`, `db/055_prayer_research_tools.sql`, `db/056_prayer_api_usage.sql`, `db/057_prayer_variable_songs.sql`을 순서대로 적용합니다.
+- `056`은 요청별 API 사용량을 기록합니다. 관리자/최고관리자는 기도회 페이지 하단에서 최근 30일 예상 비용과 최근 100개 요청을 확인합니다. 새 환경변수는 없으며 운영 DB 적용은 별도 승인 후 진행합니다.
+  신규 DB용 `db/schema.sql`에도 포함되어 있습니다. 운영 DB에 테스트 fixture를 실행하지 않습니다.
+- 등록된 `active`/`care` 멤버가 자신의 요청만 생성·조회·취소합니다. 신규 요청은 시간당 5개,
+  동시에 진행할 요청은 2개이며 같은 날짜에는 진행 중 요청 하나만 허용합니다.
+- Responses 모드에서는 앱 서버가 연구 결과를 받아 검증하고 저장합니다. 24시간 요청별 capability는 서버에만 유지합니다.
+  서버는 날짜·곡 순서·링크·말씀을 검증하고 기존 `save_prayer_meeting` RPC와 감사 기록을 사용합니다.
+  기존 기도회를 덮어쓰지 않으며, service-role 키를 에이전트나 callback에 사용하지 않습니다.
+- 접수 응답이 끊기면 같은 요청 ID로 다시 확인합니다. **에이전트 run 완료**와 **기도회 저장 완료**를
+  구분하며, 실제 저장된 ID가 있을 때만 완료 링크를 보여줍니다.
+- 연결을 설정하기 전에는 자동 생성이 준비 중으로 표시됩니다. 기존 수동 작성은 계속 사용할 수 있습니다.
+
+아래 값은 모두 서버 전용입니다. Vercel **Preview와 Production에 각각** 설정하고 재배포합니다.
+`NEXT_PUBLIC_` 접두사를 붙이거나 비밀 값을 Git/채팅에 넣지 않습니다.
+
+```txt
+PRAYER_GENERATION_ENABLED=false
+PRAYER_GENERATION_PROVIDER=responses
+OPENAI_API_KEY=<server-only project key>
+OPENAI_PRAYER_MODEL=gpt-5.4
+PRAYER_AGENT_SIGNING_SECRET=<32바이트 이상의 난수 비밀>
+```
+
+Preview는 비운영 Supabase URL/anon key를 사용하며 운영 service-role 키를 상속하지 않습니다.
+Responses 모드는 웹 검색과 strict JSON 출력을 사용하고, 저장 전 요청한 모든 악보를 별도 이미지 입력으로 검증합니다.
+Vercel Workflow가 브라우저 종료 후에도 결과를 확인하며, 앱 서버가 기존 저장 RPC를 호출합니다.
+외부 MCP/별도 도메인/Preview 보호 해제가 필요 없습니다. `PRAYER_AGENT_APP_URL`은 선택적 표시용 주소입니다.
+실행 전 DB 예약으로 동시/재시도 POST를 막습니다. 네트워크 접수 불명 상태는 자동 재실행하지 않으며
+응답 ID가 기록되지 않은 불확실한 요청은 취소 후 새 요청을 만듭니다. API 종료만으로 저장 완료 처리하지 않습니다.
+실제 Preview 저장 검증 후 운영 활성화를 별도 결정합니다. Workspace 모드는
+`PRAYER_GENERATION_PROVIDER=workspace`와 기존 `PRAYER_AGENT_TRIGGER_ID`, `PRAYER_AGENT_ACCESS_TOKEN`을 사용합니다.
+[설정·운영 절차](docs/prayer-generation.md)를 따르세요.
+
+`npm test`는 외부 계정·운영 DB 없이 프로토콜/재시도/검증 테스트와 PGlite 기반 임시 PostgreSQL의
+RLS·RPC·감사·경합 테스트를 실행합니다. SQL만 점검할 때는
+`node --test test/prayer-generation-sql.test.mjs`를 사용합니다.
+
 ### 주보 목록 (051)
 `db/051_bulletin_history.sql`을 050 다음에 적용하면 현재 주보를 보존하면서 날짜별 저장으로 전환합니다. 관리자/최고관리자는 **새 주보**로 추가하고 **저장된 주보** 목록에서 과거 날짜를 열어 수정할 수 있습니다. 같은 날짜는 한 건만 저장하며 버전 충돌을 검사합니다. 익명과 일반 멤버는 날짜 파라미터와 무관하게 날짜 기준 최신 주보만 조회합니다. 공유 버튼도 최신 주보에만 표시합니다. 과거 날짜를 수정해도 최신 공개 주보는 바뀌지 않습니다. 기존에 교체되어 파일만 남은 이미지는 날짜 정보가 없어 자동 복원하지 않으며, 현재 게시 중인 한 건부터 목록에 보존합니다. 이미지 자동 삭제는 없습니다.
 
