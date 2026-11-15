@@ -5866,6 +5866,8 @@ tbody tr:hover {
 .prayer-attached-source { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
 .prayer-attached-source a, .prayer-source-link { display: inline-flex; gap: 6px; align-items: center; color: var(--accent-dark); overflow-wrap: anywhere; min-width: 0; }
 .prayer-source-link { margin-top: 10px; }
+button.prayer-source-link { appearance: none; border: 0; border-radius: 0; padding: 0; background: transparent; font: inherit; text-align: left; }
+button.prayer-source-link::after { display: none; }
 .prayer-row-position { display: flex; align-items: center; gap: 8px; }
 .prayer-edit-row.is-dragging { position: relative; z-index: 2; background: var(--surface); box-shadow: 0 8px 24px #0002; }
 .prayer-drag-handle { touch-action: none; cursor: grab; }

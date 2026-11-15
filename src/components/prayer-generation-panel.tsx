@@ -194,6 +194,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
     {!job ? <form className="management-form prayer-generation-form" onSubmit={(event) => {
       event.preventDefault(); if (!job && !uncertain) void generate();
     }}>
+      <p className="meta prayer-generation-hint">특정 버전을 원하면 곡명 뒤에 가수도 적어주세요. 생성이 끝나면 저장되며, 가장 최신 날짜의 기도회는 공개됩니다.</p>
       <div className="prayer-generation-date"><label>기도회 날짜<input type="date" required value={shown.eventDate} disabled={fieldsDisabled} onChange={(event) => {
         draftTouched.current = true; submission.current = null; setDraft((current) => ({ ...current, eventDate: event.target.value }));
       }} /></label></div>
@@ -214,7 +215,6 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
           setDraft((current) => ({ ...current, [group]: [...current[group], ""] }));
         }}><Plus size={16} />찬양 추가</button>
       </fieldset>)}</div>
-      <p className="meta prayer-generation-hint">특정 버전을 원하면 곡명 뒤에 가수도 적어주세요. 생성이 끝나면 저장되며, 가장 최신 날짜의 기도회는 공개됩니다.</p>
       {!job ? <div className="prayer-generation-actions">
         {uncertain ? <button className="primary-button" type="button" disabled={busy || !generationEnabled} onClick={() => void generate()}><RefreshCw size={16} />{pending ? "확인 중" : "같은 요청 다시 확인"}</button>
           : <button className="primary-button" type="submit" disabled={busy || !generationEnabled}><Music2 size={16} />{pending ? "요청 접수 중" : "기도회 생성 · 공개"}</button>}

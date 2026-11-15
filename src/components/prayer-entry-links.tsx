@@ -24,7 +24,7 @@ export function PrayerEntryLinks({ entry }: { entry: PrayerEntry }) {
       return <a key={url} className="prayer-source-link" href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /><span>{entry.sourceLabels?.[url]?.trim() || (bible ? `${bible.label} · 말씀 보기 (개역개정)` : `링크 보기${links.length > 1 ? ` ${index + 1}` : ""}`)}</span></a>;
     })}
     {pages.length ? <>
-      <button className="prayer-source-link" type="button" aria-haspopup="dialog" onClick={() => { move(0); setOpen(true); dialog.current?.showModal(); }}><Music2 size={15} />악보 보기 · {pages.length}장</button>
+      <button className="prayer-source-link" type="button" aria-haspopup="dialog" onClick={() => { move(0); setOpen(true); dialog.current?.showModal(); }}><Music2 size={15} /><span>악보 보기{pages.length > 1 ? ` · ${pages.length}장` : ""}</span></button>
       <dialog ref={dialog} className="prayer-score-dialog" aria-labelledby={headingId} onClose={() => setOpen(false)}
         onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
         <div className="prayer-score-content">
