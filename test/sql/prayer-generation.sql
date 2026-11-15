@@ -509,5 +509,37 @@ begin
   end loop;
   perform test_assert((select count(*) from test_audit where action='prayer.create')=7,'Variable save duplicated audit');
 end $$;
+\ir ../../db/058_prayer_generation_budget.sql
+-- Isolate the budget month from the preceding behavioral fixtures.
+update prayer_generation_requests set created_at = date_trunc('month',now() at time zone 'America/Los_Angeles') at time zone 'America/Los_Angeles' - interval '1 day';
+do $$
+declare i integer; actor uuid; request_id uuid; budget jsonb; input jsonb;
+begin
+  perform set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',true);
+  perform test_expect_error('select get_prayer_generation_budget(4)',array['P0001']);
+  for i in 1..6 loop
+    actor := gen_random_uuid(); request_id := gen_random_uuid();
+    insert into members values(actor,actor,'active','member');
+    perform set_config('request.jwt.claim.sub',actor::text,true);
+    budget := get_prayer_generation_budget(4);
+    perform test_assert(not (budget ? 'estimated_usd'),'Budget leaks money');
+    perform test_assert((budget->>'estimatedPercent')::int=12,'Wrong estimate');
+    perform test_assert((budget->>'usedPercent')::int=least((i-1)*20,100),'Wrong reserved usage');
+    input := test_generation_input('2028-01-'||lpad(i::text,2,'0'));
+    if i <= 5 then
+      perform test_assert((budget->>'canGenerate')::boolean,'Unexpected budget rejection');
+      perform create_prayer_generation_request(request_id,input,test_token_hash(repeat('b',43)));
+      perform create_prayer_generation_request(request_id,input,test_token_hash(repeat('b',43)));
+      perform test_assert((select budget_reserved_usd=1 from prayer_generation_requests where id=request_id),'Reservation missing');
+      perform cancel_prayer_generation_request(request_id);
+      perform test_assert(prayer_budget_committed()=i,'Cancellation released paid-risk allowance');
+    else
+      perform test_assert(not (budget->>'canGenerate')::boolean,'Exhausted budget allowed');
+      perform test_expect_error(format('select create_prayer_generation_request(%L,%L::jsonb,%L)',request_id,input,test_token_hash(repeat('b',43))));
+    end if;
+  end loop;
+  perform test_assert(not has_function_privilege('anon','get_prayer_generation_budget(integer)','execute'),'Anonymous budget access');
+  perform test_assert(not has_function_privilege('authenticated','prayer_budget_committed()','execute'),'Raw budget access');
+end $$;
 rollback;
 \echo 'Prayer generation capability, permissions, state and save integration tests passed'

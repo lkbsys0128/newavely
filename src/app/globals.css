@@ -8447,3 +8447,13 @@ tbody tr:hover {
 .prayer-usage-scroll table { width: 100%; border-collapse: collapse; font-size: .85rem; }
 .prayer-usage-scroll th, .prayer-usage-scroll td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .prayer-usage-scroll td small { display: block; margin-top: 4px; }
+.prayer-generation-budget {
+  display: grid;
+  gap: 8px;
+  padding-block: 16px;
+  border-block: 1px solid var(--line);
+  margin-block: 16px;
+}
+.prayer-budget-label { display: flex; justify-content: space-between; gap: 12px; }
+.prayer-generation-budget p { margin: 0; overflow-wrap: anywhere; }
+.prayer-generation-budget progress { display: block; width: 100%; height: 10px; accent-color: var(--accent); }
