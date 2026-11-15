@@ -74,7 +74,9 @@ function researchBody(config: Config, requestId: string) {
     tools: [{ type: "web_search" }, { type: "function", name: "read_prayer_sources",
       description: "Read up to eight public Bugs track, Tistory score article, dated Duranno or official Fondant pages. Returns metadata and image candidates only. No browser session, scripts, authentication, lyrics or devotional full text. Use after search or for historical source revalidation.",
       strict: true, parameters: z.toJSONSchema(prayerSourceArguments) }],
-    text: { format: { type: "json_schema", name: "prayer_research", strict: true, schema: z.toJSONSchema(researchSchema) } },
+    text: { format: { type: "json_schema", name: "prayer_research", strict: true,
+      // Defaults are only for parsing in-flight legacy responses, not the provider wire schema.
+      schema: z.toJSONSchema(researchSchema, { override: ({ jsonSchema }) => { delete jsonSchema.default; } }) } },
   };
 }
 

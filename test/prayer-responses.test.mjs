@@ -37,6 +37,8 @@ test("Responses dispatch exposes research only, no MCP, callback URL or write ca
     assert.equal(body.parallel_tool_calls, false);
     assert.equal(body.text.format.type, "json_schema");
     assert.equal(body.text.format.strict, true);
+    assert.equal(JSON.stringify(body.text.format.schema).includes('"default":'), false);
+    assert.equal(JSON.stringify(body.text.format.schema).includes('additionalScoreImageUrls'), true);
     assert.equal(options.body.includes(token), false);
     assert.equal(options.body.includes(env.OPENAI_API_KEY), false);
     return Response.json(run());
