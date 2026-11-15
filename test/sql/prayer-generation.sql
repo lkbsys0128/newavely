@@ -558,5 +558,21 @@ begin
   perform test_assert(not has_function_privilege('anon','get_prayer_generation_budget(integer)','execute'),'Anonymous budget access');
   perform test_assert(not has_function_privilege('authenticated','prayer_budget_committed()','execute'),'Raw budget access');
 end $$;
+\ir ../../db/060_remove_prayer_generation_budget.sql
+do $$
+declare actor uuid := gen_random_uuid(); request_id uuid := gen_random_uuid(); input jsonb := test_generation_input('2028-03-01');
+begin
+  perform test_assert(to_regprocedure('public.get_prayer_generation_budget(integer)') is null,'Budget RPC remains');
+  perform test_assert(not exists(select 1 from pg_trigger where tgname='prayer_monthly_budget'),'Budget trigger remains');
+  insert into members values(actor,actor,'active','member');
+  perform set_config('request.jwt.claim.sub',actor::text,true);
+  perform create_prayer_generation_request(request_id,input,test_token_hash(repeat('r',43)));
+  perform create_prayer_generation_request(request_id,input,test_token_hash(repeat('r',43)));
+  perform test_assert((select count(*)=1 from prayer_generation_requests where id=request_id),'Idempotency lost');
+  perform test_assert((select budget_reserved_usd=0 from prayer_generation_requests where id=request_id),'New reservation created');
+  perform cancel_prayer_generation_request(request_id);
+  perform set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',true);
+  perform test_expect_error(format('select create_prayer_generation_request(%L,%L::jsonb,%L)',gen_random_uuid(),input,test_token_hash(repeat('r',43))),array['P0001']);
+end $$;
 rollback;
 \echo 'Prayer generation capability, permissions, state and save integration tests passed'

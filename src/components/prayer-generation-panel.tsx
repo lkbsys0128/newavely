@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronRight, LoaderCircle, Music2, Pencil, Plus, Trash2, RefreshCw, X } from "lucide-react";
-import { cancelPrayerGeneration, getPrayerGenerationBudget, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration } from "@/app/prayer/generation-actions";
+import { cancelPrayerGeneration, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration } from "@/app/prayer/generation-actions";
 import { maxPrayerSongs, type GenerationJob } from "@/lib/prayer-generation";
-import { PrayerGenerationBudget } from "@/components/prayer-generation-budget";
 
 type Draft = { eventDate: string; beforeSongs: string[]; afterSongs: string[] };
 type Submission = Draft & { requestId: string };
 type Notice = { message: string; error?: boolean };
-const serverActions = { cancelPrayerGeneration, getPrayerGenerationBudget, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration };
+const serverActions = { cancelPrayerGeneration, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration };
 type Props = { today: string; generationEnabled: boolean; open: boolean; onClose?: () => void; onEditDraft?: (draft: Draft) => void; actions?: typeof serverActions };
 
 const statusLabels: Record<GenerationJob["status"], string> = {
@@ -36,7 +35,6 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
   const [pending, setPending] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const [pollEpoch, setPollEpoch] = useState(0);
-  const [budgetAvailable, setBudgetAvailable] = useState(true);
   const selectedId = useRef<string | null>(null);
   const submission = useRef<Submission | null>(null);
   const mutationPending = useRef(false);
@@ -193,7 +191,6 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
       {onClose ? <button type="button" className="prayer-icon-button" aria-label="자동 생성 닫기" onClick={onClose}><X size={18} /></button> : null}
     </div>
     {!generationEnabled ? <p className="prayer-generation-notice" role="status">AI 생성 연결을 준비 중입니다. 직접 작성은 사용할 수 있습니다.</p> : null}
-    {open && generationEnabled ? <PrayerGenerationBudget songCount={shown.beforeSongs.length + shown.afterSongs.length} revision={`${job?.id ?? "new"}:${job?.status ?? ""}:${pending}`} onAvailable={setBudgetAvailable} loadBudget={actions.getPrayerGenerationBudget} /> : null}
     {!job ? <form className="management-form prayer-generation-form" onSubmit={(event) => {
       event.preventDefault(); if (!job && !uncertain) void generate();
     }}>
@@ -220,7 +217,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
       <p className="meta prayer-generation-hint">특정 버전을 원하면 곡명 뒤에 가수도 적어주세요. 생성이 끝나면 저장되며, 가장 최신 날짜의 기도회는 공개됩니다.</p>
       {!job ? <div className="prayer-generation-actions">
         {uncertain ? <button className="primary-button" type="button" disabled={busy || !generationEnabled} onClick={() => void generate()}><RefreshCw size={16} />{pending ? "확인 중" : "같은 요청 다시 확인"}</button>
-          : <button className="primary-button" type="submit" disabled={busy || !generationEnabled || !budgetAvailable}><Music2 size={16} />{pending ? "요청 접수 중" : "기도회 생성 · 공개"}</button>}
+          : <button className="primary-button" type="submit" disabled={busy || !generationEnabled}><Music2 size={16} />{pending ? "요청 접수 중" : "기도회 생성 · 공개"}</button>}
         {loading ? <span className="meta" role="status">이전 요청 확인 중...</span> : null}
       </div> : null}
     </form> : null}

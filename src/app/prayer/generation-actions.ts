@@ -14,17 +14,6 @@ import { schedulePrayerCompletion } from "@/lib/prayer-workflow-server";
 type ActionResult = { ok: boolean; message: string; job?: GenerationJob; jobs?: GenerationJob[]; uncertain?: boolean };
 class GenerationAccessError extends Error {}
 
-export async function getPrayerGenerationBudget(songCount: number) {
-  if (!Number.isInteger(songCount) || songCount < 1 || songCount > 8) return null;
-  try {
-    const client = await generationClient();
-    const { data, error } = await client.rpc("get_prayer_generation_budget", { p_song_count: songCount });
-    if (error) return null;
-    return z.object({ usedPercent: z.number().min(0).max(100), estimatedPercent: z.number(),
-      reservedPercent: z.number(), canGenerate: z.boolean(), resetsOn: z.string() }).parse(data);
-  } catch { return null; }
-}
-
 async function generationClient() {
   const client = await createClient();
   const { data: { user }, error: authError } = await client.auth.getUser();
@@ -49,9 +38,6 @@ export async function startPrayerGeneration(value: unknown): Promise<ActionResul
   try {
     const client = await generationClient();
     const token = createPrayerRequestToken(config.signingSecret, requestId, input);
-    const budget = await client.rpc("get_prayer_generation_budget", { p_song_count: input.beforeSongs.length + input.afterSongs.length });
-    if (budget.error || !budget.data) return { ok: false, message: "생성 한도를 확인할 수 없습니다. 관리자에게 연락해주세요. 입력한 내용은 유지됩니다." };
-    // The insert trigger is authoritative; existing idempotent requests may resume even at the limit.
     creating = true;
     const created = await client.rpc("create_prayer_generation_request", {
       p_id: requestId, p_input: input, p_token_hash: hashPrayerRequestToken(token),

@@ -21,7 +21,6 @@ export function PrayerGenerationPreview({ today, state }: { today: string; state
       listOwnPrayerGenerationJobs: async () => ({ ok: true, message: "", jobs: state ? [job] : [] }),
       getPrayerGenerationJob: async () => result(),
       startPrayerGeneration: async () => result(),
-      getPrayerGenerationBudget: async (count: number) => ({ usedPercent: 40, estimatedPercent: 4 + 2 * count, reservedPercent: Math.ceil(10 + 2.5 * count), canGenerate: true, resetsOn: "2026-12-01" }),
       cancelPrayerGeneration: async () => { job = { ...job, status: "cancelled", message: "생성 요청을 취소했습니다.", updatedAt: new Date().toISOString() }; return result(); },
     };
   }, [today, state]);

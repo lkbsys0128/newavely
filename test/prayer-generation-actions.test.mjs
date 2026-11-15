@@ -7,18 +7,9 @@ import { configuredEnv, input, jobRow, requestId, verifiedResult } from "./helpe
 function memberClient(rpc, status = "active") {
   return { auth: { getUser: async () => ({ data: { user: { id: "member-fixture" } }, error: null }) },
     from() { return { select() { return this; }, eq() { return this; }, maybeSingle: async () => ({ data: { id: "member", status }, error: null }) }; },
-    rpc: (name, params) => name === "get_prayer_generation_budget" ? Promise.resolve({ data: { usedPercent: 0, estimatedPercent: 12, reservedPercent: 20, canGenerate: true, resetsOn: "2026-12-01" }, error: null }) : rpc(name, params) };
+    rpc };
 }
 
-test("budget lookup failure blocks paid dispatch without marking acceptance uncertain", async () => {
-  const client = memberClient(() => { throw new Error("must not insert"); });
-  client.rpc = async () => ({ data: null, error: { code: "PGRST202" } });
-  const actions = actionLoader(client, async () => { throw new Error("must not trigger"); });
-  const result = await actions.startPrayerGeneration({ requestId, ...input });
-  assert.equal(result.ok, false);
-  assert.equal(result.uncertain, undefined);
-  assert.match(result.message, /관리자/);
-});
 function actionLoader(client, request, env = configuredEnv) {
   return createPrayerModuleLoader({ env, fetch: request, mocks: {
     "@/lib/supabase/server": { createClient: async () => client }, "next/cache": { revalidatePath() {} },
