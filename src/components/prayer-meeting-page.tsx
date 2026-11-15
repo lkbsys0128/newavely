@@ -13,6 +13,7 @@ import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, us
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { PrayerEditRow } from "@/components/prayer-edit-row";
 import { toPrayerEditEntry } from "@/lib/prayer-editor";
+import { createPrayerGenerationDraft } from "@/lib/prayer-generation-draft";
 import { savePrayerMeeting } from "@/app/prayer/actions";
 import { formatPrayerDate, prayerEntryLinks, serializePrayerEntry, type PrayerMeeting, type PrayerSummary } from "@/lib/prayer-meetings";
 
@@ -23,6 +24,7 @@ type Props = { meeting: PrayerMeeting | null; history: PrayerSummary[]; canEdit:
 export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, page, count, error, generationEnabled = false }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(creating && canEdit);
+  const [generationDraft, setGenerationDraft] = useState(false);
   const [generationOpen, setGenerationOpen] = useState(false);
   const [generationMounted, setGenerationMounted] = useState(false);
   const [date, setDate] = useState(meeting?.event_date ?? today);
@@ -48,6 +50,7 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
   function cancel() {
     if (dirty && !window.confirm("저장하지 않은 변경사항을 취소할까요?")) return;
     setDirty(false);
+    setGenerationDraft(false);
     if (creating) router.push("/prayer");
     else {
       setEntries((meeting?.entries ?? []).map((entry, index) => toPrayerEditEntry(entry, `row-${index}`)));
@@ -68,11 +71,17 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
       </div>
     </header>
     {error ? <p className="prayer-message" role="alert">{error}</p> : null}
-    {canEdit && generationMounted ? <PrayerGenerationPanel today={today} generationEnabled={generationEnabled} open={generationOpen && !editing} onClose={() => setGenerationOpen(false)} /> : null}
+    {canEdit && generationMounted ? <PrayerGenerationPanel today={today} generationEnabled={generationEnabled} open={generationOpen && !editing} onClose={() => setGenerationOpen(false)} onEditDraft={(input) => {
+      const draft = createPrayerGenerationDraft(input);
+      setDate(draft.eventDate);
+      setEntries(draft.entries.map((entry, index) => toPrayerEditEntry(entry, `generated-draft-${index}`)));
+      setGenerationDraft(true); setGenerationOpen(false); setEditing(true); setDirty(true);
+      setMessage("아직 저장되지 않은 초안입니다. 가사·악보 링크와 말씀을 확인해 보완한 뒤 저장해주세요. 같은 날짜의 기존 기도회는 덮어쓰지 않습니다.");
+    }} /> : null}
     {editing ? <form className="management-form prayer-editor" onSubmit={(event) => {
       event.preventDefault(); setMessage("");
       startTransition(async () => {
-        const result = await savePrayerMeeting({ id: meeting?.id ?? null, version: meeting?.version ?? 0, eventDate: date, entries: entries.map(serializePrayerEntry) });
+        const result = await savePrayerMeeting({ id: generationDraft ? null : meeting?.id ?? null, version: generationDraft ? 0 : meeting?.version ?? 0, eventDate: date, entries: entries.map(serializePrayerEntry) });
         if (!result.ok) { setMessage(result.message); return; }
         setDirty(false); setEditing(false); router.push(`/prayer?id=${result.id}`); router.refresh();
       });

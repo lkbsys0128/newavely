@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronRight, LoaderCircle, Music2, RefreshCw, X } from "lucide-react";
+import { ChevronRight, LoaderCircle, Music2, Pencil, RefreshCw, X } from "lucide-react";
 import { cancelPrayerGeneration, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration } from "@/app/prayer/generation-actions";
 import type { GenerationJob } from "@/lib/prayer-generation";
 
@@ -10,7 +10,7 @@ type Draft = { eventDate: string; beforeSongs: [string, string]; afterSongs: [st
 type Submission = Draft & { requestId: string };
 type Notice = { message: string; error?: boolean };
 const serverActions = { cancelPrayerGeneration, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration };
-type Props = { today: string; generationEnabled: boolean; open: boolean; onClose: () => void; actions?: typeof serverActions };
+type Props = { today: string; generationEnabled: boolean; open: boolean; onClose: () => void; onEditDraft?: (draft: Draft) => void; actions?: typeof serverActions };
 
 const statusLabels: Record<GenerationJob["status"], string> = {
   queued: "접수됨", running: "자료 확인 중", needs_input: "확인 필요", completed: "저장 완료", failed: "생성 실패", cancelled: "취소됨",
@@ -25,7 +25,7 @@ function newestJob(previous: GenerationJob | undefined, next: GenerationJob) {
   return next;
 }
 
-export function PrayerGenerationPanel({ today, generationEnabled, open, onClose, actions = serverActions }: Props) {
+export function PrayerGenerationPanel({ today, generationEnabled, open, onClose, onEditDraft, actions = serverActions }: Props) {
   const [draft, setDraft] = useState<Draft>(() => emptyDraft(today));
   const [jobs, setJobs] = useState<GenerationJob[]>([]);
   const [job, setJob] = useState<GenerationJob | null>(null);
@@ -236,6 +236,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
           <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => void generate(job)}>같은 요청 다시 확인</button>
           <button className="secondary-button" type="button" disabled={busy} onClick={() => void cancelJob()}><X size={16} />생성 취소</button>
         </> : <>
+          {onEditDraft && ["needs_input", "failed"].includes(job.status) ? <button className="primary-button" type="button" disabled={busy} onClick={() => onEditDraft(jobDraft(job))}><Pencil size={16} />직접 보완하기</button> : null}
           <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => newRequest(job)}>내용 수정해 다시 요청</button>
           <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => newRequest()}>새 요청 작성</button>
         </>}
