@@ -107,7 +107,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
     async function poll() {
       if (cancelled) return;
       if (Date.now() >= deadline || failures >= 5) {
-        setPollNotice("자동 상태 확인을 잠시 멈췄습니다. ‘진행 상태 확인’을 눌러 다시 확인해주세요.");
+        setPollNotice("자동 상태 확인을 잠시 멈췄습니다. ‘다시 확인’을 눌러주세요.");
         return;
       }
       if (document.visibilityState === "hidden" || mutationPending.current) { timer = setTimeout(poll, 15_000); return; }
