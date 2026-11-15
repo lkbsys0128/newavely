@@ -186,7 +186,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
 
   return <section className="prayer-generation-panel" id="prayer-generation-panel" hidden={!open} aria-labelledby="prayer-generation-title">
     <div className="prayer-generation-heading">
-      <div><h2 id="prayer-generation-title" ref={heading} tabIndex={-1}><Music2 size={20} aria-hidden="true" />찬양으로 기도회 만들기</h2>
+      <div><h2 id="prayer-generation-title" ref={heading} tabIndex={-1}>{job ? <time dateTime={job.eventDate}>{job.eventDate}</time> : "찬양 선택"}</h2>
         </div>
       {onClose ? <button type="button" className="prayer-icon-button" aria-label="자동 생성 닫기" onClick={onClose}><X size={18} /></button> : null}
     </div>
@@ -232,8 +232,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
       </div> : null}
       <div className="prayer-generation-actions">
         {activeJob(job) ? <>
-          <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => setPollEpoch((current) => current + 1)}><RefreshCw size={16} />진행 상태 확인</button>
-          <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => void generate(job)}>같은 요청 다시 확인</button>
+          {pollNotice || notice?.error ? <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => { setPollEpoch((current) => current + 1); void generate(job); }}><RefreshCw size={16} />다시 확인</button> : null}
           <button className="secondary-button" type="button" disabled={busy} onClick={() => void cancelJob()}><X size={16} />생성 취소</button>
         </> : <>
           {onEditDraft && ["needs_input", "failed"].includes(job.status) ? <button className="primary-button" type="button" disabled={busy} onClick={() => onEditDraft(jobDraft(job))}><Pencil size={16} />직접 보완하기</button> : null}
@@ -242,8 +241,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
         </>}
       </div>
     </div> : null}
-    {generationEnabled ? <details className="prayer-generation-history"><summary>내 생성 요청 {jobs.length ? `(${jobs.length})` : ""}</summary>
-      <div className="prayer-generation-history-heading"><h3>내 생성 요청</h3><button className="secondary-button" type="button" disabled={busy} onClick={() => void refreshJobs()}><RefreshCw size={15} />목록 새로고침</button></div>
+    {generationEnabled && !activeJob(job) ? <details className="prayer-generation-history" onToggle={(event) => { if (event.currentTarget.open && !busy) void refreshJobs(); }}><summary>이전 생성 요청 {jobs.length ? `(${jobs.length})` : ""}</summary>
       {jobs.length ? <ul>{jobs.map((item) => <li key={item.id}><button type="button" aria-pressed={job?.id === item.id} disabled={busy || uncertain} onClick={() => {
         acceptJob(item, true); setNotice(null); setPollNotice("");
       }}><span><time dateTime={item.eventDate}>{item.eventDate}</time><span className="meta">{item.beforeSongs[0]} 외 3곡</span></span>

@@ -28,6 +28,9 @@ test("creation has one mode switch and saved AI meetings use the existing editor
   assert.match(route, /editingRequested = canEdit && params.edit === "1"/);
   assert.match(panel, /encodeURIComponent\(job.meetingId\)\}&edit=1/);
   assert.match(panel, /<details className="prayer-generation-history"/);
+  assert.match(panel, /pollNotice \|\| notice\?\.error \?/);
+  assert.match(panel, /generationEnabled && !activeJob\(job\)/);
+  assert.doesNotMatch(panel, /진행 상태 확인|목록 새로고침/);
 });
 
 test("recovery is an explicit unsaved create through the registered-member editor, never overwrite", () => {
