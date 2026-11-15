@@ -29,7 +29,15 @@ export async function completePrayerResponse(requestId: string, input: PrayerGen
   if (claim.data?.state === "done") return true;
   if (claim.data?.state !== "claimed") return false;
   const response = await getPrayerResponse(config, claim.data.run_id, requestId);
-  if (response.status === "failed") return report("failed", "기도회 생성 중 문제가 발생했습니다. 입력을 확인한 뒤 다시 요청해주세요.");
+  if (response.status === "failed") {
+    const messages = {
+      output_limit: "AI 응답이 출력 한도에 도달해 중단됐습니다. 기도회는 저장되지 않았습니다. 관리자에게 알려주세요.",
+      content_filter: "AI 응답이 안전 정책에 따라 중단됐습니다. 기도회는 저장되지 않았습니다.",
+      cancelled: "AI 생성 작업이 취소됐습니다. 기도회는 저장되지 않았습니다.",
+      provider_error: "AI 서비스에서 생성 작업을 완료하지 못했습니다. 기도회는 저장되지 않았습니다. 관리자에게 알려주세요.",
+    };
+    return report("failed", messages[response.reason ?? "provider_error"]);
+  }
   if (response.status === "needs_input") return report("needs_input", "찬양 또는 말씀 자료를 확인하지 못했습니다. 곡명·가수와 해당 날짜의 자료를 확인해주세요.");
   if (response.status !== "completed") return report("running", "찬양과 말씀 자료를 확인하고 있습니다.");
   try {

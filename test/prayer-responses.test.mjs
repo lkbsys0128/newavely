@@ -67,6 +67,23 @@ test("completed research requires structured verified metadata; refusal and part
   }
 });
 
+test("terminal provider failures distinguish output limits without logging private payloads", async (t) => {
+  const warnings = t.mock.method(console, "warn", () => {});
+  for (const [status, details, reason] of [
+    ["incomplete", { incomplete_details: { reason: "max_output_tokens" } }, "output_limit"],
+    ["incomplete", { incomplete_details: { reason: "content_filter" } }, "content_filter"],
+    ["cancelled", {}, "cancelled"],
+    ["failed", { error: { code: "PRIVATE_SECRET", message: "PRIVATE_SECRET" } }, "provider_error"],
+  ]) {
+    const result = await getPrayerResponse(config, "resp_test", requestId, async () => Response.json({ ...run(status), ...details }));
+    assert.equal(result.status, "failed");
+    assert.equal(result.reason, reason);
+    assert.equal(result.result, undefined);
+  }
+  assert.equal(warnings.mock.callCount(), 4);
+  assert.equal(JSON.stringify(warnings.mock.calls.map((call) => call.arguments)).includes("PRIVATE_SECRET"), false);
+});
+
 test("score verification loads four image inputs and fails closed for mismatch, refusal and malformed output", async () => {
   const candidate = verifiedResult();
   for (const matches of [[true, true, true, true], [true, false, true, true]]) {

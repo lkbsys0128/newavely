@@ -29,7 +29,8 @@ const researchSchema = z.object({
   }).strict().nullable(),
 }).strict();
 
-export type PrayerResponseState = { status: "queued" | "in_progress" | "failed" | "needs_input" }
+export type PrayerResponseState = { status: "queued" | "in_progress" | "needs_input" }
+  | { status: "failed"; reason?: "output_limit" | "content_filter" | "provider_error" | "cancelled" }
   | { status: "completed"; result: PrayerGenerationResult };
 
 export function prayerResearchInstructions() {
@@ -93,7 +94,18 @@ export async function getPrayerResponse(config: Config, runId: string, requestId
       return { status: "completed", result: prayerGenerationResultSchema.parse(research.result) };
     } catch { return { status: "needs_input" }; }
   }
-  return { status: result.status === "queued" || result.status === "in_progress" ? result.status : "failed" };
+  if (result.status === "queued" || result.status === "in_progress") return { status: result.status };
+  const detail = z.object({ incomplete_details: z.object({ reason: z.string().optional() }).nullish(),
+    error: z.object({ code: z.string().optional() }).nullish() }).safeParse(payload);
+  const incompleteReason = detail.success ? detail.data.incomplete_details?.reason : undefined;
+  const reason = result.status === "cancelled" ? "cancelled"
+    : result.status === "incomplete" && incompleteReason === "max_output_tokens" ? "output_limit"
+    : result.status === "incomplete" && incompleteReason === "content_filter" ? "content_filter" : "provider_error";
+  // Never log provider messages, generated content, URLs, or credentials.
+  const code = detail.success ? detail.data.error?.code : undefined;
+  const safeCode = ["server_error", "rate_limit_exceeded", "invalid_prompt", "vector_store_timeout"].includes(code ?? "") ? code : "unknown";
+  console.warn("prayer-generation: response ended", { requestId, status: result.status, reason, code: safeCode });
+  return { status: "failed", reason };
 }
 
 /** Images go directly to OpenAI vision, never to an unrestricted server-side URL fetcher. */
