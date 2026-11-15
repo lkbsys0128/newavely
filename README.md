@@ -1,13 +1,13 @@
 # Newavely
 
-## 찬양으로 기도회 자동 생성 (052–054)
+## 찬양으로 기도회 자동 생성 (052–055)
 
 `/prayer`의 **찬양으로 만들기**에서 날짜와 말씀 전·후 찬양 두 곡씩을 입력하면, 연결된
 OpenAI Responses API 또는 ChatGPT Workspace Agent가 자료를 확인하고 기본 8개 순서의 기도회를 저장합니다.
 벅스 가사 페이지와 실제 악보 이미지 링크를 넣고, 해당 날짜 생명의삶의 제목·성경 범위를
 확인합니다. 생명의삶 원문 URL은 순서지에 넣지 않고 성경 장 링크만 유지합니다.
 
-- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`, `db/053_prayer_responses_dispatch.sql`, `db/054_prayer_server_completion.sql`을 순서대로 적용합니다.
+- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`, `db/053_prayer_responses_dispatch.sql`, `db/054_prayer_server_completion.sql`, `db/055_prayer_research_tools.sql`을 순서대로 적용합니다.
   신규 DB용 `db/schema.sql`에도 포함되어 있습니다. 운영 DB에 테스트 fixture를 실행하지 않습니다.
 - 등록된 `active`/`care` 멤버가 자신의 요청만 생성·조회·취소합니다. 신규 요청은 시간당 5개,
   동시에 진행할 요청은 2개이며 같은 날짜에는 진행 중 요청 하나만 허용합니다.

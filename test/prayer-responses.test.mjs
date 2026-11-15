@@ -4,7 +4,7 @@ import { createPrayerModuleLoader } from "./helpers/load-prayer-module.mjs";
 import { configuredEnv, input, requestId, verifiedResult } from "./helpers/prayer-generation-fixture.mjs";
 const load = createPrayerModuleLoader();
 const { readPrayerAgentConfig, buildPrayerAgentInput } = load("src/lib/prayer-agent-server.ts");
-const { triggerPrayerResponse, getPrayerResponse, verifyPrayerScoreImages } = load("src/lib/prayer-responses-client.ts");
+const { triggerPrayerResponse, getPrayerResponse, verifyPrayerScoreImages, continuePrayerResponse } = load("src/lib/prayer-responses-client.ts");
 const env = { ...configuredEnv, PRAYER_GENERATION_PROVIDER: "responses", OPENAI_API_KEY: "fixture-openai-secret" };
 const config = readPrayerAgentConfig(env);
 const run = (status = "in_progress", id = requestId) => ({ id: "resp_test", status, metadata: { prayer_request_id: id } });
@@ -32,7 +32,9 @@ test("Responses dispatch exposes research only, no MCP, callback URL or write ca
     assert.equal(body.background, true);
     assert.equal(body.max_tool_calls, 24);
     assert.equal(body.metadata.prayer_request_id, requestId);
-    assert.deepEqual(body.tools, [{ type: "web_search" }]);
+    assert.deepEqual(body.tools.map((tool) => tool.type), ["web_search", "function"]);
+    assert.equal(body.tools[1].name, "read_prayer_sources");
+    assert.equal(body.parallel_tool_calls, false);
     assert.equal(body.text.format.type, "json_schema");
     assert.equal(body.text.format.strict, true);
     assert.equal(options.body.includes(token), false);
@@ -41,6 +43,27 @@ test("Responses dispatch exposes research only, no MCP, callback URL or write ca
   });
   assert.equal(result.runId, "resp_test");
   assert.equal(result.conversationUrl, null);
+});
+
+test("source tool calls resume the same response context instead of being mistaken for empty final output", async () => {
+  const call = { type: "function_call", name: "read_prayer_sources", call_id: "call_fixture", arguments: JSON.stringify({ urls: ["https://music.bugs.co.kr/track/474529"] }) };
+  const state = await getPrayerResponse(config, "resp_test", requestId, async () => Response.json({ ...run("completed"), output: [call] }));
+  assert.equal(state.status, "tools_required");
+  assert.equal(state.result, undefined);
+  const nextId = await continuePrayerResponse(config, "resp_test", requestId, state.calls, async (_url, options) => {
+    const body = JSON.parse(options.body);
+    assert.equal(body.previous_response_id, "resp_test");
+    assert.equal(body.metadata.prayer_request_id, requestId);
+    assert.equal(body.input[0].type, "function_call_output");
+    assert.equal(body.input[0].call_id, "call_fixture");
+    assert.equal(JSON.parse(body.input[0].output)[0].lyricsPresent, true);
+    assert.ok(body.instructions.includes("historical"));
+    return Response.json({ ...run(), id: "resp_next" });
+  }, async () => [{ status: "read", lyricsPresent: true }]);
+  assert.equal(nextId, "resp_next");
+  const invalid = await getPrayerResponse(config, "resp_test", requestId, async () => Response.json({ ...run("completed"), output: [{ ...call, name: "write_database" }] }));
+  assert.equal(invalid.status, "needs_input");
+  await assert.rejects(continuePrayerResponse(config, "resp_test", requestId, [call], async () => { throw new Error("uncertain POST"); }, async () => []));
 });
 
 test("Responses uncertainty is never treated as explicit rejection; polling binds response to request", async () => {

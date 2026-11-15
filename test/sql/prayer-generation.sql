@@ -47,6 +47,7 @@ insert into members values
 \ir ../../db/052_prayer_generation_requests.sql
 \ir ../../db/053_prayer_responses_dispatch.sql
 \ir ../../db/054_prayer_server_completion.sql
+\ir ../../db/055_prayer_research_tools.sql
 
 create function test_assert(condition boolean, message text) returns void language plpgsql as $$ begin
   if condition is distinct from true then raise exception '%',message using errcode='XX000'; end if;
@@ -342,6 +343,54 @@ select set_config('request.jwt.claim.sub','',true);
 select test_expect_error($cmd$select claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('x',43))$cmd$);
 select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'run_id'='resp_test','Worker cannot claim');
 select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'state'='busy','Duplicate worker not throttled');
+-- Capability-only continuations serialize contenders and never reclaim uncertain POSTs.
+select test_expect_error($cmd$select reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('x',43),'resp_test')$cmd$);
+select test_expect_error($cmd$select commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('x',43),'resp_test','resp_next')$cmd$);
+select test_assert(not reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),null),'Null previous accepted');
+select test_assert(not reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_stale'),'Stale reservation accepted');
+select test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test','resp_next'),'Commit without reservation accepted');
+select test_assert(reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test'),'Continuation not reserved');
+do $$ declare i integer; begin
+  for i in 1..20 loop
+    perform test_assert(not reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test'),'Serialized contender acquired duplicate reservation');
+  end loop;
+end $$;
+select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'state'='busy','Active worker lease lost');
+reset role;
+select test_assert((select research_step_count=1 and research_pending_previous_id='resp_test' and research_pending_started_at is not null
+  from prayer_generation_requests where id='eeeeeeee-0000-4000-8000-000000000001'),'Duplicate reservations consumed rounds');
+update prayer_generation_requests set polled_at=clock_timestamp()-interval '46 seconds'
+  where id='eeeeeeee-0000-4000-8000-000000000001';
+set local role anon;
+do $$ declare claimed jsonb; begin
+  claimed:=claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43));
+  perform test_assert(claimed->>'state'='busy','Pending continuation must stay busy after lease expiry');
+end $$;
+select test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_stale','resp_next'),'Stale commit accepted');
+select test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test','invalid'),'Invalid response accepted');
+select test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test',null),'Null response accepted');
+select test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test','resp_test'),'Self continuation accepted');
+select test_assert(commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test','resp_1'),'Valid caller could not commit while pending');
+select test_assert(commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test','resp_1'),'Identical commit retry rejected');
+select test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_other','resp_1'),'Different previous ID acknowledged');
+reset role;
+select test_assert((select polled_at is null and research_pending_previous_id is null and research_pending_started_at is null
+  from prayer_generation_requests where id='eeeeeeee-0000-4000-8000-000000000001'),'Commit did not clear pending/lease');
+set local role anon;
+select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'run_id'='resp_1','New run not claimable');
+do $$ declare i integer; begin
+  for i in 2..8 loop
+    perform test_assert(reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_'||(i-1)),'Round within cap rejected');
+    perform test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_test','resp_1'),'Stale commit acknowledged during next reservation');
+    perform test_assert(commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_'||(i-1),'resp_'||i),'Round commit rejected');
+  end loop;
+end $$;
+select test_expect_error($cmd$select reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_8')$cmd$,array['P0002']);
+select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'run_id'='resp_8','Eighth result must remain claimable');
+reset role;
+select test_assert((select research_step_count=8 and run_id='resp_8' from prayer_generation_requests
+  where id='eeeeeeee-0000-4000-8000-000000000001'),'Cap or stale update corrupted state');
+set local role anon;
 reset role;
 update members set status='inactive' where id='11111111-1111-4111-8111-111111111111';
 set local role anon;
@@ -355,6 +404,31 @@ select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111'
 select cancel_prayer_generation_request('eeeeeeee-0000-4000-8000-000000000001');
 select test_assert(not reserve_prayer_response_dispatch('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43)),'Cancelled dispatch allowed');
 select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43))->>'state'='done','Cancelled worker not stopped');
+select test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000001',repeat('r',43),'resp_7','resp_8'),'Cancelled identical commit accepted');
+
+-- An abandoned reservation stays busy until workflow timeout, without retrying POST.
+select create_prayer_generation_request('eeeeeeee-0000-4000-8000-000000000002',test_generation_input('2027-03-02'),test_token_hash(repeat('s',43)));
+select reserve_prayer_response_dispatch('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43));
+select mark_prayer_response_dispatched('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43),'resp_pending');
+set local role anon;
+select test_assert(reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43),'resp_pending'),'Pending cancellation fixture not reserved');
+reset role;
+update prayer_generation_requests set research_pending_started_at=clock_timestamp()-interval '2 minutes'
+  where id='eeeeeeee-0000-4000-8000-000000000002';
+set local role anon;
+do $$ declare claimed jsonb; begin
+  claimed:=claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43));
+  perform test_assert(claimed->>'state'='busy','Uncertain continuation must wait for workflow timeout');
+end $$;
+select test_assert(not reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43),'resp_pending'),'Expired reservation retried paid POST');
+set local role authenticated;
+select test_assert(not (get_prayer_generation_request('eeeeeeee-0000-4000-8000-000000000002') ?|
+  array['research_step_count','research_pending_previous_id','research_pending_started_at','research_committed_previous_id']),'Private continuation state leaked');
+select cancel_prayer_generation_request('eeeeeeee-0000-4000-8000-000000000002');
+set local role anon;
+select test_assert(not reserve_prayer_research_step('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43),'resp_pending'),'Cancelled reservation accepted');
+select test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43),'resp_pending','resp_cancelled'),'Commit resurrected cancelled pending request');
+select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43))->>'state'='done','Cancelled pending worker not done');
 
 -- Existing public read boundaries remain intact: latest meeting only.
 set local role anon;

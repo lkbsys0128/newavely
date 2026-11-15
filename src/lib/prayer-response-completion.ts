@@ -3,7 +3,7 @@ import { getSupabaseEnv } from "./supabase/env";
 import { createPrayerRequestToken, getPrayerAgentConfig } from "./prayer-agent-server";
 import { createPrayerGenerationHandlers } from "./prayer-generation-callback";
 import { prepareGeneratedPrayer, type PrayerGenerationInput } from "./prayer-generation";
-import { getPrayerResponse } from "./prayer-responses-client";
+import { continuePrayerResponse, getPrayerResponse } from "./prayer-responses-client";
 
 /** Returns true only when no more work is needed. No provider payload or capability is returned. */
 export async function completePrayerResponse(requestId: string, input: PrayerGenerationInput, timedOut = false) {
@@ -29,6 +29,31 @@ export async function completePrayerResponse(requestId: string, input: PrayerGen
   if (claim.data?.state === "done") return true;
   if (claim.data?.state !== "claimed") return false;
   const response = await getPrayerResponse(config, claim.data.run_id, requestId);
+  if (response.status === "tools_required") {
+    const previousId = claim.data.run_id;
+    const reserved = await client.rpc("reserve_prayer_research_step", {
+      p_id: requestId, p_token: requestToken, p_previous_response_id: previousId,
+    });
+    if (reserved.error?.code === "P0002") return report("needs_input", "자료 확인 횟수 한도에 도달했습니다. 확인되지 않은 자료를 저장하지 않았습니다. [research_limit]");
+    if (reserved.error) throw new Error("prayer-research-reservation-unavailable");
+    if (!reserved.data) return false;
+    let nextId: string;
+    try { nextId = await continuePrayerResponse(config, previousId, requestId, response.calls); }
+    catch {
+      return report("failed", "자료 확인 후 AI 연결을 이어가지 못했습니다. 중복 실행 방지를 위해 자동 재요청하지 않았습니다. [research_continuation]");
+    }
+    // Replaying this commit is safe, but replaying the paid POST above is not.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const committed = await client.rpc("commit_prayer_research_step", {
+          p_id: requestId, p_token: requestToken, p_previous_response_id: previousId, p_response_id: nextId,
+        });
+        if (!committed.error) return false;
+        if (committed.error.code === "P0001") return true;
+      } catch { /* Only retry the idempotent DB commit, never the paid POST. */ }
+    }
+    throw new Error("prayer-research-commit-unconfirmed");
+  }
   if (response.status === "failed") {
     const messages = {
       output_limit: "AI 응답이 출력 한도에 도달해 중단됐습니다. 기도회는 저장되지 않았습니다. 관리자에게 알려주세요.",

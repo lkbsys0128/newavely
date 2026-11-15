@@ -8,13 +8,16 @@ const env = { ...configuredEnv, PRAYER_GENERATION_PROVIDER: "responses", OPENAI_
   NEXT_PUBLIC_SUPABASE_URL: "https://db.example.test", NEXT_PUBLIC_SUPABASE_ANON_KEY: "fixture" };
 
 function setup({ status = "running", denied = false, claim = "claimed", matches = [true,true,true,true], revokeDuringVision = false,
-  researchStatus = "completed", wrongDate = false } = {}) {
+  researchStatus = "completed", wrongDate = false, reserve = true, continuationFails = false, researchLimit = false,
+  commitFailures = 0 } = {}) {
   let rowStatus = status;
   let saved = 0;
   let vision = 0;
   let polls = 0;
   let claimed = false;
   let revoked = denied;
+  let continuations = 0;
+  let commits = 0;
   const now = new Date().toISOString();
   const candidate = verifiedResult(now);
   candidate.songs.forEach((song) => { song.scoreImageVerified = false; });
@@ -26,6 +29,14 @@ function setup({ status = "running", denied = false, claim = "claimed", matches 
       if (claimed || claim !== "claimed") return { data: { state: claimed ? "busy" : claim } };
       claimed = true;
       return { data: { state: "claimed", run_id: "resp_fixture" } };
+    }
+    if (name === "reserve_prayer_research_step") return researchLimit ? { error: { code: "P0002" } } : { data: reserve };
+    if (name === "commit_prayer_research_step") {
+      commits += 1;
+      if (commits <= commitFailures) return { error: { code: "08006" } };
+      assert.equal(params.p_previous_response_id, "resp_fixture");
+      assert.equal(params.p_response_id, "resp_next");
+      return { data: true };
     }
     if (name === "report_prayer_generation_status") rowStatus = params.p_status;
     else if (name === "complete_prayer_generation_request") {
@@ -42,12 +53,47 @@ function setup({ status = "running", denied = false, claim = "claimed", matches 
     "next/cache": { revalidatePath() { throw new Error("worker cannot depend on request cache context"); } },
     "./prayer-responses-client": {
       getPrayerResponse: async () => { polls += 1; return { status: researchStatus, result: candidate }; },
+      continuePrayerResponse: async () => {
+        continuations += 1;
+        if (continuationFails) throw new Error("uncertain");
+        return "resp_next";
+      },
       verifyPrayerScoreImages: async () => { vision += 1; revoked = revokeDuringVision; return matches.every(Boolean); },
     },
   } });
   return { run: load("src/lib/prayer-response-completion.ts").completePrayerResponse,
-    state: () => ({ status: rowStatus, saved, vision, polls }) };
+    state: () => ({ status: rowStatus, saved, vision, polls }), tools: () => ({ continuations, commits }) };
 }
+
+test("research source continuation reserves once and commits next response without saving", async () => {
+  const app = setup({ researchStatus: "tools_required" });
+  await Promise.all([app.run(requestId, input), app.run(requestId, input)]);
+  assert.deepEqual(app.tools(), { continuations: 1, commits: 1 });
+  assert.equal(app.state().saved, 0);
+  assert.equal(app.state().vision, 0);
+});
+
+test("lost DB acknowledgement retries only the same continuation commit", async () => {
+  const app = setup({ researchStatus: "tools_required", commitFailures: 2 });
+  await app.run(requestId, input);
+  assert.deepEqual(app.tools(), { continuations: 1, commits: 3 });
+  assert.equal(app.state().saved, 0);
+});
+
+test("lost research reservations and limits never dispatch; uncertain paid continuation never retries", async () => {
+  for (const options of [{ reserve: false }, { researchLimit: true }]) {
+    const app = setup({ researchStatus: "tools_required", ...options });
+    await app.run(requestId, input);
+    assert.equal(app.tools().continuations, 0);
+    assert.equal(app.state().saved, 0);
+    if (options.researchLimit) assert.equal(app.state().status, "needs_input");
+  }
+  const app = setup({ researchStatus: "tools_required", continuationFails: true });
+  await app.run(requestId, input);
+  await app.run(requestId, input);
+  assert.deepEqual(app.tools(), { continuations: 1, commits: 0 });
+  assert.equal(app.state().status, "failed");
+});
 
 test("server research -> actual image verification -> audited save path completes without MCP or browser session", async () => {
   const app = setup();
