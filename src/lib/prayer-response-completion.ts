@@ -38,7 +38,7 @@ export async function completePrayerResponse(requestId: string, input: PrayerGen
     };
     return report("failed", messages[response.reason ?? "provider_error"]);
   }
-  if (response.status === "needs_input") return report("needs_input", "찬양 또는 말씀 자료를 확인하지 못했습니다. 곡명·가수와 해당 날짜의 자료를 확인해주세요.");
+  if (response.status === "needs_input") return report("needs_input", response.message ?? "찬양 또는 말씀 자료를 확인하지 못했습니다. 관리자에게 알려주세요.");
   if (response.status !== "completed") return report("running", "찬양과 말씀 자료를 확인하고 있습니다.");
   try {
     prepareGeneratedPrayer(input, { ...response.result,

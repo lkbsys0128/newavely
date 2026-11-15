@@ -84,6 +84,30 @@ test("terminal provider failures distinguish output limits without logging priva
   assert.equal(JSON.stringify(warnings.mock.calls.map((call) => call.arguments)).includes("PRIVATE_SECRET"), false);
 });
 
+test("research blockers identify song slots and malformed results without exposing raw responses", async (t) => {
+  const warnings = t.mock.method(console, "warn", () => {});
+  const response = async (text) => getPrayerResponse(config, "resp_test", requestId, async () => Response.json({
+    ...run("completed"), output: [{ type: "message", content: [{ type: "output_text", text }] }],
+  }));
+  const missing = await response(JSON.stringify({ status: "needs_input", result: null,
+    issues: [{ code: "score_unavailable", songIndex: 3 }, { code: "devotional_unavailable", songIndex: null }] }));
+  assert.match(missing.message, /뒤 찬양 1/);
+  assert.match(missing.message, /생명의삶/);
+  assert.match(missing.message, /research_missing/);
+  const malformed = await response("PRIVATE_SECRET not json");
+  assert.match(malformed.message, /invalid_json/);
+  const invalid = await response(JSON.stringify({ status: "PRIVATE_SECRET", result: null, issues: [] }));
+  assert.match(invalid.message, /invalid_research_schema/);
+  const unknown = await response(JSON.stringify({ status: "needs_input", result: null,
+    issues: [{ code: "PRIVATE_SECRET", songIndex: 1 }] }));
+  assert.match(unknown.message, /invalid_research_schema/);
+  const many = await response(JSON.stringify({ status: "needs_input", result: null,
+    issues: Array.from({ length: 8 }, () => ({ code: "song_ambiguous", songIndex: 1 })) }));
+  assert.ok(many.message.length <= 300);
+  assert.match(many.message, /research_missing/);
+  assert.equal(JSON.stringify([missing, malformed, invalid, unknown, warnings.mock.calls.map((call) => call.arguments)]).includes("PRIVATE_SECRET"), false);
+});
+
 test("score verification loads four image inputs and fails closed for mismatch, refusal and malformed output", async () => {
   const candidate = verifiedResult();
   for (const matches of [[true, true, true, true], [true, false, true, true]]) {

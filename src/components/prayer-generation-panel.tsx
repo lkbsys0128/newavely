@@ -221,6 +221,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
           {activeJob(job) ? <span className="prayer-generation-spinner" aria-hidden="true"><LoaderCircle size={15} /></span> : null}
           {job.status === "completed" && !saved ? "저장 결과 확인 필요" : statusLabels[job.status]}</span>
         <p>{job.message}</p>
+        {["failed", "needs_input"].includes(job.status) ? <p style={{ overflowWrap: "anywhere" }}>요청 ID: {job.id}</p> : null}
       </div>
       {pollNotice ? <p className="meta" role="status">{pollNotice}</p> : null}
       {saved && job.meetingId ? <Link className="primary-button prayer-generation-open" href={`/prayer?id=${encodeURIComponent(job.meetingId)}`}>생성된 기도회 보기<ChevronRight size={16} /></Link> : null}
