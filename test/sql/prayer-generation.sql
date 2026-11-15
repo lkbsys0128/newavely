@@ -48,6 +48,7 @@ insert into members values
 \ir ../../db/053_prayer_responses_dispatch.sql
 \ir ../../db/054_prayer_server_completion.sql
 \ir ../../db/055_prayer_research_tools.sql
+\ir ../../db/056_prayer_api_usage.sql
 
 create function test_assert(condition boolean, message text) returns void language plpgsql as $$ begin
   if condition is distinct from true then raise exception '%',message using errcode='XX000'; end if;
@@ -431,6 +432,35 @@ select test_assert(not commit_prayer_research_step('eeeeeeee-0000-4000-8000-0000
 select test_assert(claim_prayer_response_result('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43))->>'state'='done','Cancelled pending worker not done');
 
 -- Existing public read boundaries remain intact: latest meeting only.
+-- Usage writes are capability-scoped, idempotent and contain no raw provider payload.
+set local role anon;
+select record_prayer_api_usage('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43),
+  '{"response_id":"resp_pending","stage":"research","model":"gpt-5.4","input_tokens":100,"cached_tokens":0,"output_tokens":10,"search_calls":1,"estimated_usd":0.0104,"pricing_version":"2026-11-14-standard"}');
+select record_prayer_api_usage('eeeeeeee-0000-4000-8000-000000000002',repeat('s',43),
+  '{"response_id":"resp_pending","stage":"research","model":"gpt-5.4","input_tokens":100,"cached_tokens":0,"output_tokens":10,"search_calls":1,"estimated_usd":0.0104,"pricing_version":"2026-11-14-standard"}');
+select test_expect_error($cmd$select record_prayer_api_usage('eeeeeeee-0000-4000-8000-000000000002',repeat('x',43),'{}')$cmd$);
+select test_expect_error($cmd$select * from prayer_api_usage$cmd$,array['42501']);
+select test_expect_error($cmd$select get_prayer_api_usage()$cmd$,array['42501']);
+reset role;
+select test_assert((select count(*) from prayer_api_usage)=1,'Polling counted usage twice');
+select test_assert((select status from prayer_generation_requests where id='eeeeeeee-0000-4000-8000-000000000002')='cancelled','Accounting changed generation status');
+do $$ declare r text; s text; report jsonb; begin
+  foreach r in array array['member','welcome','assistant','staff','leader','admin','owner'] loop
+    foreach s in array array['new','inactive','active','care'] loop
+      update members set role=r,status=s where id='11111111-1111-4111-8111-111111111111';
+      perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+      if r in ('owner','admin') and s in ('active','care') then
+        report:=get_prayer_api_usage();
+        perform test_assert((report->>'calls')::integer=1,'Admin usage aggregation failed');
+        perform test_assert((report->>'estimated_usd')::numeric=0.0104,'Usage cost changed');
+        perform test_assert(report::text not like '%resp_pending%','Provider response ID leaked');
+      else
+        perform test_expect_error('select get_prayer_api_usage()',array['42501']);
+      end if;
+    end loop;
+  end loop;
+end $$;
+update members set role='member',status='active' where id='11111111-1111-4111-8111-111111111111';
 set local role anon;
 select set_config('request.jwt.claim.sub','',true);
 select set_config('request.jwt.claims','{"role":"anon"}',true);

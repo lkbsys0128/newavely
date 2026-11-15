@@ -4,6 +4,7 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { seattleDate, type PrayerMeeting, type PrayerSummary } from "@/lib/prayer-meetings";
 import { getPrayerAgentConfig } from "@/lib/prayer-agent-server";
+import { PrayerApiUsage } from "@/components/prayer-api-usage";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -13,6 +14,7 @@ export default async function PrayerPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const today = seattleDate();
   let canEdit = false;
+  let canViewUsage = false;
   let meeting: PrayerMeeting | null = null;
   let history: PrayerSummary[] = [];
   let count = 0;
@@ -24,9 +26,10 @@ export default async function PrayerPage({ searchParams }: { searchParams: Promi
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: member, error: memberError } = await supabase.from("members").select("id, status").eq("auth_user_id", user.id).maybeSingle();
+      const { data: member, error: memberError } = await supabase.from("members").select("id, status, role").eq("auth_user_id", user.id).maybeSingle();
       if (memberError) throw memberError;
       canEdit = canManagePrayer(member);
+      canViewUsage = canEdit && ["owner", "admin"].includes(member?.role ?? "");
     }
     if (canEdit) {
       creating = params.new === "1";
@@ -55,5 +58,6 @@ export default async function PrayerPage({ searchParams }: { searchParams: Promi
   }
   return <main className="main-content prayer-page"><PrayerMeetingPage key={`${meeting?.id ?? (creating ? "new" : "empty")}:${meeting?.version ?? 0}`}
     meeting={meeting} history={history} canEdit={canEdit && !error} creating={creating} today={today}
-    page={page} count={count} error={error} generationEnabled={Boolean(getPrayerAgentConfig())} /></main>;
+    page={page} count={count} error={error} generationEnabled={Boolean(getPrayerAgentConfig())} />
+    {canViewUsage ? <PrayerApiUsage /> : null}</main>;
 }

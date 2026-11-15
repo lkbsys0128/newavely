@@ -8428,3 +8428,12 @@ tbody tr:hover {
   .prayer-generation-history-heading { flex-wrap: wrap; gap: 10px; }
   .prayer-generation-actions > .primary-button, .prayer-generation-open { width: 100%; }
 }
+
+.prayer-api-usage { margin-top: 28px; padding-block: 20px; border-top: 1px solid var(--border); min-width: 0; }
+.prayer-api-usage summary { cursor: pointer; font-weight: var(--font-weight-ui); padding-block: 8px; }
+.prayer-usage-totals { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-block: 16px; }
+.prayer-api-usage p, .prayer-api-usage small { font-size: .8rem; color: var(--muted); }
+.prayer-usage-scroll { max-width: 100%; overflow-x: auto; margin-block: 16px; }
+.prayer-usage-scroll table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.prayer-usage-scroll th, .prayer-usage-scroll td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.prayer-usage-scroll td small { display: block; margin-top: 4px; }

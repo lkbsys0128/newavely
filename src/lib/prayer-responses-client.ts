@@ -5,6 +5,7 @@ import { prayerGenerationResultSchema, type PrayerGenerationResult } from "./pra
 import { bibleBooks } from "./bible-links";
 import songResources from "../../agent/newavely-prayer/references/song-resources.json";
 import { prayerSourceArguments, readPrayerSources } from "./prayer-source-reader";
+import type { UsageObserver } from "./prayer-usage";
 
 type Config = Extract<PrayerAgentConfig, { provider: "responses" }>;
 const apiRoot = "https://api.openai.com/v1/responses";
@@ -115,7 +116,7 @@ export async function continuePrayerResponse(config: Config, runId: string, requ
   return result.id;
 }
 
-export async function getPrayerResponse(config: Config, runId: string, requestId: string, request: typeof fetch = fetch): Promise<PrayerResponseState> {
+export async function getPrayerResponse(config: Config, runId: string, requestId: string, request: typeof fetch = fetch, observeUsage?: UsageObserver): Promise<PrayerResponseState> {
   responseId.parse(runId);
   const response = await request(`${apiRoot}/${runId}`, { cache: "no-store", redirect: "error", signal: AbortSignal.timeout(8000),
     headers: { Authorization: `Bearer ${config.accessToken}` } });
@@ -123,6 +124,7 @@ export async function getPrayerResponse(config: Config, runId: string, requestId
   const payload = await response.json();
   const result = runSchema.parse(payload);
   if (result.id !== runId || result.metadata.prayer_request_id !== requestId) throw new Error("response-request-mismatch");
+  if (!["queued", "in_progress"].includes(result.status)) await observeUsage?.(payload, "research");
   if (result.status === "completed") {
     let stage = "output_envelope";
     const needsInput = (code: string, message: string, issues: unknown = []) => {
@@ -185,7 +187,7 @@ export async function getPrayerResponse(config: Config, runId: string, requestId
 }
 
 /** Images go directly to OpenAI vision, never to an unrestricted server-side URL fetcher. */
-export async function verifyPrayerScoreImages(config: Config, result: PrayerGenerationResult, request: typeof fetch = fetch) {
+export async function verifyPrayerScoreImages(config: Config, result: PrayerGenerationResult, request: typeof fetch = fetch, observeUsage?: UsageObserver) {
   const response = await request(apiRoot, {
     method: "POST", cache: "no-store", redirect: "error", signal: AbortSignal.timeout(20000),
     headers: { Authorization: `Bearer ${config.accessToken}`, "Content-Type": "application/json" },
@@ -200,9 +202,11 @@ export async function verifyPrayerScoreImages(config: Config, result: PrayerGene
     }),
   });
   if (!response.ok) return false;
+  const raw = await response.json();
+  await observeUsage?.(raw, "vision");
   const payload = z.object({ status: z.literal("completed"), output: z.array(z.object({
     type: z.string(), content: z.array(z.object({ type: z.string(), text: z.string().optional() })).optional(),
-  })) }).parse(await response.json());
+  })) }).parse(raw);
   const text = payload.output.filter((item) => item.type === "message").flatMap((item) => item.content ?? [])
     .filter((item) => item.type === "output_text").map((item) => item.text ?? "").join("");
   const verified = z.object({ matches: z.array(z.boolean()).length(4) }).strict().parse(JSON.parse(text));

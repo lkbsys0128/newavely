@@ -5,6 +5,7 @@ import { prayerGenerationInputSchema, prepareGeneratedPrayer, toGenerationJob } 
 import type { GenerationToolHandlers, GenerationToolResponse } from "./prayer-generation-mcp";
 import { getPrayerAgentConfig } from "./prayer-agent-server";
 import { verifyPrayerScoreImages } from "./prayer-responses-client";
+import { createPrayerUsageObserver } from "./prayer-usage";
 
 function callbackClient() {
   const { supabaseUrl, supabaseAnonKey } = getSupabaseEnv();
@@ -60,7 +61,8 @@ export function createPrayerGenerationHandlers(invalidate = true): GenerationToo
       if (requiresVision && task.data.status !== "completed") {
         if (!config || config.provider !== "responses") return failure();
         let verified = false;
-        try { verified = await verifyPrayerScoreImages(config, prepared.result); } catch { /* Fail closed on image/network/refusal errors. */ }
+        try { verified = await verifyPrayerScoreImages(config, prepared.result, fetch,
+          createPrayerUsageObserver(client, input.requestId, input.requestToken)); } catch { /* Fail closed on image/network/refusal errors. */ }
         if (!verified) {
           await client.rpc("report_prayer_generation_status", { p_id: input.requestId, p_token: input.requestToken,
             p_status: "needs_input", p_message: "악보 이미지를 확인하지 못했습니다. 직접 열리는 선명한 악보 링크를 확인해주세요." });

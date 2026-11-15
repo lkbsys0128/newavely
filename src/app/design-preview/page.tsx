@@ -5,10 +5,20 @@ import { AttendanceManager, CalendarPageContent, DashboardOverview, GroupsPageCo
 import { sampleGroups, sampleMembers } from "@/lib/sample-data";
 import { seattleDate } from "@/lib/prayer-meetings";
 import { PrayerGenerationPreview } from "./prayer-generation-preview";
+import { PrayerApiUsageView } from "@/components/prayer-api-usage";
 
 export default async function DesignPreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; edit?: string; state?: string }> }) {
   if (process.env.NODE_ENV !== "development") notFound();
   const { view, edit, state } = await searchParams;
+  if (view === "prayer-usage") return <main className="main-content prayer-page"><PrayerApiUsageView report={state === "error" ? null : {
+    estimated_usd: .1375, calls: 3, untracked_requests: 1, unpriced_calls: 0,
+    rows: [
+      { id: "00000000-0000-4000-8000-000000000001", event_date: "2026-11-14", status: "completed", calls: 3,
+        vision_calls: 1, input_tokens: 30000, cached_tokens: 10000, output_tokens: 5000, search_calls: 1, estimated_usd: .1375, unpriced_calls: 0 },
+      { id: "00000000-0000-4000-8000-000000000002", event_date: "2026-11-13", status: "failed", calls: 0,
+        vision_calls: 0, input_tokens: null, cached_tokens: null, output_tokens: null, search_calls: 0, estimated_usd: null, unpriced_calls: 0 },
+    ],
+  }} /></main>;
   if (view === "prayer-generation") return <main className="main-content prayer-page"><PrayerGenerationPreview today={seattleDate()} state={state} /></main>;
   if (view === "bulletin") return <main className="main-content bulletin-page"><BulletinPage
     bulletin={{ title: "뉴웨이브 주일 주보", event_date: "2026-10-18", image_path: "preview", version: 1 }}

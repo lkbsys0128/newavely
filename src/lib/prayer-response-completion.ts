@@ -4,6 +4,7 @@ import { createPrayerRequestToken, getPrayerAgentConfig } from "./prayer-agent-s
 import { createPrayerGenerationHandlers } from "./prayer-generation-callback";
 import { prepareGeneratedPrayer, type PrayerGenerationInput } from "./prayer-generation";
 import { continuePrayerResponse, getPrayerResponse } from "./prayer-responses-client";
+import { createPrayerUsageObserver } from "./prayer-usage";
 
 /** Returns true only when no more work is needed. No provider payload or capability is returned. */
 export async function completePrayerResponse(requestId: string, input: PrayerGenerationInput, timedOut = false) {
@@ -28,7 +29,8 @@ export async function completePrayerResponse(requestId: string, input: PrayerGen
   if (claim.error) throw new Error("prayer-result-claim-unavailable");
   if (claim.data?.state === "done") return true;
   if (claim.data?.state !== "claimed") return false;
-  const response = await getPrayerResponse(config, claim.data.run_id, requestId);
+  const response = await getPrayerResponse(config, claim.data.run_id, requestId, fetch,
+    createPrayerUsageObserver(client, requestId, requestToken));
   if (response.status === "tools_required") {
     const previousId = claim.data.run_id;
     const reserved = await client.rpc("reserve_prayer_research_step", {

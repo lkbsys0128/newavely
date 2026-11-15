@@ -77,6 +77,23 @@ test("Responses uncertainty is never treated as explicit rejection; polling bind
   await assert.rejects(getPrayerResponse(config, "../../anything", requestId, async () => { throw new Error("must not fetch"); }));
 });
 
+test("terminal response usage is observed before validation failure, never for pending or mismatched runs", async () => {
+  const observed = [];
+  const observer = async (payload, stage) => observed.push([payload.id, stage]);
+  for (const status of ["queued", "in_progress", "failed", "incomplete", "completed"]) {
+    await getPrayerResponse(config, "resp_test", requestId, async () => Response.json(run(status)), observer);
+  }
+  assert.equal(observed.length, 3);
+  assert.equal(observed.every((entry) => entry[1] === "research"), true);
+  await assert.rejects(getPrayerResponse(config, "resp_test", requestId,
+    async () => Response.json(run("completed", "40000000-0000-4000-8000-000000000002")), observer));
+  assert.equal(observed.length, 3);
+  await assert.rejects(verifyPrayerScoreImages(config, verifiedResult(), async () => Response.json({
+    id: "resp_image", status: "completed", output: [{ type: "message", content: [{ type: "refusal" }] }],
+  }), observer));
+  assert.deepEqual(observed.at(-1), ["resp_image", "vision"]);
+});
+
 test("completed research requires structured verified metadata; refusal and partial output never mean saved success", async () => {
   const candidate = verifiedResult(new Date().toISOString());
   candidate.songs.forEach((song) => { delete song.scoreKey; song.scoreImageVerified = false; });
