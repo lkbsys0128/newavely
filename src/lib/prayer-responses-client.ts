@@ -29,7 +29,7 @@ const researchSchema = z.object({
       scoreImageVerified: z.boolean(), verifiedAt: z.string(),
     }).strict()).length(4),
     devotional: z.object({ date: z.string(), title: z.string(), book: z.number().int(), chapter: z.number().int(),
-      passage: z.string(), sourceUrl: z.string(), verifiedAt: z.string() }).strict(),
+      passage: z.string().describe("Canonical Korean book name and range, e.g. 아모스 6:8-14. Must match book and chapter."), sourceUrl: z.string(), verifiedAt: z.string() }).strict(),
     notes: z.array(z.string()),
   }).strict().nullable(),
 }).strict();
@@ -126,7 +126,7 @@ export async function getPrayerResponse(config: Config, runId: string, requestId
   if (result.status === "completed") {
     let stage = "output_envelope";
     const needsInput = (code: string, message: string, issues: unknown = []) => {
-      console.warn("prayer-generation: research validation", { requestId, stage, code, issues });
+      console.warn("prayer-generation: research validation", JSON.stringify({ requestId, stage, code, issues }));
       return { status: "needs_input" as const, message: `${message.length > 220 ? `${message.slice(0, 217)}...` : message} 기도회는 저장되지 않았습니다. [${code}]` };
     };
     try {
@@ -156,11 +156,18 @@ export async function getPrayerResponse(config: Config, runId: string, requestId
       }
       if (!research.result || research.issues.length) return needsInput("inconsistent_response", "AI 결과의 완료 상태와 자료가 일치하지 않습니다. 관리자에게 알려주세요.");
       stage = "domain_schema";
-      return { status: "completed", result: prayerGenerationResultSchema.parse(research.result) };
+      // Normalize typography only. Book/chapter identity and range ordering remain strict.
+      const devotional = research.result.devotional;
+      const passage = devotional.passage.trim().replace(/[ \t]+/g, " ")
+        .replace(/ *: */g, ":").replace(/ *[~～–-] */g, "-");
+      return { status: "completed", result: prayerGenerationResultSchema.parse({
+        ...research.result, devotional: { ...devotional, passage },
+      }) };
     } catch (error) {
       const issues = error instanceof z.ZodError ? error.issues.slice(0, 8).map((issue) => ({ code: issue.code,
         path: issue.path.filter((part) => typeof part === "number" || ["songs", "devotional", "title", "artist", "lyricsUrl", "scoreImageUrl", "scoreSourceUrl", "date", "book", "chapter", "passage", "verifiedAt", "status", "result", "issues", "code", "songIndex"].includes(String(part))) })) : [];
-      return needsInput(`invalid_${stage}`, "AI 응답 형식 검증에 실패했습니다. 입력 오류로 단정할 수 없습니다. 관리자에게 알려주세요.", issues);
+      const fields = issues.map((issue) => issue.path.join(".")).filter(Boolean).join(", ");
+      return needsInput(`invalid_${stage}`, `AI 응답 형식 검증에 실패했습니다.${fields ? ` 확인 항목: ${fields}.` : ""} 입력 오류로 단정할 수 없습니다. 관리자에게 알려주세요.`, issues);
     }
   }
   if (result.status === "queued" || result.status === "in_progress") return { status: result.status };

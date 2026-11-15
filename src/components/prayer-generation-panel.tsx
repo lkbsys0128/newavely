@@ -214,7 +214,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
         {loading ? <span className="meta" role="status">이전 요청 확인 중...</span> : null}
       </div> : null}
     </form>
-    {notice?.message ? <p className={`prayer-generation-notice${notice.error ? " is-error" : ""}`} role={notice.error ? "alert" : "status"}>{notice.message}</p> : null}
+    {notice?.message && (notice.error || !job || activeJob(job)) ? <p className={`prayer-generation-notice${notice.error ? " is-error" : ""}`} role={notice.error ? "alert" : "status"}>{notice.message}</p> : null}
     {job ? <div className="prayer-generation-result">
       <div className="prayer-generation-status" role="status" aria-live="polite" aria-atomic="true">
         <span className={`prayer-generation-badge${job.status === "failed" || job.status === "needs_input" ? " needs-attention" : ""}`}>

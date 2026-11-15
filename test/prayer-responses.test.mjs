@@ -90,6 +90,33 @@ test("completed research requires structured verified metadata; refusal and part
   }
 });
 
+test("source passage typography is normalized without accepting wrong books or reversed ranges", async (t) => {
+  const warnings = t.mock.method(console, "warn", () => {});
+  const candidate = verifiedResult(new Date().toISOString());
+  candidate.devotional.chapter = 6;
+  const response = async (passage) => {
+    candidate.devotional.passage = passage;
+    return getPrayerResponse(config, "resp_test", requestId, async () => Response.json({
+      ...run("completed"), output: [{ type: "message", content: [{ type: "output_text",
+        text: JSON.stringify({ status: "ready", issues: [], result: candidate }) }] }],
+    }));
+  };
+  for (const passage of ["아모스 6 : 8~14", " 아모스  6:8 ～ 14 ", "아모스 6:8–14"]) {
+    const result = await response(passage);
+    assert.equal(result.status, "completed");
+    assert.equal(result.result.devotional.passage, "아모스 6:8-14");
+  }
+  for (const passage of ["아모스 6:14~8", "아모스 5:8~14", "요한복음 6:8~14", "아모스\n6:8~14"]) {
+    const result = await response(passage);
+    assert.equal(result.status, "needs_input");
+    assert.match(result.message, /devotional.passage/);
+    assert.match(result.message, /invalid_domain_schema/);
+  }
+  const diagnostic = JSON.parse(warnings.mock.calls[0].arguments[1]);
+  assert.deepEqual(diagnostic.issues[0].path, ["devotional", "passage"]);
+  assert.equal(JSON.stringify(diagnostic).includes(candidate.songs[0].scoreImageUrl), false);
+});
+
 test("terminal provider failures distinguish output limits without logging private payloads", async (t) => {
   const warnings = t.mock.method(console, "warn", () => {});
   for (const [status, details, reason] of [
