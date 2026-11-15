@@ -202,3 +202,16 @@ test("vision verifies exactly the variable number of supplied songs", async () =
     }), true);
   }
 });
+
+test("vision includes every score page and rejects a failed later page", async () => {
+  const candidate = verifiedResult();
+  candidate.songs[0].additionalScoreImageUrls = ["https://example.com/page2.png"];
+  assert.equal(await verifyPrayerScoreImages(config, candidate, async (_url, options) => {
+    const body = JSON.parse(options.body);
+    const images = body.input[0].content.filter((item) => item.type === "input_image");
+    assert.equal(images.length, 5);
+    assert.equal(images[1].image_url, "https://example.com/page2.png");
+    assert.equal(body.text.format.schema.properties.matches.minItems, 5);
+    return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ matches: [true, false, true, true, true] }) }] }] });
+  }), false);
+});

@@ -8457,3 +8457,13 @@ tbody tr:hover {
 .prayer-budget-label { display: flex; justify-content: space-between; gap: 12px; }
 .prayer-generation-budget p { margin: 0; overflow-wrap: anywhere; }
 .prayer-generation-budget progress { display: block; width: 100%; height: 10px; accent-color: var(--accent); }
+.prayer-score-dialog { width: min(960px, calc(100vw - 24px)); max-width: none; max-height: 94dvh; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.prayer-score-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.prayer-score-content { padding: 12px; display: grid; gap: 12px; }
+.prayer-score-content header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.prayer-score-content h2 { font-size: 18px; margin: 0; overflow-wrap: anywhere; }
+.prayer-score-toolbar { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.prayer-score-toolbar span { min-width: 48px; text-align: center; font-size: 14px; }
+.prayer-score-stage { height: min(70dvh, 900px); overflow: auto; overscroll-behavior: contain; background: var(--soft); }
+.prayer-score-stage img { display: block; max-width: none; height: auto; margin-inline: auto; }
+.prayer-score-stage p { padding: 16px; }

@@ -66,12 +66,16 @@ const verifiedSongSchema = z.object({
   artist: singleLine(120),
   lyricsUrl: sourceUrl.refine(isBugsLyricsUrl, "벅스 곡 페이지 주소가 필요합니다."),
   scoreImageUrl: sourceUrl.refine((value) => !isDevotionalHost(value), "생명의삶 출처는 악보 링크로 넣을 수 없습니다."),
+  additionalScoreImageUrls: z.array(sourceUrl.refine((value) => !isDevotionalHost(value))).max(8).optional(),
   scoreSourceUrl: sourceUrl,
   scoreKey: singleLine(40).optional(),
   lyricsVerified: z.literal(true),
   scoreImageVerified: z.boolean(),
   verifiedAt: z.iso.datetime(),
-}).strict().refine((song) => song.scoreImageUrl !== song.scoreSourceUrl && song.scoreImageUrl !== song.lyricsUrl,
+}).strict().refine((song) => {
+  const pages = [song.scoreImageUrl, ...(song.additionalScoreImageUrls ?? [])];
+  return new Set(pages).size === pages.length && pages.every((url) => url !== song.scoreSourceUrl && url !== song.lyricsUrl);
+},
   "악보 원문 글과 실제 이미지 주소를 구분해주세요.");
 
 export const prayerGenerationResultSchema = z.object({
@@ -132,8 +136,9 @@ export function prepareGeneratedPrayer(
   }
   const songs = result.songs.map((song): PrayerEntry => ({
     title: "찬양", detail: song.title, sourceUrl: song.lyricsUrl,
-    additionalSourceUrls: [song.scoreImageUrl],
-    sourceLabels: { [song.lyricsUrl]: "가사", [song.scoreImageUrl]: "악보" },
+    additionalSourceUrls: [song.scoreImageUrl, ...(song.additionalScoreImageUrls ?? [])],
+    sourceLabels: { [song.lyricsUrl]: "가사", ...Object.fromEntries([song.scoreImageUrl, ...(song.additionalScoreImageUrls ?? [])]
+      .map((url, index, pages) => [url, pages.length === 1 ? "악보" : `악보 ${index + 1}`])) },
   }));
   const devotional = result.devotional;
   const bibleLink = buildBibleLink(devotional.book, devotional.chapter);

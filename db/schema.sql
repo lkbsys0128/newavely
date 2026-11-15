@@ -1799,6 +1799,7 @@ returns boolean language plpgsql immutable set search_path = pg_catalog, public
 as $$
 declare song jsonb; entry jsonb; devotional jsonb; note jsonb; position integer; row_index integer;
   before_count integer; song_count integer; requested_title text; url_key text; bible_url text; verse_match text[]; end_chapter integer;
+  score_pages jsonb; score_labels jsonb; score_page jsonb; page_index integer;
   book_names text[] := array['창세기','출애굽기','레위기','민수기','신명기','여호수아','사사기','룻기','사무엘상','사무엘하','열왕기상','열왕기하','역대상','역대하','에스라','느헤미야','에스더','욥기','시편','잠언','전도서','아가','이사야','예레미야','예레미야애가','에스겔','다니엘','호세아','요엘','아모스','오바댜','요나','미가','나훔','하박국','스바냐','학개','스가랴','말라기','마태복음','마가복음','누가복음','요한복음','사도행전','로마서','고린도전서','고린도후서','갈라디아서','에베소서','빌립보서','골로새서','데살로니가전서','데살로니가후서','디모데전서','디모데후서','디도서','빌레몬서','히브리서','야고보서','베드로전서','베드로후서','요한일서','요한이서','요한삼서','유다서','요한계시록'];
 begin
   if jsonb_typeof(p_input->'beforeSongs') is distinct from 'array' or jsonb_typeof(p_input->'afterSongs') is distinct from 'array' then return false; end if;
@@ -1822,7 +1823,7 @@ begin
     entry := p_entries->row_index;
     requested_title := case when position < before_count then p_input->'beforeSongs'->>position else p_input->'afterSongs'->>(position - before_count) end;
     if jsonb_typeof(song) is distinct from 'object' or jsonb_typeof(entry) is distinct from 'object' then return false; end if;
-    if (song - array['requestedTitle','title','artist','lyricsUrl','scoreImageUrl','scoreSourceUrl','scoreKey','lyricsVerified','scoreImageVerified','verifiedAt']) <> '{}'::jsonb
+    if (song - array['requestedTitle','title','artist','lyricsUrl','scoreImageUrl','additionalScoreImageUrls','scoreSourceUrl','scoreKey','lyricsVerified','scoreImageVerified','verifiedAt']) <> '{}'::jsonb
       or song->>'requestedTitle' is distinct from requested_title
       or jsonb_typeof(song->'requestedTitle') is distinct from 'string'
       or jsonb_typeof(song->'title') is distinct from 'string'
@@ -1840,6 +1841,24 @@ begin
       if jsonb_typeof(song->url_key) is distinct from 'string' or char_length(song->>url_key) > 2000
         or (song->>url_key) !~ '^https://[A-Za-z0-9][A-Za-z0-9.-]*[.][A-Za-z]{2,}(:[0-9]+)?([/?#][^[:space:]]*)?$' then return false; end if;
     end loop;
+    if song ? 'additionalScoreImageUrls' then
+      if jsonb_typeof(song->'additionalScoreImageUrls') is distinct from 'array' then return false; end if;
+      if jsonb_array_length(song->'additionalScoreImageUrls') > 8 then return false; end if;
+    end if;
+    score_pages := jsonb_build_array(song->>'scoreImageUrl') || coalesce(song->'additionalScoreImageUrls','[]'::jsonb);
+    if (select count(distinct value) from jsonb_array_elements(score_pages)) <> jsonb_array_length(score_pages) then return false; end if;
+    score_labels := jsonb_build_object(song->>'lyricsUrl','가사');
+    page_index := 0;
+    for score_page in select value from jsonb_array_elements(score_pages) loop
+      page_index := page_index + 1;
+      if jsonb_typeof(score_page) is distinct from 'string'
+        or char_length(score_page #>> '{}') > 2000
+        or (score_page #>> '{}') !~ '^https://[A-Za-z0-9][A-Za-z0-9.-]*[.][A-Za-z]{2,}(:[0-9]+)?([/?#][^[:space:]]*)?$'
+        or (score_page #>> '{}') in (song->>'lyricsUrl',song->>'scoreSourceUrl',p_result#>>'{devotional,sourceUrl}')
+        or (score_page #>> '{}') ~* '^https://([A-Za-z0-9-]+[.])*(duranno[.]com|fondant[.]kr|cgntv[.]net)([:/?#]|$)'
+        then return false; end if;
+      score_labels := score_labels || jsonb_build_object(score_page #>> '{}',case when jsonb_array_length(score_pages)=1 then '악보' else '악보 '||page_index end);
+    end loop;
     if (song->>'lyricsUrl') !~ '^https://music[.]bugs[.]co[.]kr/track/[0-9]+/?$'
       or entry->>'title' is distinct from '찬양' or entry->>'detail' is distinct from song->>'title'
       or song->>'scoreImageUrl' = song->>'lyricsUrl' or song->>'scoreImageUrl' = song->>'scoreSourceUrl'
@@ -1847,8 +1866,8 @@ begin
       or song->>'scoreImageUrl' = p_result#>>'{devotional,sourceUrl}'
       or (entry - array['title','detail','sourceUrl','additionalSourceUrls','sourceLabels']) <> '{}'::jsonb
       or entry->>'sourceUrl' is distinct from song->>'lyricsUrl'
-      or entry->'additionalSourceUrls' is distinct from jsonb_build_array(song->>'scoreImageUrl')
-      or entry->'sourceLabels' is distinct from jsonb_build_object(song->>'lyricsUrl','가사',song->>'scoreImageUrl','악보')
+      or entry->'additionalSourceUrls' is distinct from score_pages
+      or entry->'sourceLabels' is distinct from score_labels
       then return false; end if;
   end loop;
   devotional := p_result->'devotional';

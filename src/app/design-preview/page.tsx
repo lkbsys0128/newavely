@@ -6,10 +6,13 @@ import { sampleGroups, sampleMembers } from "@/lib/sample-data";
 import { seattleDate } from "@/lib/prayer-meetings";
 import { PrayerGenerationPreview } from "./prayer-generation-preview";
 import { PrayerApiUsageView } from "@/components/prayer-api-usage";
+import { PrayerEntryLinks } from "@/components/prayer-entry-links";
 
-export default async function DesignPreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; edit?: string; state?: string }> }) {
+export default async function DesignPreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; edit?: string; state?: string; image?: string; image2?: string }> }) {
   if (process.env.NODE_ENV !== "development") notFound();
-  const { view, edit, state } = await searchParams;
+  const { view, edit, state, image, image2 } = await searchParams;
+  if (view === "score-viewer") return <main className="main-content prayer-page"><h1>악보 뷰어 테스트</h1><PrayerEntryLinks entry={{ title: "찬양", detail: "악보 이미지 표시 테스트", sourceUrl: image,
+    additionalSourceUrls: image2 ? [image2] : [], sourceLabels: { ...(image ? { [image]: "악보 1" } : {}), ...(image2 ? { [image2]: "악보 2" } : {}) } }} /></main>;
   if (view === "prayer-usage") return <main className="main-content prayer-page"><PrayerApiUsageView report={state === "error" ? null : {
     estimated_usd: .1375, calls: 3, untracked_requests: 1, unpriced_calls: 0,
     rows: [

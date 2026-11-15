@@ -50,6 +50,7 @@ insert into members values
 \ir ../../db/055_prayer_research_tools.sql
 \ir ../../db/056_prayer_api_usage.sql
 \ir ../../db/057_prayer_variable_songs.sql
+\ir ../../db/059_prayer_score_pages.sql
 
 create function test_assert(condition boolean, message text) returns void language plpgsql as $$ begin
   if condition is distinct from true then raise exception '%',message using errcode='XX000'; end if;
@@ -508,6 +509,22 @@ begin
     perform test_assert(complete_prayer_generation_request(request_id,repeat('v',43),entries,result)->>'status'='completed','Variable retry failed');
   end loop;
   perform test_assert((select count(*) from test_audit where action='prayer.create')=7,'Variable save duplicated audit');
+end $$;
+do $$
+declare result jsonb := test_generation_result('2028-02-01'); entries jsonb := test_generation_entries('2028-02-01');
+  actor uuid := gen_random_uuid(); request_id uuid := gen_random_uuid(); saved jsonb;
+begin
+  result := jsonb_set(result,'{songs,0,additionalScoreImageUrls}','["https://example.com/page2.png"]');
+  entries := jsonb_set(entries,'{1,additionalSourceUrls}',jsonb_build_array(result#>>'{songs,0,scoreImageUrl}','https://example.com/page2.png'));
+  entries := jsonb_set(entries,'{1,sourceLabels}',jsonb_build_object(result#>>'{songs,0,lyricsUrl}','가사',result#>>'{songs,0,scoreImageUrl}','악보 1','https://example.com/page2.png','악보 2'));
+  perform test_assert(valid_prayer_generation_result(test_generation_input('2028-02-01'),entries,result),'Multiple score pages rejected');
+  perform test_assert(not valid_prayer_generation_result(test_generation_input('2028-02-01'),test_generation_entries('2028-02-01'),result),'Missing saved page accepted');
+  insert into members values(actor,actor,'active','member');
+  perform set_config('request.jwt.claim.sub',actor::text,true);
+  perform create_prayer_generation_request(request_id,test_generation_input('2028-02-01'),test_token_hash(repeat('p',43)));
+  saved := complete_prayer_generation_request(request_id,repeat('p',43),entries,result);
+  perform test_assert(saved->>'status'='completed','Multi-page save failed');
+  perform test_assert((select m.entries#>>'{1,additionalSourceUrls,1}'='https://example.com/page2.png' from prayer_meetings m where id=(saved->>'meeting_id')::uuid),'Second page lost in database');
 end $$;
 \ir ../../db/058_prayer_generation_budget.sql
 -- Isolate the budget month from the preceding behavioral fixtures.

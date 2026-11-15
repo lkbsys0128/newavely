@@ -5,17 +5,17 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Plus, Pencil, Sparkles, Save, X, ChevronLeft, ChevronRight, ExternalLink, CalendarDays, Music2, BookOpen, HeartHandshake } from "lucide-react";
+import { Plus, Pencil, Sparkles, Save, X, ChevronLeft, ChevronRight, CalendarDays, Music2, BookOpen, HeartHandshake } from "lucide-react";
 import { PrayerShare } from "@/components/prayer-share";
+import { PrayerEntryLinks } from "@/components/prayer-entry-links";
 import { PrayerTemplateControls } from "@/components/prayer-template-controls";
-import { parseBibleLink } from "@/lib/bible-links";
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { PrayerEditRow } from "@/components/prayer-edit-row";
 import { toPrayerEditEntry } from "@/lib/prayer-editor";
 import { createPrayerGenerationDraft } from "@/lib/prayer-generation-draft";
 import { savePrayerMeeting } from "@/app/prayer/actions";
-import { formatPrayerDate, prayerEntryLinks, serializePrayerEntry, type PrayerMeeting, type PrayerSummary } from "@/lib/prayer-meetings";
+import { formatPrayerDate, serializePrayerEntry, type PrayerMeeting, type PrayerSummary } from "@/lib/prayer-meetings";
 
 const PrayerGenerationPanel = dynamic(() => import("@/components/prayer-generation-panel").then((module) => module.PrayerGenerationPanel));
 
@@ -122,10 +122,7 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
       <ol className="prayer-order">{meeting.entries.map((entry, index) => {
         const EntryIcon = entry.title.includes("찬양") ? Music2 : /묵상|나눔|큐티/.test(entry.title) ? BookOpen : HeartHandshake;
         return <li key={index}><span className="prayer-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div className="prayer-entry-kind"><EntryIcon size={17} aria-hidden="true" /><h3>{entry.title}</h3></div><div className="prayer-entry-detail">{entry.detail ? <p>{entry.detail}</p> : <span className="prayer-entry-rule" aria-hidden="true" />}
-        <div className="prayer-entry-links">{prayerEntryLinks(entry).map((url, linkIndex, links) => {
-          const bibleLink = parseBibleLink(url);
-          return <a key={url} className="prayer-source-link" href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /><span>{entry.sourceLabels?.[url]?.trim() || (bibleLink ? `${bibleLink.label} · 말씀 보기 (개역개정)` : `링크 보기${links.length > 1 ? ` ${linkIndex + 1}` : ""}`)}</span></a>;
-        })}</div>
+        <PrayerEntryLinks entry={entry} />
       </div></li>;})}</ol>
     </article> : !creating && !error ? <div className="prayer-empty"><h2>아직 등록된 기도회가 없습니다</h2>{canEdit ? <Link className="primary-button" href="/prayer?new=1"><Plus size={16} />첫 기도회 만들기</Link> : null}</div> : null}
     {canEdit && !editing ? <section className="prayer-history" aria-labelledby="prayer-history-title"><div className="prayer-history-heading"><h2 id="prayer-history-title">지난 기도회</h2><span className="meta">{count}건 · 생성 최신순</span></div>
