@@ -8383,6 +8383,9 @@ tbody tr:hover {
 .prayer-generation-heading { margin-bottom: 24px; }
 .prayer-generation-history > summary { cursor: pointer; font-weight: var(--font-weight-ui); padding: 4px 0 16px; }
 .prayer-generation-panel[hidden] { display: none; }
+.prayer-generation-song-row { display: grid; grid-template-columns: minmax(0, 1fr) 40px; align-items: end; gap: 8px; }
+.prayer-generation-song-row .prayer-icon-button { width: 40px; height: 44px; margin-bottom: 0; }
+.prayer-generation-song-groups fieldset > .secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; }
 .prayer-generation-heading, .prayer-generation-history-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .prayer-generation-heading > div { min-width: 0; }
 .prayer-generation-heading h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.1rem; line-height: 1.5; font-weight: var(--font-weight-ui); }

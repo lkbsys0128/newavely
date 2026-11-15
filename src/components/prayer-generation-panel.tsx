@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronRight, LoaderCircle, Music2, Pencil, RefreshCw, X } from "lucide-react";
+import { ChevronRight, LoaderCircle, Music2, Pencil, Plus, Trash2, RefreshCw, X } from "lucide-react";
 import { cancelPrayerGeneration, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration } from "@/app/prayer/generation-actions";
-import type { GenerationJob } from "@/lib/prayer-generation";
+import { maxPrayerSongs, type GenerationJob } from "@/lib/prayer-generation";
 
-type Draft = { eventDate: string; beforeSongs: [string, string]; afterSongs: [string, string] };
+type Draft = { eventDate: string; beforeSongs: string[]; afterSongs: string[] };
 type Submission = Draft & { requestId: string };
 type Notice = { message: string; error?: boolean };
 const serverActions = { cancelPrayerGeneration, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration };
@@ -18,7 +18,7 @@ const statusLabels: Record<GenerationJob["status"], string> = {
 const activeJob = (job: GenerationJob | null) => job?.status === "queued" || job?.status === "running";
 const emptyDraft = (today: string): Draft => ({ eventDate: today, beforeSongs: ["", ""], afterSongs: ["", ""] });
 const jobDraft = (job: GenerationJob): Draft => ({ eventDate: job.eventDate,
-  beforeSongs: [job.beforeSongs[0] ?? "", job.beforeSongs[1] ?? ""], afterSongs: [job.afterSongs[0] ?? "", job.afterSongs[1] ?? ""] });
+  beforeSongs: [...job.beforeSongs], afterSongs: [...job.afterSongs] });
 
 function newestJob(previous: GenerationJob | undefined, next: GenerationJob) {
   if (previous && (Date.parse(previous.updatedAt) > Date.parse(next.updatedAt) || (!activeJob(previous) && activeJob(next)))) return previous;
@@ -139,8 +139,8 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
     if (!generationEnabled || mutationPending.current || loading) return;
     const attempt = retryJob ? { requestId: retryJob.id, ...jobDraft(retryJob) } : submission.current ?? {
       requestId: crypto.randomUUID(), eventDate: draft.eventDate,
-      beforeSongs: draft.beforeSongs.map((song) => song.trim()) as [string, string],
-      afterSongs: draft.afterSongs.map((song) => song.trim()) as [string, string],
+      beforeSongs: draft.beforeSongs.map((song) => song.trim()),
+      afterSongs: draft.afterSongs.map((song) => song.trim()),
     };
     submission.current = attempt;
     mutationPending.current = true;
@@ -199,13 +199,20 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
       }} /></label></div>
       <div className="prayer-generation-song-groups">{(["beforeSongs", "afterSongs"] as const).map((group) => <fieldset key={group} disabled={fieldsDisabled}>
         <legend>{group === "beforeSongs" ? "말씀 전 찬양" : "말씀 후 찬양"}</legend>
-        {([0, 1] as const).map((index) => <label key={index}>{group === "beforeSongs" ? "앞" : "뒤"} 찬양 {index + 1}<input required maxLength={120} value={shown[group][index]}
+        {shown[group].map((_, index) => <div className="prayer-generation-song-row" key={index}><label>{group === "beforeSongs" ? "앞" : "뒤"} 찬양 {index + 1}<input required maxLength={120} value={shown[group][index]}
           placeholder={group === "beforeSongs" ? (index === 0 ? "예: 목마른 사슴" : "예: 그 사랑 얼마나") : (index === 0 ? "예: 내 이름 아시죠" : "예: 주의 아름다움은 말로 다")}
           onChange={(event) => {
             draftTouched.current = true; submission.current = null;
             const value = event.target.value;
-            setDraft((current) => ({ ...current, [group]: current[group].map((song, i) => i === index ? value : song) as [string, string] }));
-          }} /></label>)}
+            setDraft((current) => ({ ...current, [group]: current[group].map((song, i) => i === index ? value : song) }));
+          }} /></label><button type="button" className="prayer-icon-button" title="찬양 삭제" aria-label={`${group === "beforeSongs" ? "앞" : "뒤"} 찬양 ${index + 1} 삭제`} disabled={fieldsDisabled || shown.beforeSongs.length + shown.afterSongs.length <= 1} onClick={() => {
+            draftTouched.current = true; submission.current = null;
+            setDraft((current) => ({ ...current, [group]: current[group].filter((_, i) => i !== index) }));
+          }}><Trash2 size={16} /></button></div>)}
+        <button type="button" className="secondary-button" disabled={fieldsDisabled || shown.beforeSongs.length + shown.afterSongs.length >= maxPrayerSongs} onClick={() => {
+          draftTouched.current = true; submission.current = null;
+          setDraft((current) => ({ ...current, [group]: [...current[group], ""] }));
+        }}><Plus size={16} />찬양 추가</button>
       </fieldset>)}</div>
       <p className="meta prayer-generation-hint">특정 버전을 원하면 곡명 뒤에 가수도 적어주세요. 생성이 끝나면 저장되며, 가장 최신 날짜의 기도회는 공개됩니다.</p>
       {!job ? <div className="prayer-generation-actions">
@@ -244,7 +251,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
     {generationEnabled && !activeJob(job) ? <details className="prayer-generation-history" onToggle={(event) => { if (event.currentTarget.open && !busy) void refreshJobs(); }}><summary>이전 생성 요청 {jobs.length ? `(${jobs.length})` : ""}</summary>
       {jobs.length ? <ul>{jobs.map((item) => <li key={item.id}><button type="button" aria-pressed={job?.id === item.id} disabled={busy || uncertain} onClick={() => {
         acceptJob(item, true); setNotice(null); setPollNotice("");
-      }}><span><time dateTime={item.eventDate}>{item.eventDate}</time><span className="meta">{item.beforeSongs[0]} 외 3곡</span></span>
+      }}><span><time dateTime={item.eventDate}>{item.eventDate}</time><span className="meta">{[...item.beforeSongs, ...item.afterSongs][0]} · {item.beforeSongs.length + item.afterSongs.length}곡</span></span>
         <span>{item.status === "completed" && !item.meetingId ? "결과 확인 필요" : statusLabels[item.status]}</span></button></li>)}</ul>
         : <p className="meta">{loading ? "이전 요청을 확인하고 있습니다." : "아직 생성 요청이 없습니다."}</p>}
     </details> : null}

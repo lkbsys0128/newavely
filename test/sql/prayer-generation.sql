@@ -49,6 +49,7 @@ insert into members values
 \ir ../../db/054_prayer_server_completion.sql
 \ir ../../db/055_prayer_research_tools.sql
 \ir ../../db/056_prayer_api_usage.sql
+\ir ../../db/057_prayer_variable_songs.sql
 
 create function test_assert(condition boolean, message text) returns void language plpgsql as $$ begin
   if condition is distinct from true then raise exception '%',message using errcode='XX000'; end if;
@@ -104,7 +105,7 @@ select test_expect_error($cmd$select create_prayer_generation_request('aaaaaaaa-
 select test_expect_error($cmd$select create_prayer_generation_request('aaaaaaaa-0000-4000-8000-000000000001',test_generation_input('2026-11-07'),test_token_hash(repeat('b',43)))$cmd$);
 select test_expect_error($cmd$select create_prayer_generation_request('aaaaaaaa-0000-4000-8000-000000000002',test_generation_input('2026-11-07'),test_token_hash(repeat('b',43)))$cmd$);
 select test_expect_error($cmd$select create_prayer_generation_request(gen_random_uuid(),test_generation_input('2026-02-30'),test_token_hash(repeat('a',43)))$cmd$);
-select test_expect_error($cmd$select create_prayer_generation_request(gen_random_uuid(),jsonb_set(test_generation_input('2026-11-08'),'{beforeSongs}','["one"]'),test_token_hash(repeat('a',43)))$cmd$);
+select test_expect_error($cmd$select create_prayer_generation_request(gen_random_uuid(),jsonb_set(test_generation_input('2026-11-08'),'{beforeSongs}','["1","2","3","4","5","6","7"]'),test_token_hash(repeat('a',43)))$cmd$);
 select test_expect_error($cmd$select create_prayer_generation_request(gen_random_uuid(),test_generation_input('2026-11-08'),'short')$cmd$);
 select test_expect_error($cmd$select * from prayer_generation_requests$cmd$,array['42501']);
 select test_expect_error($cmd$update prayer_generation_requests set status='completed'$cmd$,array['42501']);
@@ -471,5 +472,42 @@ select test_assert(auth.uid() is null,'Anonymous identity polluted');
 reset role;
 select test_assert((select count(*) from prayer_meetings)=2,'Unexpected meeting write');
 select test_assert((select count(*) from test_audit where action='prayer.create')=2,'Missing/duplicate successful-save audit');
+-- Variable counts traverse the same capability-authorized save and audit path.
+do $$
+declare counts integer[]; before_count integer; total integer; i integer; n integer:=0;
+  member_id uuid; request_id uuid; event_date text; input jsonb; result jsonb; entries jsonb;
+  base_entries jsonb; songs jsonb; song jsonb; titles jsonb; before_titles jsonb; after_titles jsonb; saved jsonb;
+begin
+  foreach counts slice 1 in array array[[0,1],[1,0],[3,2],[0,8],[8,0]] loop
+    n:=n+1; before_count:=counts[1]; total:=counts[1]+counts[2];
+    member_id:=gen_random_uuid(); request_id:=gen_random_uuid(); event_date:=('2027-01-01'::date+n)::text;
+    insert into members values(member_id,member_id,'active','member');
+    perform set_config('request.jwt.claim.sub',member_id::text,true);
+    perform set_config('request.jwt.claims',jsonb_build_object('sub',member_id,'role','authenticated')::text,true);
+    result:=test_generation_result(event_date); base_entries:=test_generation_entries(event_date);
+    songs:='[]'; before_titles:='[]'; after_titles:='[]'; entries:=jsonb_build_array(base_entries->0);
+    for i in 0..(total-1) loop
+      song:=jsonb_set(jsonb_set(result->'songs'->0,'{title}',to_jsonb('Song '||i)), '{requestedTitle}',to_jsonb('Song '||i));
+      songs:=songs||jsonb_build_array(song);
+      if i<before_count then before_titles:=before_titles||jsonb_build_array('Song '||i);
+      else after_titles:=after_titles||jsonb_build_array('Song '||i); end if;
+    end loop;
+    for i in 0..total loop
+      if i=before_count then entries:=entries||jsonb_build_array(base_entries->3,base_entries->4); end if;
+      if i<total then entries:=entries||jsonb_build_array(jsonb_set(base_entries->1,'{detail}',to_jsonb('Song '||i))); end if;
+    end loop;
+    entries:=entries||jsonb_build_array(base_entries->7);
+    result:=jsonb_set(result,'{songs}',songs);
+    input:=jsonb_build_object('eventDate',event_date,'beforeSongs',before_titles,'afterSongs',after_titles);
+    perform test_assert(valid_prayer_generation_result(input,entries,result),'Variable result rejected');
+    perform test_assert(not valid_prayer_generation_result(input,entries,jsonb_set(result,'{songs}',songs-'0'::integer)),'Missing song accepted');
+    perform create_prayer_generation_request(request_id,input,test_token_hash(repeat('v',43)));
+    saved:=complete_prayer_generation_request(request_id,repeat('v',43),entries,result);
+    perform test_assert(saved->>'status'='completed','Variable save failed');
+    perform test_assert((select jsonb_array_length(m.entries)=total+4 from prayer_meetings m where m.id=(saved->>'meeting_id')::uuid),'Wrong variable row count');
+    perform test_assert(complete_prayer_generation_request(request_id,repeat('v',43),entries,result)->>'status'='completed','Variable retry failed');
+  end loop;
+  perform test_assert((select count(*) from test_audit where action='prayer.create')=7,'Variable save duplicated audit');
+end $$;
 rollback;
 \echo 'Prayer generation capability, permissions, state and save integration tests passed'

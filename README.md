@@ -1,13 +1,13 @@
 # Newavely
 
-## 찬양으로 기도회 자동 생성 (052–056)
+## 찬양으로 기도회 자동 생성 (052–057)
 
-`/prayer`의 **찬양으로 만들기**에서 날짜와 말씀 전·후 찬양 두 곡씩을 입력하면, 연결된
-OpenAI Responses API 또는 ChatGPT Workspace Agent가 자료를 확인하고 기본 8개 순서의 기도회를 저장합니다.
+`/prayer`의 **새 기도회 → AI로 생성**에서 날짜와 찬양을 입력하면, 연결된
+OpenAI Responses API 또는 ChatGPT Workspace Agent가 자료를 확인하고 찬양 수 + 4개 순서의 기도회를 저장합니다. 기본은 앞·뒤 두 곡씩이며 총 1~8곡까지 추가·삭제할 수 있습니다.
 벅스 가사 페이지와 실제 악보 이미지 링크를 넣고, 해당 날짜 생명의삶의 제목·성경 범위를
 확인합니다. 생명의삶 원문 URL은 순서지에 넣지 않고 성경 장 링크만 유지합니다.
 
-- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`, `db/053_prayer_responses_dispatch.sql`, `db/054_prayer_server_completion.sql`, `db/055_prayer_research_tools.sql`, `db/056_prayer_api_usage.sql`을 순서대로 적용합니다.
+- 기존 DB에는 `051` 다음에 `db/052_prayer_generation_requests.sql`, `db/053_prayer_responses_dispatch.sql`, `db/054_prayer_server_completion.sql`, `db/055_prayer_research_tools.sql`, `db/056_prayer_api_usage.sql`, `db/057_prayer_variable_songs.sql`을 순서대로 적용합니다.
 - `056`은 요청별 API 사용량을 기록합니다. 관리자/최고관리자는 기도회 페이지 하단에서 최근 30일 예상 비용과 최근 100개 요청을 확인합니다. 새 환경변수는 없으며 운영 DB 적용은 별도 승인 후 진행합니다.
   신규 DB용 `db/schema.sql`에도 포함되어 있습니다. 운영 DB에 테스트 fixture를 실행하지 않습니다.
 - 등록된 `active`/`care` 멤버가 자신의 요청만 생성·조회·취소합니다. 신규 요청은 시간당 5개,
@@ -31,7 +31,7 @@ PRAYER_AGENT_SIGNING_SECRET=<32바이트 이상의 난수 비밀>
 ```
 
 Preview는 비운영 Supabase URL/anon key를 사용하며 운영 service-role 키를 상속하지 않습니다.
-Responses 모드는 웹 검색과 strict JSON 출력을 사용하고, 저장 전 네 악보를 별도 이미지 입력으로 검증합니다.
+Responses 모드는 웹 검색과 strict JSON 출력을 사용하고, 저장 전 요청한 모든 악보를 별도 이미지 입력으로 검증합니다.
 Vercel Workflow가 브라우저 종료 후에도 결과를 확인하며, 앱 서버가 기존 저장 RPC를 호출합니다.
 외부 MCP/별도 도메인/Preview 보호 해제가 필요 없습니다. `PRAYER_AGENT_APP_URL`은 선택적 표시용 주소입니다.
 실행 전 DB 예약으로 동시/재시도 POST를 막습니다. 네트워크 접수 불명 상태는 자동 재실행하지 않으며

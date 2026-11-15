@@ -1798,25 +1798,29 @@ create or replace function public.valid_prayer_generation_result(p_input jsonb, 
 returns boolean language plpgsql immutable set search_path = pg_catalog, public
 as $$
 declare song jsonb; entry jsonb; devotional jsonb; note jsonb; position integer; row_index integer;
-  requested_title text; url_key text; bible_url text; verse_match text[]; end_chapter integer;
+  before_count integer; song_count integer; requested_title text; url_key text; bible_url text; verse_match text[]; end_chapter integer;
   book_names text[] := array['창세기','출애굽기','레위기','민수기','신명기','여호수아','사사기','룻기','사무엘상','사무엘하','열왕기상','열왕기하','역대상','역대하','에스라','느헤미야','에스더','욥기','시편','잠언','전도서','아가','이사야','예레미야','예레미야애가','에스겔','다니엘','호세아','요엘','아모스','오바댜','요나','미가','나훔','하박국','스바냐','학개','스가랴','말라기','마태복음','마가복음','누가복음','요한복음','사도행전','로마서','고린도전서','고린도후서','갈라디아서','에베소서','빌립보서','골로새서','데살로니가전서','데살로니가후서','디모데전서','디모데후서','디도서','빌레몬서','히브리서','야고보서','베드로전서','베드로후서','요한일서','요한이서','요한삼서','유다서','요한계시록'];
 begin
+  if jsonb_typeof(p_input->'beforeSongs') is distinct from 'array' or jsonb_typeof(p_input->'afterSongs') is distinct from 'array' then return false; end if;
+  before_count := jsonb_array_length(p_input->'beforeSongs');
+  song_count := before_count + jsonb_array_length(p_input->'afterSongs');
+  if song_count not between 1 and 8 then return false; end if;
   if jsonb_typeof(p_entries) is distinct from 'array' or jsonb_typeof(p_result) is distinct from 'object' then return false; end if;
-  if jsonb_array_length(p_entries) <> 8 or octet_length(p_entries::text) > 60000
+  if jsonb_array_length(p_entries) <> song_count + 4 or octet_length(p_entries::text) > 60000
     or octet_length(p_result::text) > 65000
     or (p_result - array['songs','devotional','notes']) <> '{}'::jsonb
     or jsonb_typeof(p_result->'songs') is distinct from 'array'
     or jsonb_typeof(p_result->'devotional') is distinct from 'object'
     or jsonb_typeof(p_result->'notes') is distinct from 'array' then return false; end if;
-  if jsonb_array_length(p_result->'songs') <> 4 or jsonb_array_length(p_result->'notes') > 8 then return false; end if;
+  if jsonb_array_length(p_result->'songs') <> song_count or jsonb_array_length(p_result->'notes') > 8 then return false; end if;
   if p_entries->0 <> jsonb_build_object('title','기도','detail','시작기도')
-    or p_entries->3 <> jsonb_build_object('title','기도','detail',E'릴레이 기도\n마무리 기도')
-    or p_entries->7 <> jsonb_build_object('title','기도','detail',E'통성기도\n마무리 기도') then return false; end if;
-  for position in 0..3 loop
+    or p_entries->(before_count + 1) <> jsonb_build_object('title','기도','detail',E'릴레이 기도\n마무리 기도')
+    or p_entries->(song_count + 3) <> jsonb_build_object('title','기도','detail',E'통성기도\n마무리 기도') then return false; end if;
+  for position in 0..(song_count - 1) loop
     song := p_result->'songs'->position;
-    row_index := case when position < 2 then position + 1 else position + 3 end;
+    row_index := case when position < before_count then position + 1 else position + 3 end;
     entry := p_entries->row_index;
-    requested_title := case when position < 2 then p_input->'beforeSongs'->>position else p_input->'afterSongs'->>(position - 2) end;
+    requested_title := case when position < before_count then p_input->'beforeSongs'->>position else p_input->'afterSongs'->>(position - before_count) end;
     if jsonb_typeof(song) is distinct from 'object' or jsonb_typeof(entry) is distinct from 'object' then return false; end if;
     if (song - array['requestedTitle','title','artist','lyricsUrl','scoreImageUrl','scoreSourceUrl','scoreKey','lyricsVerified','scoreImageVerified','verifiedAt']) <> '{}'::jsonb
       or song->>'requestedTitle' is distinct from requested_title
@@ -1873,7 +1877,7 @@ begin
       ||(devotional->>'book')||'&CN='||end_chapter||'&CV=99')
     or (end_chapter = (devotional->>'chapter')::integer and coalesce(verse_match[3]::integer,verse_match[1]::integer) < verse_match[1]::integer)
     then return false; end if;
-  entry := p_entries->4;
+  entry := p_entries->(before_count + 2);
   if not public.is_prayer_bible_link(bible_url) or jsonb_typeof(entry) is distinct from 'object'
     or (entry - array['title','detail','sourceUrl','additionalSourceUrls','sourceLabels']) <> '{}'::jsonb
     or entry->>'title' is distinct from '묵상/나눔'
@@ -1900,8 +1904,8 @@ begin
     or jsonb_typeof(p_input->'eventDate') is distinct from 'string' or (p_input->>'eventDate') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
     or jsonb_typeof(p_input->'beforeSongs') is distinct from 'array'
     or jsonb_typeof(p_input->'afterSongs') is distinct from 'array' then raise exception '날짜와 찬양을 확인해주세요.'; end if;
-  if jsonb_array_length(p_input->'beforeSongs') <> 2 or jsonb_array_length(p_input->'afterSongs') <> 2 then
-    raise exception '말씀 전후 찬양을 각각 두 곡씩 입력해주세요.';
+  if jsonb_array_length(p_input->'beforeSongs') + jsonb_array_length(p_input->'afterSongs') not between 1 and 8 then
+    raise exception '찬양은 총 1~8곡을 입력해주세요.';
   end if;
   begin v_event_date := (p_input->>'eventDate')::date;
   exception when invalid_datetime_format or datetime_field_overflow then raise exception '올바른 날짜를 선택해주세요.'; end;

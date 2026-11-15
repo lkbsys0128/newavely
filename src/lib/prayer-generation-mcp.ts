@@ -15,7 +15,7 @@ function toolResult(result: GenerationToolResponse) {
 
 export function createPrayerGenerationMcpServer(handlers: GenerationToolHandlers) {
   const server = new McpServer({ name: "newavely-prayer-generation", version: "1.0.0" }, {
-    instructions: "요청별 requestId/requestToken이 있어야 상태 보고·결과 제출이 가능합니다. 토큰은 이 서버 도구의 인증 인자에만 넣으세요. 다른 요청 조회, 날짜 변경, 기존 기도회 수정은 지원하지 않습니다. 검증이 끝난 네 곡과 해당 날짜 말씀 자료만 제출하세요.",
+    instructions: "요청별 requestId/requestToken이 있어야 상태 보고·결과 제출이 가능합니다. 토큰은 이 서버 도구의 인증 인자에만 넣으세요. 다른 요청 조회, 날짜 변경, 기존 기도회 수정은 지원하지 않습니다. 검증이 끝난 요청 곡들과 해당 날짜 말씀 자료만 제출하세요.",
   });
   const annotations = { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true };
   const outputSchema = z.object({ status: z.string(), message: z.string(), meetingId: z.string().optional(), meetingUrl: z.string().optional() });
@@ -27,7 +27,7 @@ export function createPrayerGenerationMcpServer(handlers: GenerationToolHandlers
   }, async (input) => toolResult(await handlers.report(input)));
   server.registerTool("submit_prayer_generation_result", {
     title: "검증한 기도회 저장",
-    description: "Use after verifying the four songs, Bugs lyric pages and exact-date devotional metadata. Supply requestedTitle in original order and UTC ISO verifiedAt. In Responses mode, real source-page image candidates may use scoreImageVerified=false: the server inspects all four image inputs before saving and rejects any uncertainty. Workspace mode still requires prior image verification. The server builds the fixed program, excludes devotional source URLs, and never overwrites a meeting.",
+    description: "Use after verifying all requested songs, Bugs lyric pages and exact-date devotional metadata. Supply requestedTitle in original order and UTC ISO verifiedAt. In Responses mode, real source-page image candidates may use scoreImageVerified=false: the server inspects all requested image inputs before saving and rejects any uncertainty. Workspace mode still requires prior image verification. The server builds the fixed program, excludes devotional source URLs, and never overwrites a meeting.",
     inputSchema: z.object({ ...generationCapabilitySchema, result: prayerGenerationResultSchema }).strict(),
     outputSchema, annotations,
   }, async (input) => toolResult(await handlers.submit(input)));

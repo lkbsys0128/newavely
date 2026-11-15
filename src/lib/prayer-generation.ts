@@ -5,14 +5,16 @@ import { safeSourceUrl } from "./prayer-source-search";
 
 const singleLine = (max: number) => z.string().trim().min(1).max(max).refine((value) => !/[\r\n\u0000-\u001f]/.test(value), "한 줄로 입력해주세요.");
 const sourceUrl = z.string().max(2000).refine(safeSourceUrl, "HTTPS 자료 링크를 확인해주세요.");
-const pair = z.tuple([singleLine(120), singleLine(120)]);
+export const maxPrayerSongs = 8;
+const songList = z.array(singleLine(120)).max(maxPrayerSongs);
 
 export const prayerGenerationInputSchema = z.object({
   eventDate: prayerMeetingSchema.shape.eventDate,
-  beforeSongs: pair,
-  afterSongs: pair,
-}).strict();
-export const startPrayerGenerationSchema = prayerGenerationInputSchema.extend({ requestId: z.string().uuid() });
+  beforeSongs: songList,
+  afterSongs: songList,
+}).strict().refine((input) => input.beforeSongs.length + input.afterSongs.length >= 1
+  && input.beforeSongs.length + input.afterSongs.length <= maxPrayerSongs, "찬양은 총 1~8곡을 입력해주세요.");
+export const startPrayerGenerationSchema = prayerGenerationInputSchema.safeExtend({ requestId: z.string().uuid() });
 export type PrayerGenerationInput = z.infer<typeof prayerGenerationInputSchema>;
 
 export const generationStatuses = ["queued", "running", "needs_input", "completed", "failed", "cancelled"] as const;
@@ -73,7 +75,7 @@ const verifiedSongSchema = z.object({
   "악보 원문 글과 실제 이미지 주소를 구분해주세요.");
 
 export const prayerGenerationResultSchema = z.object({
-  songs: z.array(verifiedSongSchema).length(4),
+  songs: z.array(verifiedSongSchema).min(1).max(maxPrayerSongs),
   devotional: z.object({
     date: prayerMeetingSchema.shape.eventDate,
     title: singleLine(120),
@@ -115,7 +117,7 @@ export function prepareGeneratedPrayer(
   if (result.songs.some((song) => !song.scoreImageVerified)) throw new Error("악보 이미지 확인이 필요합니다.");
   const expected = [...input.beforeSongs, ...input.afterSongs];
   if (result.devotional.date !== input.eventDate) throw new Error("말씀 자료의 날짜가 기도회 날짜와 다릅니다.");
-  if (result.songs.some((song, index) => song.requestedTitle !== expected[index])) throw new Error("찬양 순서 또는 요청한 곡이 일치하지 않습니다.");
+  if (result.songs.length !== expected.length || result.songs.some((song, index) => song.requestedTitle !== expected[index])) throw new Error("찬양 순서 또는 요청한 곡이 일치하지 않습니다.");
   const now = options.now ?? Date.now();
   const createdAt = options.createdAt ? Date.parse(options.createdAt) : now - 24 * 60 * 60 * 1000;
   for (const checked of [...result.songs, result.devotional]) {
@@ -136,11 +138,11 @@ export function prepareGeneratedPrayer(
   const devotional = result.devotional;
   const bibleLink = buildBibleLink(devotional.book, devotional.chapter);
   const entries: PrayerEntry[] = [
-    { title: "기도", detail: "시작기도" }, songs[0], songs[1],
+    { title: "기도", detail: "시작기도" }, ...songs.slice(0, input.beforeSongs.length),
     { title: "기도", detail: "릴레이 기도\n마무리 기도" },
     { title: "묵상/나눔", detail: `${devotional.passage}\n생명의삶 — ${devotional.title}`, sourceUrl: bibleLink,
       sourceLabels: { [bibleLink]: "성경 말씀" } },
-    songs[2], songs[3], { title: "기도", detail: "통성기도\n마무리 기도" },
+    ...songs.slice(input.beforeSongs.length), { title: "기도", detail: "통성기도\n마무리 기도" },
   ];
   prayerMeetingSchema.parse({ id: null, version: 0, eventDate: input.eventDate, entries });
   return { result, entries };

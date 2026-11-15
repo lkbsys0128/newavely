@@ -158,7 +158,7 @@ test("research blockers identify song slots and malformed results without exposi
   }));
   const missing = await response(JSON.stringify({ status: "needs_input", result: null,
     issues: [{ code: "score_unavailable", songIndex: 3 }, { code: "devotional_unavailable", songIndex: null }] }));
-  assert.match(missing.message, /뒤 찬양 1/);
+  assert.match(missing.message, /찬양 3/);
   assert.match(missing.message, /생명의삶/);
   assert.match(missing.message, /research_missing/);
   const malformed = await response("PRIVATE_SECRET not json");
@@ -188,4 +188,17 @@ test("score verification loads four image inputs and fails closed for mismatch, 
   }
   assert.equal(await verifyPrayerScoreImages(config, candidate, async () => new Response("broken image", { status: 400 })), false);
   await assert.rejects(verifyPrayerScoreImages(config, candidate, async () => Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "refusal" }] }] })));
+});
+
+test("vision verifies exactly the variable number of supplied songs", async () => {
+  for (const count of [1, 3, 8]) {
+    const candidate = verifiedResult();
+    candidate.songs = Array.from({ length: count }, () => ({ ...candidate.songs[0] }));
+    assert.equal(await verifyPrayerScoreImages(config, candidate, async (_url, options) => {
+      const body = JSON.parse(options.body);
+      assert.equal(body.input[0].content.filter((item) => item.type === "input_image").length, count);
+      assert.equal(body.text.format.schema.properties.matches.minItems, count);
+      return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ matches: Array(count).fill(true) }) }] }] });
+    }), true);
+  }
 });

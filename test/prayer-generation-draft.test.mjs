@@ -14,7 +14,11 @@ test("manual recovery preserves date and song order without claiming verified so
   assert.equal(draft.entries[4].detail, "");
   assert.ok(draft.entries.every((row) => !row.sourceUrl && !row.additionalSourceUrls));
   assert.equal(JSON.stringify(input), before);
-  assert.throws(() => createPrayerGenerationDraft({ ...input, beforeSongs: ["one"] }));
+  const shorter = createPrayerGenerationDraft({ ...input, beforeSongs: [], afterSongs: ["one"] });
+  assert.equal(shorter.entries.length, 5);
+  assert.equal(shorter.entries[2].title, "묵상/나눔");
+  assert.equal(shorter.entries[3].detail, "one");
+  assert.throws(() => createPrayerGenerationDraft({ ...input, beforeSongs: [], afterSongs: [] }));
 });
 
 test("creation has one mode switch and saved AI meetings use the existing editor", () => {

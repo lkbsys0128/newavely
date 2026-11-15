@@ -29,7 +29,7 @@ function databaseMessage(error: { code?: string; message?: string } | null, fall
 
 export async function startPrayerGeneration(value: unknown): Promise<ActionResult> {
   const parsed = startPrayerGenerationSchema.safeParse(value);
-  if (!parsed.success) return { ok: false, message: "날짜와 앞·뒤 찬양 두 곡씩을 확인해주세요." };
+  if (!parsed.success) return { ok: false, message: "날짜와 찬양 제목을 확인해주세요. 찬양은 총 1~8곡을 입력할 수 있습니다." };
   const config = getPrayerAgentConfig();
   if (!config) return { ok: false, message: "자동 생성 연결을 준비 중입니다. 현재는 직접 기도회를 작성할 수 있습니다." };
   const { requestId, ...input } = parsed.data;
