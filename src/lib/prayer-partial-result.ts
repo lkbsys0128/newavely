@@ -3,6 +3,7 @@ import { buildBibleLink } from "./bible-links";
 import { isBugsLyricsUrl, isDevotionalHost, partialPrayerDraftSchema, prayerGenerationResultSchema, type PrayerGenerationInput, type PrayerGenerationResult } from "./prayer-generation";
 import { createPrayerGenerationDraft } from "./prayer-generation-draft";
 import { safeSourceUrl } from "./prayer-source-search";
+import { naverScorePageUrl } from "./prayer-score-page";
 
 /** Retain fields independently; an unverified image never enters the editable draft. */
 export async function preparePartialPrayer(input: PrayerGenerationInput, candidate: unknown,
@@ -40,7 +41,15 @@ export async function preparePartialPrayer(input: PrayerGenerationInput, candida
       try { verified = await verify({ ...song, lyricsVerified: true, scoreImageVerified: false }); } catch { /* Preserve other fields after a failed image check. */ }
     }
     if (verified) pages.forEach((url, page) => { urls.push(url); labels[url] = pages.length === 1 ? "악보" : `악보 ${page + 1}`; });
-    else issues.push({ entryIndex, message: `찬양 ${index + 1} · 악보 확인 필요` });
+    else {
+      const fallback = song ? naverScorePageUrl(song.scoreSourceUrl) : null;
+      if (fallback) {
+        urls.push(fallback); labels[fallback] = "악보 원문 (네이버 블로그)";
+      }
+      issues.push({ entryIndex, message: fallback
+        ? `찬양 ${index + 1} · 네이버 블로그에서 악보 확인 필요`
+        : `찬양 ${index + 1} · 악보 확인 필요` });
+    }
     if (urls.length) Object.assign(entry, { sourceUrl: urls[0], additionalSourceUrls: urls.slice(1), sourceLabels: labels });
   }));
   issues.sort((a, b) => a.entryIndex - b.entryIndex || a.message.localeCompare(b.message));
