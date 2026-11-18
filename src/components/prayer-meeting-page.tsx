@@ -25,6 +25,7 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
   const router = useRouter();
   const [editing, setEditing] = useState(canEdit && (creating || (editingRequested && Boolean(meeting))));
   const [generationDraft, setGenerationDraft] = useState(false);
+  const [draftIssues, setDraftIssues] = useState<string[]>([]);
   const [creationMode, setCreationMode] = useState<"ai" | "manual">(generationEnabled ? "ai" : "manual");
   const [date, setDate] = useState(meeting?.event_date ?? today);
   const [entries, setEntries] = useState(() => (meeting?.entries ?? [{ title: "기도", detail: "" }, { title: "찬양", detail: "" }, { title: "묵상/나눔", detail: "" }])
@@ -77,7 +78,8 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
     </div> : null}
     {canEdit && creating ? <PrayerGenerationPanel today={today} generationEnabled={generationEnabled} open={creationMode === "ai"} onEditDraft={(input) => {
       if (dirty && !window.confirm("작성 중인 내용을 AI 초안으로 바꿀까요?")) return;
-      const draft = createPrayerGenerationDraft(input);
+      const draft = createPrayerGenerationDraft({ eventDate: input.eventDate, beforeSongs: input.beforeSongs, afterSongs: input.afterSongs }, input.savedDraft);
+      setDraftIssues(input.savedDraft?.issues.map((issue) => issue.message) ?? []);
       setDate(draft.eventDate);
       setEntries(draft.entries.map((entry, index) => toPrayerEditEntry(entry, `generated-draft-${index}`)));
       setGenerationDraft(true); setCreationMode("manual"); setEditing(true); setDirty(true);
@@ -93,6 +95,7 @@ export function PrayerMeetingPage({ meeting, history, canEdit, creating, today, 
     }}>
       <div className="prayer-editor-top"><label>기도회 날짜<input type="date" required value={date} disabled={pending} onChange={(event) => { setDate(event.target.value); setDirty(true); }} /></label>
         <p className="meta">저장한 날짜 중 가장 최신 기도회는 누구나 볼 수 있습니다. 개인 연락처나 민감한 기도 제목은 입력하지 마세요.</p></div>
+      {generationDraft && draftIssues.length ? <div role="status"><strong>초안에서 보완이 필요한 항목</strong><ul>{draftIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div> : null}
       <PrayerTemplateControls entries={entries} disabled={pending} dirty={dirty} onLoad={(loaded) => {
         setEntries(loaded.map((entry) => toPrayerEditEntry(entry, `template-${crypto.randomUUID()}`))); setDirty(true);
       }} />

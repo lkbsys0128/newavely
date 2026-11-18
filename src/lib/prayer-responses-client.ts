@@ -42,7 +42,7 @@ type SourceCall = z.infer<typeof sourceCall>;
 
 export type PrayerResponseState = { status: "queued" | "in_progress" }
   | { status: "tools_required"; calls: SourceCall[] }
-  | { status: "needs_input"; message?: string }
+  | { status: "needs_input"; message?: string; candidate?: unknown; issues?: { code: string; songIndex: number | null }[] }
   | { status: "failed"; reason?: "output_limit" | "content_filter" | "provider_error" | "cancelled" }
   | { status: "completed"; result: PrayerGenerationResult };
 
@@ -57,11 +57,11 @@ export function prayerResearchInstructions() {
     "A web_search open failure is NOT proof of source failure. Call read_prayer_sources for Bugs tracks, Tistory score articles, Duranno dated pages and Fondant official episodes before declaring them inaccessible. This tool returns only public metadata, lyrics existence and image candidates, never lyrics text; it does not render JavaScript or log in. Unsupported/dynamic sources still need another verified official source, not guesses. Never bypass authentication, paywalls, CAPTCHA or access controls.",
     "Verify Bugs title, artist and lyricsPresent=true from the source reader; never infer lyrics presence from a generic search snippet. Search canonical track URLs if a historical track does not match. For devotional sources, try the exact-date Duranno page first, then official CGN/Fondant if absent or unavailable. Compare the date displayed on the page, not just the URL date.",
     "Always return issues: [] for ready. For needs_input, list specific issue codes and songIndex (one-based in input order, null for devotional/general). Use song_ambiguous, lyrics_unavailable, score_unavailable, devotional_unavailable, or source_blocked. Never invent a reason; report only observed blockers.",
-    "Find HTTPS direct score image URLs from real source pages. Do not fabricate URLs or signatures. A search thumbnail is not proof. Set scoreImageVerified=false: the app server independently loads all requested image inputs with a vision model before saving. If you cannot find an actual candidate image URL, return status=needs_input and result=null.",
+    "Find HTTPS direct score image URLs from real source pages. Do not fabricate URLs or signatures. A search thumbnail is not proof. Set scoreImageVerified=false: the app server independently loads candidate images before retaining them. Process every song in input order even if an earlier song fails. Preserve found fields in result; use empty strings and false for unavailable song fields, never omit or reorder song slots.",
     "For multi-page scores include EVERY page of the same arrangement in order: first in scoreImageUrl, remaining pages in additionalScoreImageUrls (empty array for one page, maximum nine pages total). Never keep only page one, mix arrangements, or include PDF/download landing-page URLs. If completeness cannot be established or the score exceeds nine pages, report score_unavailable instead of truncating.",
     "Verify the exact requested date, official devotional title and Bible range together on https://www.duranno.com/qt/view/bible.asp?qtDate=YYYY-MM-DD or the exact episode on fondant.kr. Future unpublished or blocked sources require needs_input, not guesses.",
     "The devotional source URL is verification metadata only. Never include it in notes, status or final text. Never alter dates or create program rows yourself.",
-    "Use UTC ISO verification timestamps for THIS run. Return status=ready with result only when all requested song sources and the devotional are verified. Otherwise return status=needs_input with result=null. The server builds the program and decides whether to save; your response is never a saved-success receipt.",
+    "Use UTC ISO verification timestamps for THIS run. Return status=ready only when all requested song sources and the devotional are verified. Otherwise return needs_input WITH partial result, keeping verified fields. For unavailable devotional use empty strings and book=0, chapter=0. The server retains only validated fields in a private draft. Never claim it was published.",
     `Bible book numbers (one-based): ${JSON.stringify(bibleBooks)}`,
     `Historical starting points: ${JSON.stringify(songResources)}`,
   ].join("\n");
@@ -158,7 +158,7 @@ export async function getPrayerResponse(config: Config, runId: string, requestId
       if (research.status !== "ready") {
         const labels = { song_ambiguous: "곡/가수 버전을 특정하지 못했습니다. 가수를 함께 입력해주세요.", lyrics_unavailable: "Bugs 가사 페이지를 확인하지 못했습니다.", score_unavailable: "직접 열리는 악보 이미지 주소를 확인하지 못했습니다.", devotional_unavailable: "해당 날짜의 생명의삶 제목과 성경 범위를 확인하지 못했습니다.", source_blocked: "자료 페이지 접근이 차단되었거나 열리지 않았습니다." };
         const message = research.issues.map((issue) => `${issue.songIndex ? `찬양 ${issue.songIndex}` : "말씀/공통 자료"}: ${labels[issue.code]}`).join(" ");
-        return needsInput("research_missing", message || "AI가 자료 미확인을 보고했지만 세부 사유를 제공하지 않았습니다. 관리자에게 알려주세요.", research.issues);
+        return { ...needsInput("research_missing", message || "자료를 직접 보완해주세요.", research.issues), candidate: research.result, issues: research.issues };
       }
       if (!research.result || research.issues.length) return needsInput("inconsistent_response", "AI 결과의 완료 상태와 자료가 일치하지 않습니다. 관리자에게 알려주세요.");
       stage = "domain_schema";
@@ -191,7 +191,7 @@ export async function getPrayerResponse(config: Config, runId: string, requestId
 }
 
 /** Images go directly to OpenAI vision, never to an unrestricted server-side URL fetcher. */
-export async function verifyPrayerScoreImages(config: Config, result: PrayerGenerationResult, request: typeof fetch = fetch, observeUsage?: UsageObserver) {
+export async function verifyPrayerScoreImages(config: Config, result: Pick<PrayerGenerationResult, "songs">, request: typeof fetch = fetch, observeUsage?: UsageObserver) {
   const pages = result.songs.flatMap((song) => [song.scoreImageUrl, ...(song.additionalScoreImageUrls ?? [])].map((url, page) => ({ song, url, page })));
   const response = await request(apiRoot, {
     method: "POST", cache: "no-store", redirect: "error", signal: AbortSignal.timeout(20000),
