@@ -4,11 +4,11 @@ import { useId, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, Music2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { prayerEntryLinks, type PrayerEntry } from "@/lib/prayer-meetings";
 import { parseBibleLink } from "@/lib/bible-links";
+import { isPrayerImageLink } from "@/lib/prayer-image-link";
 
 export function PrayerEntryLinks({ entry }: { entry: PrayerEntry }) {
   const links = prayerEntryLinks(entry);
-  const pages = links.filter((url) => /^악보(?:\s*\d+)?$/.test(entry.sourceLabels?.[url]?.trim() ?? "")
-    || /\.(?:png|jpe?g|webp|gif|avif)(?:[?#]|$)/i.test(url));
+  const pages = links.filter(isPrayerImageLink);
   const dialog = useRef<HTMLDialogElement>(null);
   const headingId = useId();
   const [open, setOpen] = useState(false);
