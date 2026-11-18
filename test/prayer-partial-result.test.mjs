@@ -8,6 +8,25 @@ const { createPrayerGenerationDraft } = load("src/lib/prayer-generation-draft.ts
 const now = "2026-11-04T20:00:00.000Z";
 const options = { now: Date.parse(now), createdAt: now, requestToken: "test-capability-never-persist" };
 
+test("missing score retains a canonical Naver post as an external manual-review link", async () => {
+  const result = verifiedResult(now);
+  result.songs[3].scoreImageUrl = "";
+  result.songs[3].scoreSourceUrl = "https://m.blog.naver.com/PostView.naver?blogId=giftedteam&logNo=224179750434&proxyReferer=https%3A%2F%2Fexample.com&trackingCode=blog_postview&view=img_1";
+  const draft = await preparePartialPrayer(input, result, async () => true, options);
+  const link = draft.entries[6].additionalSourceUrls[0];
+  assert.equal(link, "https://m.blog.naver.com/PostView.naver?blogId=giftedteam&logNo=224179750434&view=img_1");
+  assert.equal(draft.entries[6].sourceLabels[link], "악보 원문 (네이버 블로그)");
+  assert.match(draft.issues[0].message, /네이버 블로그/);
+});
+
+test("Naver fallback accepts post URLs only and rejects spoofed hosts and credentials", () => {
+  const { naverScorePageUrl } = load("src/lib/prayer-score-page.ts");
+  assert.equal(naverScorePageUrl("https://blog.naver.com/giftedteam/224179750434"), "https://m.blog.naver.com/PostView.naver?blogId=giftedteam&logNo=224179750434&view=img_1");
+  for (const value of ["https://blog.naver.com.evil.com/giftedteam/123", "https://user@blog.naver.com/giftedteam/123", "http://blog.naver.com/giftedteam/123", "https://blog.naver.com/giftedteam", "https://m.blog.naver.com/PostView.naver?blogId=giftedteam&logNo=nope"]) {
+    assert.equal(naverScorePageUrl(value), null);
+  }
+});
+
 test("reported incomplete score pages are not marked complete even when one image exists", async () => {
   const result = verifiedResult(now);
   const draft = await preparePartialPrayer(input, result, async () => true, {
