@@ -8,7 +8,7 @@ import { isPrayerImageLink } from "@/lib/prayer-image-link";
 
 export function PrayerEntryLinks({ entry }: { entry: PrayerEntry }) {
   const links = prayerEntryLinks(entry);
-  const pages = links.filter(isPrayerImageLink);
+  const pages = links.filter((url) => isPrayerImageLink(url, entry.sourceModes?.[url]));
   const dialog = useRef<HTMLDialogElement>(null);
   const headingId = useId();
   const [open, setOpen] = useState(false);
