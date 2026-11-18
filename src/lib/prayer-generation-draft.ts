@@ -1,9 +1,11 @@
-import { prayerGenerationInputSchema } from "./prayer-generation";
+import { partialPrayerDraftSchema, prayerGenerationInputSchema } from "./prayer-generation";
 import type { PrayerEntry } from "./prayer-meetings";
 
-/** Preserve only user input; never promote unverified model output to saved evidence. */
-export function createPrayerGenerationDraft(input: unknown): { eventDate: string; entries: PrayerEntry[] } {
+/** Restore a server-validated private draft, or fall back to the original song input. */
+export function createPrayerGenerationDraft(input: unknown, savedDraft?: unknown): { eventDate: string; entries: PrayerEntry[] } {
   const parsed = prayerGenerationInputSchema.parse(input);
+  const saved = partialPrayerDraftSchema.safeParse(savedDraft);
+  if (saved.success && saved.data.eventDate === parsed.eventDate && saved.data.entries.length === parsed.beforeSongs.length + parsed.afterSongs.length + 4) return saved.data;
   const songs = [...parsed.beforeSongs, ...parsed.afterSongs].map((detail) => ({ title: "찬양", detail }));
   return { eventDate: parsed.eventDate, entries: [
     { title: "기도", detail: "시작기도" }, ...songs.slice(0, parsed.beforeSongs.length),

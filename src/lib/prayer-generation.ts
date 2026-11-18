@@ -16,6 +16,12 @@ export const prayerGenerationInputSchema = z.object({
   && input.beforeSongs.length + input.afterSongs.length <= maxPrayerSongs, "찬양은 총 1~8곡을 입력해주세요.");
 export const startPrayerGenerationSchema = prayerGenerationInputSchema.safeExtend({ requestId: z.string().uuid() });
 export type PrayerGenerationInput = z.infer<typeof prayerGenerationInputSchema>;
+export const partialPrayerDraftSchema = z.object({
+  eventDate: prayerMeetingSchema.shape.eventDate,
+  entries: prayerMeetingSchema.shape.entries,
+  issues: z.array(z.object({ entryIndex: z.number().int().min(0).max(99), message: z.string().max(200) })).max(24),
+});
+export type PartialPrayerDraft = z.infer<typeof partialPrayerDraftSchema>;
 
 export const generationStatuses = ["queued", "running", "needs_input", "completed", "failed", "cancelled"] as const;
 export type GenerationStatus = typeof generationStatuses[number];
@@ -29,6 +35,7 @@ export type GenerationJob = {
   meetingId?: string;
   createdAt: string;
   updatedAt: string;
+  draft?: PartialPrayerDraft;
   resultSummary?: {
     songs?: { title: string; artist: string }[];
     passage?: string;
@@ -157,6 +164,7 @@ const publicJobSchema = z.object({
   id: z.string().uuid(), event_date: z.string(), input: prayerGenerationInputSchema,
   status: z.enum(generationStatuses), message: z.string().nullable().optional(),
   meeting_id: z.string().uuid().nullable().optional(), created_at: z.string(), updated_at: z.string(),
+  draft: partialPrayerDraftSchema.nullable().optional(),
   result_summary: z.object({
     songs: z.array(z.object({ title: z.string(), artist: z.string() })).optional(),
     passage: z.string().optional(), devotionalTitle: z.string().optional(), notes: z.array(z.string()).optional(),
@@ -169,5 +177,6 @@ export function toGenerationJob(value: unknown): GenerationJob {
   return { id: row.id, eventDate: row.event_date, beforeSongs: row.input.beforeSongs, afterSongs: row.input.afterSongs,
     status: row.status, message: row.message ?? "", ...(row.meeting_id ? { meetingId: row.meeting_id } : {}),
     createdAt: row.created_at, updatedAt: row.updated_at,
+    ...(row.draft ? { draft: row.draft } : {}),
     ...(row.result_summary ? { resultSummary: row.result_summary } : {}) };
 }

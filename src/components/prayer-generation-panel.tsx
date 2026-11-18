@@ -6,7 +6,7 @@ import { ChevronRight, LoaderCircle, Music2, Pencil, Plus, Trash2, RefreshCw, X 
 import { cancelPrayerGeneration, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration } from "@/app/prayer/generation-actions";
 import { maxPrayerSongs, type GenerationJob } from "@/lib/prayer-generation";
 
-type Draft = { eventDate: string; beforeSongs: string[]; afterSongs: string[] };
+type Draft = { eventDate: string; beforeSongs: string[]; afterSongs: string[]; savedDraft?: GenerationJob["draft"] };
 type Submission = Draft & { requestId: string };
 type Notice = { message: string; error?: boolean };
 const serverActions = { cancelPrayerGeneration, getPrayerGenerationJob, listOwnPrayerGenerationJobs, startPrayerGeneration };
@@ -231,6 +231,11 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
         {["failed", "needs_input"].includes(job.status) ? <p style={{ overflowWrap: "anywhere" }}>요청 ID: {job.id}</p> : null}
       </div>
       {pollNotice ? <p className="meta" role="status">{pollNotice}</p> : null}
+      {job.draft ? <div className="prayer-generation-summary"><ul>{job.draft.entries.map((entry, index) => {
+        if (!["찬양", "묵상/나눔"].includes(entry.title)) return null;
+        const missing = job.draft!.issues.filter((issue) => issue.entryIndex === index);
+        return <li key={index}><span>{entry.detail || entry.title}</span><span className="meta">{missing.length ? missing.map((issue) => issue.message).join(" · ") : "자료 확인 완료"}</span></li>;
+      })}</ul></div> : null}
       {saved && job.meetingId ? <div className="prayer-generation-actions"><Link className="primary-button prayer-generation-open" href={`/prayer?id=${encodeURIComponent(job.meetingId)}&edit=1`}><Pencil size={16} />순서 수정</Link><Link className="secondary-button prayer-generation-open" href={`/prayer?id=${encodeURIComponent(job.meetingId)}`}>기도회 보기<ChevronRight size={16} /></Link></div> : null}
       {saved && job.resultSummary ? <div className="prayer-generation-summary">
         {job.resultSummary.songs?.length ? <ul>{job.resultSummary.songs.map((song, index) => <li key={index}><span>{song.title}</span><span className="meta">{song.artist}</span></li>)}</ul> : null}
@@ -242,7 +247,7 @@ export function PrayerGenerationPanel({ today, generationEnabled, open, onClose,
           {pollNotice || notice?.error ? <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => { setPollEpoch((current) => current + 1); void generate(job); }}><RefreshCw size={16} />다시 확인</button> : null}
           <button className="secondary-button" type="button" disabled={busy} onClick={() => void cancelJob()}><X size={16} />생성 취소</button>
         </> : <>
-          {onEditDraft && ["needs_input", "failed"].includes(job.status) ? <button className="primary-button" type="button" disabled={busy} onClick={() => onEditDraft(jobDraft(job))}><Pencil size={16} />직접 보완하기</button> : null}
+          {onEditDraft && ["needs_input", "failed"].includes(job.status) ? <button className="primary-button" type="button" disabled={busy} onClick={() => onEditDraft({ ...jobDraft(job), savedDraft: job.draft })}><Pencil size={16} />직접 보완하기</button> : null}
           {!saved ? <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => newRequest(job)}>내용 수정해 다시 요청</button> : null}
           <button className="secondary-button" type="button" disabled={busy || !generationEnabled} onClick={() => newRequest()}>새 요청 작성</button>
         </>}

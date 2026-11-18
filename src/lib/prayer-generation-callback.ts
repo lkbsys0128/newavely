@@ -6,6 +6,7 @@ import type { GenerationToolHandlers, GenerationToolResponse } from "./prayer-ge
 import { getPrayerAgentConfig } from "./prayer-agent-server";
 import { verifyPrayerScoreImages } from "./prayer-responses-client";
 import { createPrayerUsageObserver } from "./prayer-usage";
+import { preparePartialPrayer } from "./prayer-partial-result";
 
 function callbackClient() {
   const { supabaseUrl, supabaseAnonKey } = getSupabaseEnv();
@@ -64,9 +65,11 @@ export function createPrayerGenerationHandlers(invalidate = true): GenerationToo
         try { verified = await verifyPrayerScoreImages(config, prepared.result, fetch,
           createPrayerUsageObserver(client, input.requestId, input.requestToken)); } catch { /* Fail closed on image/network/refusal errors. */ }
         if (!verified) {
-          await client.rpc("report_prayer_generation_status", { p_id: input.requestId, p_token: input.requestToken,
-            p_status: "needs_input", p_message: "악보 이미지를 확인하지 못했습니다. 직접 열리는 선명한 악보 링크를 확인해주세요." });
-          return failure("악보 이미지 확인이 필요합니다. 기도회는 저장하지 않았습니다.");
+          const draft = await preparePartialPrayer(original, input.result,
+            (song) => verifyPrayerScoreImages(config, { songs: [song] }, fetch, createPrayerUsageObserver(client, input.requestId, input.requestToken)),
+            { createdAt: task.data.created_at, requestToken: input.requestToken });
+          const saved = await client.rpc("save_prayer_generation_draft", { p_id: input.requestId, p_token: input.requestToken, p_draft: draft });
+          return saved.error || !saved.data ? failure() : savedResult(saved.data);
         }
       }
       // This RPC rechecks cancellation, expiry and registration after the external image check.

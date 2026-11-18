@@ -3,7 +3,8 @@ import { getSupabaseEnv } from "./supabase/env";
 import { createPrayerRequestToken, getPrayerAgentConfig } from "./prayer-agent-server";
 import { createPrayerGenerationHandlers } from "./prayer-generation-callback";
 import { prepareGeneratedPrayer, type PrayerGenerationInput } from "./prayer-generation";
-import { continuePrayerResponse, getPrayerResponse } from "./prayer-responses-client";
+import { continuePrayerResponse, getPrayerResponse, verifyPrayerScoreImages } from "./prayer-responses-client";
+import { preparePartialPrayer } from "./prayer-partial-result";
 import { createPrayerUsageObserver } from "./prayer-usage";
 
 /** Returns true only when no more work is needed. No provider payload or capability is returned. */
@@ -64,6 +65,14 @@ export async function completePrayerResponse(requestId: string, input: PrayerGen
       provider_error: "AI 서비스에서 생성 작업을 완료하지 못했습니다. 기도회는 저장되지 않았습니다. 관리자에게 알려주세요.",
     };
     return report("failed", messages[response.reason ?? "provider_error"]);
+  }
+  if (response.status === "needs_input" && response.candidate) {
+    const draft = await preparePartialPrayer(input, response.candidate,
+      (song) => verifyPrayerScoreImages(config, { songs: [song] }, fetch, createPrayerUsageObserver(client, requestId, requestToken)),
+      { createdAt: task.data.created_at, requestToken, issues: response.issues });
+    const saved = await client.rpc("save_prayer_generation_draft", { p_id: requestId, p_token: requestToken, p_draft: draft });
+    if (saved.error || !saved.data) throw new Error("prayer-draft-save-unconfirmed");
+    return true;
   }
   if (response.status === "needs_input") return report("needs_input", response.message ?? "찬양 또는 말씀 자료를 확인하지 못했습니다. 관리자에게 알려주세요.");
   if (response.status !== "completed") return report("running", "찬양과 말씀 자료를 확인하고 있습니다.");

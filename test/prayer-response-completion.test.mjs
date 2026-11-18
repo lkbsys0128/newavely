@@ -39,6 +39,7 @@ function setup({ status = "running", denied = false, claim = "claimed", matches 
       return { data: true };
     }
     if (name === "report_prayer_generation_status") rowStatus = params.p_status;
+    else if (name === "save_prayer_generation_draft") rowStatus = "needs_input";
     else if (name === "complete_prayer_generation_request") {
       saved += 1;
       assert.equal(params.p_entries.length, 8);
@@ -52,7 +53,7 @@ function setup({ status = "running", denied = false, claim = "claimed", matches 
     "@supabase/supabase-js": { createClient: () => client },
     "next/cache": { revalidatePath() { throw new Error("worker cannot depend on request cache context"); } },
     "./prayer-responses-client": {
-      getPrayerResponse: async () => { polls += 1; return { status: researchStatus, result: candidate }; },
+      getPrayerResponse: async () => { polls += 1; return { status: researchStatus, result: candidate, ...(researchStatus === "needs_input" ? { candidate } : {}) }; },
       continuePrayerResponse: async () => {
         continuations += 1;
         if (continuationFails) throw new Error("uncertain");

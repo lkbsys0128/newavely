@@ -45,5 +45,5 @@ test("recovery is an explicit unsaved create through the registered-member edito
   assert.match(page, /version: generationDraft \? 0 : meeting\?\.version/);
   assert.match(page, /savePrayerMeeting/);
   assert.match(panel, /onEditDraft && \["needs_input", "failed"\]/);
-  assert.match(panel, /onEditDraft\(jobDraft\(job\)\)/);
+  assert.match(panel, /onEditDraft\(\{ \.\.\.jobDraft\(job\), savedDraft: job.draft \}\)/);
 });

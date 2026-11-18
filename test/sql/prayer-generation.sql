@@ -574,5 +574,32 @@ begin
   perform set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',true);
   perform test_expect_error(format('select create_prayer_generation_request(%L,%L::jsonb,%L)',gen_random_uuid(),input,test_token_hash(repeat('r',43))),array['P0001']);
 end $$;
+\ir ../../db/061_prayer_partial_drafts.sql
+do $$
+declare actor uuid := gen_random_uuid(); other_actor uuid := gen_random_uuid(); request_id uuid := gen_random_uuid();
+  draft jsonb; saved jsonb; count_before integer;
+begin
+  insert into members values(actor,actor,'active','member'),(other_actor,other_actor,'active','member');
+  perform set_config('request.jwt.claim.sub',actor::text,true);
+  perform create_prayer_generation_request(request_id,test_generation_input('2028-04-01'),test_token_hash(repeat('d',43)));
+  draft := jsonb_build_object('eventDate','2028-04-01','entries',test_generation_entries('2028-04-01'),'issues',jsonb_build_array(jsonb_build_object('entryIndex',6,'message','Score missing')));
+  select count(*) into count_before from prayer_meetings;
+  perform test_expect_error(format('select save_prayer_generation_draft(%L,%L,%L::jsonb)',request_id,repeat('x',43),draft));
+  saved := save_prayer_generation_draft(request_id,repeat('d',43),draft);
+  perform test_assert(saved->>'status'='needs_input' and saved->'draft'=draft,'Draft was not retained');
+  perform test_assert((select count(*)=count_before from prayer_meetings),'Draft published a meeting');
+  perform test_assert(save_prayer_generation_draft(request_id,repeat('d',43),draft)=saved,'Draft retry changed result');
+  perform test_assert(get_prayer_generation_request(request_id)->'draft'=draft,'Owner cannot retrieve draft');
+  perform set_config('request.jwt.claim.sub',other_actor::text,true);
+  perform test_assert(get_prayer_generation_request(request_id) is null,'Another member can retrieve draft');
+  update members set status='inactive' where id=actor;
+  perform test_expect_error(format('select save_prayer_generation_draft(%L,%L,%L::jsonb)',request_id,repeat('d',43),draft));
+  update members set status='active' where id=actor;
+  update prayer_generation_requests set expires_at=now()-interval '1 minute' where id=request_id;
+  perform test_expect_error(format('select save_prayer_generation_draft(%L,%L,%L::jsonb)',request_id,repeat('d',43),draft));
+  update prayer_generation_requests set expires_at=now()+interval '1 hour', status='cancelled' where id=request_id;
+  perform test_expect_error(format('select save_prayer_generation_draft(%L,%L,%L::jsonb)',request_id,repeat('d',43),draft));
+  perform test_assert(not has_table_privilege('anon','prayer_generation_requests','select'),'Anonymous raw draft access');
+end $$;
 rollback;
 \echo 'Prayer generation capability, permissions, state and save integration tests passed'

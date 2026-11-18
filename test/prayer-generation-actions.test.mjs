@@ -239,6 +239,7 @@ test("Responses callback authenticates before image costs and saves only after e
         if (params.p_token !== token) return { error: { code: "P0001" } };
         if (name === "get_prayer_generation_task") return { data: { input, status: "running", api_trigger_id: "responses_v1", created_at: new Date(Date.now()-60_000).toISOString() } };
         if (name === "report_prayer_generation_status") { reported = params.p_status; return { data: {} }; }
+        if (name === "save_prayer_generation_draft") { reported = "needs_input"; return { data: jobRow({ status: "needs_input", draft: params.p_draft }) }; }
         if (name === "complete_prayer_generation_request") {
           assert.ok(params.p_result.songs.every((song) => song.scoreImageVerified));
           saved = true;
@@ -250,9 +251,9 @@ test("Responses callback authenticates before image costs and saves only after e
     await handlers.submit({ requestId, requestToken: "X".repeat(43), result: candidate });
     assert.equal(images, 0);
     const result = await handlers.submit({ requestId, requestToken: token, result: candidate });
-    assert.equal(images, 1);
+    assert.equal(images, matches.every(Boolean) ? 1 : 5);
     assert.equal(saved, matches.every(Boolean));
-    assert.equal(result.status, matches.every(Boolean) ? "completed" : "error");
+    assert.equal(result.status, matches.every(Boolean) ? "completed" : "needs_input");
     if (!saved) assert.equal(reported, "needs_input");
   }
 });
