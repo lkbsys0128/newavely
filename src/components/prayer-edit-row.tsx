@@ -11,6 +11,11 @@ type Props = { entry: PrayerEditEntry; index: number; pending: boolean; onlyRow:
   onChange: (entry: PrayerEditEntry) => void; onDelete: () => void };
 
 export function PrayerEditRow({ entry, index, pending, onlyRow, onChange, onDelete }: Props) {
+  function setLinkMode(url: string, mode: "auto" | "image" | "external") {
+    const sourceModes = { ...entry.sourceModes };
+    if (mode === "auto") delete sourceModes[url]; else sourceModes[url] = mode;
+    onChange({ ...entry, sourceModes });
+  }
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: entry.key, disabled: pending });
   return <div ref={setNodeRef} className={`prayer-edit-row${isDragging ? " is-dragging" : ""}`}
     style={{ transform: CSS.Transform.toString(transform), transition }}>
@@ -30,6 +35,7 @@ export function PrayerEditRow({ entry, index, pending, onlyRow, onChange, onDele
     <div className="prayer-item-content"><label><span className="prayer-mobile-label">찬양 제목 · 내용</span><textarea aria-label={`${index + 1}번 내용`} rows={2} value={entry.detail} maxLength={500} disabled={pending}
       onChange={(event) => onChange({ ...entry, detail: event.target.value })} /></label>
       {entry.kind === "묵상/나눔" || entry.kind === "찬양" || entry.sourceUrl ? <PrayerLinkEditor url={entry.sourceUrl} text={entry.sourceLabels?.[entry.sourceUrl ?? ""]}
+        displayMode={entry.sourceModes?.[entry.sourceUrl ?? ""]} onDisplayModeChange={(mode) => setLinkMode(entry.sourceUrl ?? "", mode)}
         bible={entry.kind === "묵상/나눔" || Boolean(parseBibleLink(entry.sourceUrl))} disabled={pending} label={`${index + 1}번`}
         onChange={(sourceUrl, text, songTitle) => onChange({ ...selectPrayerSource(entry, sourceUrl, songTitle), sourceLabels: { ...entry.sourceLabels, [sourceUrl]: text } })} /> : null}
       {(entry.additionalSourceUrls ?? []).map((url, linkIndex) => {
@@ -39,7 +45,7 @@ export function PrayerEditRow({ entry, index, pending, onlyRow, onChange, onDele
           <div className="prayer-extra-link-heading"><span>링크 {linkIndex + 2}</span>
             <button type="button" className="prayer-icon-button" title="추가 링크 삭제" aria-label={`${label} 삭제`} disabled={pending}
               onClick={() => onChange({ ...entry, additionalSourceUrls: entry.additionalSourceUrls?.filter((_, i) => i !== linkIndex), linkKeys: entry.linkKeys?.filter((_, i) => i !== linkIndex) })}><Trash2 size={16} /></button></div>
-          <PrayerLinkEditor url={url} text={entry.sourceLabels?.[url]} bible={entry.kind === "묵상/나눔" || Boolean(parseBibleLink(url))} disabled={pending} label={label} onChange={update} />
+          <PrayerLinkEditor url={url} text={entry.sourceLabels?.[url]} displayMode={entry.sourceModes?.[url]} onDisplayModeChange={(mode) => setLinkMode(url, mode)} bible={entry.kind === "묵상/나눔" || Boolean(parseBibleLink(url))} disabled={pending} label={label} onChange={update} />
         </div>;
       })}
       {entry.kind === "찬양" || entry.kind === "묵상/나눔" || entry.sourceUrl || entry.additionalSourceUrls?.length ?

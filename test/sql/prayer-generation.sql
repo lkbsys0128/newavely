@@ -601,5 +601,18 @@ begin
   perform test_expect_error(format('select save_prayer_generation_draft(%L,%L,%L::jsonb)',request_id,repeat('d',43),draft));
   perform test_assert(not has_table_privilege('anon','prayer_generation_requests','select'),'Anonymous raw draft access');
 end $$;
+\ir ../../db/062_prayer_link_display_modes.sql
+do $$
+declare saved jsonb; entries jsonb := '[{"title":"찬양","detail":"test","sourceUrl":"https://example.com/a.png","sourceModes":{"https://example.com/a.png":"external"}}]';
+begin
+  perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+  saved := save_prayer_meeting(null,0,'2030-12-30',entries);
+  perform test_assert(saved->'entries'=entries,'Meeting display preferences lost');
+  saved := save_prayer_template(null,0,'Display test',entries);
+  perform test_assert(saved->'entries'=entries,'Template display preferences lost');
+  perform test_assert(valid_prayer_additional_links('{"sourceUrl":"https://example.com/a.png","sourceModes":{"https://example.com/a.png":"external"}}'), 'Display mode rejected');
+  perform test_assert(not valid_prayer_additional_links('{"sourceUrl":"https://example.com/a.png","sourceModes":{"https://example.com/a.png":"invalid"}}'), 'Invalid display mode accepted');
+  perform test_assert(not valid_prayer_additional_links('{"sourceModes":{"https://example.com/absent":"image"}}'), 'Orphan mode accepted');
+end $$;
 rollback;
 \echo 'Prayer generation capability, permissions, state and save integration tests passed'

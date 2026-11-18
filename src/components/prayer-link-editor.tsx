@@ -10,9 +10,11 @@ import { parseBibleLink } from "@/lib/bible-links";
 type Props = {
   url?: string; text?: string; bible: boolean; label: string; disabled: boolean;
   onChange: (url: string, text: string, songTitle?: string) => void;
+  displayMode?: "image" | "external";
+  onDisplayModeChange?: (mode: "auto" | "image" | "external") => void;
 };
 
-export function PrayerLinkEditor({ url = "", text = "", bible, label, disabled, onChange }: Props) {
+export function PrayerLinkEditor({ url = "", text = "", bible, label, disabled, onChange, displayMode, onDisplayModeChange }: Props) {
   const [mode, setMode] = useState<"search" | "manual">(text || (url && !parseBibleLink(url)) ? "manual" : "search");
   const [draftText, setDraftText] = useState(text);
   const validUrl = safePrayerSourceUrl(url);
@@ -33,5 +35,10 @@ export function PrayerLinkEditor({ url = "", text = "", bible, label, disabled, 
         {validUrl ? <div className="prayer-attached-source"><a href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} />{draftText.trim() || "링크 보기"}</a>
           <button type="button" className="prayer-icon-button" disabled={disabled} title="링크 제거" aria-label={`${label} 링크 제거`} onClick={() => { setDraftText(""); onChange("", ""); }}><X size={16} /></button></div> : null}
       </div>}
+    {validUrl && onDisplayModeChange ? <div className="prayer-manual-link"><label><span>열기 방식</span>
+      <select aria-label={`${label} 열기 방식`} disabled={disabled} value={displayMode ?? "auto"}
+        onChange={(event) => onDisplayModeChange(event.target.value as "auto" | "image" | "external")}>
+        <option value="auto">자동</option><option value="image">앱 악보 뷰어</option><option value="external">원문 링크 (새 탭)</option>
+      </select></label></div> : null}
   </div>;
 }

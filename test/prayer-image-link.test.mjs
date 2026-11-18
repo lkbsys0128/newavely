@@ -18,6 +18,25 @@ test("web pages, image-looking query parameters, and unknown endpoints open exte
 
 test("entry rendering classifies URLs independently of the editable score label", () => {
   const source = readFileSync(new URL("../src/components/prayer-entry-links.tsx", import.meta.url), "utf8");
-  assert.match(source, /links\.filter\(isPrayerImageLink\)/);
+  assert.match(source, /isPrayerImageLink\(url, entry.sourceModes\?\.\[url\]\)/);
   assert.match(source, /href=\{url\} target="_blank" rel="noopener noreferrer"/);
+});
+
+test("explicit saved preferences override auto detection", () => {
+  assert.equal(isPrayerImageLink("https://example.com/score.png", "external"), false);
+  assert.equal(isPrayerImageLink("https://example.com/image/123", "image"), true);
+  assert.equal(isPrayerImageLink("javascript:alert(1)", "image"), false);
+});
+
+test("link preferences survive serialization and templates but removed links are pruned", () => {
+  const load = createPrayerModuleLoader();
+  const { serializePrayerEntry, prayerEntrySchema } = load("src/lib/prayer-meetings.ts");
+  const { preparePrayerTemplate } = load("src/lib/prayer-templates.ts");
+  const url = "https://example.com/score.png";
+  const entry = { title: "찬양", detail: "test", sourceUrl: url, sourceModes: { [url]: "external", "https://example.com/old": "image" } };
+  const saved = serializePrayerEntry(entry);
+  assert.deepEqual(JSON.parse(JSON.stringify(saved.sourceModes)), { [url]: "external" });
+  assert.deepEqual(preparePrayerTemplate([saved], false)[0].sourceModes, saved.sourceModes);
+  assert.equal(preparePrayerTemplate([saved], true)[0].sourceModes, undefined);
+  assert.equal(prayerEntrySchema.safeParse({ ...entry, sourceModes: { [url]: "invalid" } }).success, false);
 });

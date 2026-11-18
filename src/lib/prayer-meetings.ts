@@ -8,6 +8,8 @@ export const prayerEntrySchema = z.object({
   detail: z.string().trim().max(500).default(""),
   sourceUrl: prayerLinkSchema.optional(),
   additionalSourceUrls: z.array(prayerLinkSchema).max(9).optional(),
+  sourceModes: z.record(z.string().max(2000).refine((url) => Boolean(safePrayerSourceUrl(url))), z.enum(["image", "external"]))
+    .refine((modes) => Object.keys(modes).length <= 10).optional(),
   sourceLabels: z.record(z.string().max(2000).refine((url) => Boolean(safePrayerSourceUrl(url))), z.string().trim().max(120))
     .refine((labels) => Object.keys(labels).length <= 10).optional(),
 });
@@ -28,12 +30,13 @@ export function prayerEntryLinks(entry: PrayerEntry): string[] {
     .filter((url): url is string => Boolean(url && safePrayerSourceUrl(url))))];
 }
 
-export function serializePrayerEntry({ title, detail, sourceUrl, additionalSourceUrls, sourceLabels }: PrayerEntry): PrayerEntry {
+export function serializePrayerEntry({ title, detail, sourceUrl, additionalSourceUrls, sourceLabels, sourceModes }: PrayerEntry): PrayerEntry {
   const extra = additionalSourceUrls?.filter(Boolean);
   const urls = new Set([sourceUrl, ...(extra ?? [])]);
+  const modes = Object.fromEntries(Object.entries(sourceModes ?? {}).filter(([url]) => urls.has(url)));
   const labels = Object.fromEntries(Object.entries(sourceLabels ?? {}).filter(([url, label]) => urls.has(url) && label.trim()).map(([url, label]) => [url, label.trim()]));
   return { title, detail, ...(sourceUrl ? { sourceUrl } : {}), ...(extra?.length ? { additionalSourceUrls: extra } : {}),
-    ...(Object.keys(labels).length ? { sourceLabels: labels } : {}) };
+    ...(Object.keys(labels).length ? { sourceLabels: labels } : {}), ...(Object.keys(modes).length ? { sourceModes: modes } : {}) };
 }
 export type PrayerMeeting = {
   id: string;
